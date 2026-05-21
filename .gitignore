@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# uv
+.venv/
+.python-version
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Secrets — NEVER commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# Galileu runtime
+proxy/galileu/galileu-ca.pem
+proxy/galileu/galileu_audit.log
+proxy/galileu/*.log
+
+# Synthetic corpus output (regenerable)
+corpus/synthetic/docs/
+
+# OS
+Thumbs.db
