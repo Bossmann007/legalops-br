@@ -19,9 +19,10 @@ from pathlib import Path
 
 from legalops.eml_reader import read_eml_dir
 from legalops.oab_sigilo import AuditLog
-from legalops.orchestrator import process_email
+from legalops.orchestrator import process_email, urgentes
 from legalops.pii_redactor import PIIRedactor
 from legalops.tjpr_parser import parse_email
+from legalops.whatsapp_notifier import WhatsAppNotifier, WhatsAppNotifierError
 
 
 def _read_input(arg_input: str | None) -> str:
@@ -201,6 +202,46 @@ def cmd_batch(args: argparse.Namespace) -> int:
     return 0 if emails else 1
 
 
+def cmd_notify(args: argparse.Namespace) -> int:
+    """Roda pipeline em email e envia lembrete WhatsApp se houver urgentes."""
+    text = _read_input(args.input)
+    hoje = date.fromisoformat(args.hoje) if args.hoje else None
+    audit_log = AuditLog(Path(args.audit_db)) if args.audit_db else None
+
+    results = process_email(
+        text,
+        parte=args.parte,
+        via_dje=args.via_dje,
+        hoje=hoje,
+        audit_log=audit_log,
+    )
+
+    u = urgentes(results)
+    if not u:
+        print(_dump({"sent": False, "reason": "no_urgentes", "checked": len(results)}))
+        return 0
+
+    notifier = WhatsAppNotifier(
+        chat_id=args.chat_id,
+        base_url=args.bridge_url,
+        timeout=args.timeout,
+    )
+
+    if args.dry_run:
+        msg = notifier.format_urgentes_message(u, hoje=hoje)
+        print(_dump({"sent": False, "dry_run": True, "message": msg, "urgent_count": len(u)}))
+        return 0
+
+    try:
+        msg = notifier.notify_urgentes(u, hoje=hoje)
+    except WhatsAppNotifierError as e:
+        print(_dump({"sent": False, "error": str(e), "urgent_count": len(u)}))
+        return 2
+
+    print(_dump({"sent": True, "urgent_count": len(u), "message": msg}))
+    return 0
+
+
 def cmd_audit_verify(args: argparse.Namespace) -> int:
     log = AuditLog(Path(args.db))
     valid = log.verify_chain()
@@ -274,6 +315,32 @@ def build_parser() -> argparse.ArgumentParser:
     p_batch.add_argument("--hoje", help="Data atual ISO")
     p_batch.add_argument("--audit-db", help="Caminho SQLite audit log")
     p_batch.set_defaults(func=cmd_batch)
+
+    p_notify = sub.add_parser(
+        "notify", help="Pipeline + envia urgentes via WhatsApp bridge :3000"
+    )
+    p_notify.add_argument("--input", "-i", help="Email file (default stdin)")
+    p_notify.add_argument(
+        "--chat-id",
+        required=True,
+        help="WhatsApp chatId (ex: 5541999999999@s.whatsapp.net)",
+    )
+    p_notify.add_argument(
+        "--bridge-url",
+        default="http://localhost:3000",
+        help="URL bridge.js (default: http://localhost:3000)",
+    )
+    p_notify.add_argument("--timeout", type=float, default=10.0)
+    p_notify.add_argument("--dry-run", action="store_true", help="Nao envia, so formata")
+    p_notify.add_argument(
+        "--parte",
+        choices=["particular", "fazenda", "mp", "defensoria"],
+        default="particular",
+    )
+    p_notify.add_argument("--via-dje", action="store_true")
+    p_notify.add_argument("--hoje", help="Data atual ISO")
+    p_notify.add_argument("--audit-db", help="SQLite audit log")
+    p_notify.set_defaults(func=cmd_notify)
 
     p_audit = sub.add_parser("audit", help="Operacoes sobre audit log")
     audit_sub = p_audit.add_subparsers(dest="audit_cmd", required=True)
