@@ -16,7 +16,7 @@ import re
 from dataclasses import dataclass
 from datetime import datetime
 from email import policy
-from email.message import Message
+from email.message import EmailMessage, Message
 from email.parser import BytesParser
 from email.utils import parsedate_to_datetime
 from pathlib import Path
@@ -73,15 +73,19 @@ def _extract_body(msg: Message) -> tuple[str, int]:
         if part.is_multipart():
             continue
 
-        try:
-            content = part.get_content()
-        except (LookupError, KeyError):
+        content: object = ""
+        if isinstance(part, EmailMessage):
+            try:
+                content = part.get_content()
+            except (LookupError, KeyError):
+                content = ""
+        if not isinstance(content, str) or not content:
             payload = part.get_payload(decode=True)
             if isinstance(payload, bytes):
                 charset = part.get_content_charset() or "utf-8"
                 content = payload.decode(charset, errors="replace")
-            else:
-                content = str(payload) if payload else ""
+            elif payload is not None:
+                content = str(payload)
 
         if not isinstance(content, str):
             continue

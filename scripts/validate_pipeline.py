@@ -1,9 +1,10 @@
 """Validacao end-to-end do pipeline LegalOps BR.
 
-Roda emails sinteticos pelo pipeline completo:
-    Email TJPR -> pii_redactor -> tjpr_parser -> cpc_prazos
+Roda emails sinteticos pelo orchestrator (mesmo codigo de producao).
+Cada caso especifica `parte` para exercitar dobro Fazenda/MP/Defensoria.
 
 Saida: metrics/pipeline_validation_YYYYMMDD.json + print stdout.
+Exit 0 se todos casos OK, 1 senao.
 
 Uso:
     uv run python scripts/validate_pipeline.py
@@ -16,20 +17,23 @@ import json
 import sys
 from datetime import date
 from pathlib import Path
+from typing import Literal
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from legalops.cpc_prazos import PrazoInput, calcular_prazo  # noqa: E402
-from legalops.pii_redactor import PIIRedactor  # noqa: E402
-from legalops.tjpr_parser import parse_email  # noqa: E402
+from legalops.orchestrator import ProcessedIntimacao, process_email  # noqa: E402
 
 OUT_DIR = Path(__file__).parent.parent / "metrics"
 
+ParteType = Literal["particular", "fazenda", "mp", "defensoria"]
 
-SYNTHETIC_EMAILS = [
+
+SYNTHETIC_CASES: list[dict[str, object]] = [
     {
         "idx": 0,
-        "descricao": "Despacho simples com prazo 15 dias",
+        "descricao": "Despacho particular prazo 15 dias",
+        "parte": "particular",
+        "via_dje": False,
         "text": (
             "De: projudisistema@tjpr.jus.br\n"
             "Data: 21/05/2026\n"
@@ -38,10 +42,13 @@ SYNTHETIC_EMAILS = [
             "Procurador OAB/PR 12345 (CPF 123.456.789-00)\n"
             "Despacho: Intime-se a parte re para contestar no prazo de 15 dias uteis.\n"
         ),
+        "expected_prazo_efetivo_dias": 15,
     },
     {
         "idx": 1,
-        "descricao": "Sentenca contra Fazenda (dobro)",
+        "descricao": "Sentenca contra Fazenda (dobro Art. 183)",
+        "parte": "fazenda",
+        "via_dje": False,
         "text": (
             "De: projudisistema@tjpr.jus.br\n"
             "Data: 15/06/2026\n"
@@ -50,10 +57,13 @@ SYNTHETIC_EMAILS = [
             "Sentenca: julgo procedente em parte. Recorrer no prazo de 15 dias.\n"
             "Reclamado: Municipio de Curitiba (CNPJ 76.417.005/0001-86)\n"
         ),
+        "expected_prazo_efetivo_dias": 30,
     },
     {
         "idx": 2,
         "descricao": "Multiplos processos no mesmo email",
+        "parte": "particular",
+        "via_dje": False,
         "text": (
             "De: projudisistema@tjpr.jus.br\n"
             "Data: 22/05/2026\n"
@@ -63,92 +73,119 @@ SYNTHETIC_EMAILS = [
             "Processo 0008888-22.2026.8.16.0002\n"
             "Decisao: agravo no prazo de 15 dias.\n"
         ),
+        "expected_intimacoes": 2,
     },
     {
         "idx": 3,
-        "descricao": "Email sem processo (deve falhar gracefully)",
+        "descricao": "Intimacao via DJE pula um dia util (Art. 231 #1)",
+        "parte": "particular",
+        "via_dje": True,
         "text": (
-            "Email comum sem numero de processo. "
-            "Talvez seja spam ou notificacao administrativa."
+            "De: projudisistema@tjpr.jus.br\n"
+            "Data: 21/05/2026\n"
+            "Processo 0007777-77.2026.8.16.0001\n"
+            "Despacho: prazo de 15 dias uteis.\n"
         ),
+        "expected_prazo_efetivo_dias": 15,
+    },
+    {
+        "idx": 4,
+        "descricao": "Email sem processo (deve retornar lista vazia)",
+        "parte": "particular",
+        "via_dje": False,
+        "text": "Email comum sem numero de processo.",
+        "expected_intimacoes": 0,
     },
 ]
 
 
-def run_pipeline(email_text: str, hoje: date) -> dict[str, object]:
-    """Executa pipeline em 1 email."""
-    redactor = PIIRedactor()
+def _validate_case(
+    case: dict[str, object], results: list[ProcessedIntimacao]
+) -> tuple[bool, list[str]]:
+    """Valida um caso contra expectations. Retorna (ok, erros)."""
+    erros: list[str] = []
 
-    redacted = redactor.redact(email_text)
-    parse_result = parse_email(redacted.redacted_text)
+    if "expected_intimacoes" in case:
+        expected = int(case["expected_intimacoes"])  # type: ignore[arg-type]
+        if len(results) != expected:
+            erros.append(f"intimacoes={len(results)} esperado={expected}")
 
-    prazos: list[dict[str, object]] = []
-    for intim in parse_result.intimacoes:
-        if intim.prazo_dias is None or intim.data_publicacao is None:
-            continue
-        try:
-            res = calcular_prazo(
-                PrazoInput(
-                    data_publicacao=intim.data_publicacao,
-                    prazo_dias=intim.prazo_dias,
-                    parte="particular",
-                ),
-                hoje=hoje,
+    if "expected_prazo_efetivo_dias" in case and results:
+        expected = int(case["expected_prazo_efetivo_dias"])  # type: ignore[arg-type]
+        prazo = results[0].prazo
+        if prazo is None:
+            erros.append("prazo None inesperado")
+        elif prazo.prazo_efetivo_dias != expected:
+            erros.append(
+                f"prazo_efetivo_dias={prazo.prazo_efetivo_dias} esperado={expected}"
             )
-            prazos.append(
-                {
-                    "processo": intim.numero_processo,
-                    "dies_a_quo": res.dies_a_quo.isoformat(),
-                    "dies_ad_quem": res.dies_ad_quem.isoformat(),
-                    "alerta": res.alerta,
-                }
-            )
-        except Exception as e:  # noqa: BLE001
-            prazos.append({"processo": intim.numero_processo, "erro": str(e)})
 
-    sucesso = parse_result.total > 0 or not redacted.has_pii
-    return {
-        "redacted_chars": len(redacted.redacted_text),
-        "pii_redacted": len(redacted.matches),
-        "intimacoes_found": parse_result.total,
-        "prazos_calculados": prazos,
-        "parser_errors": parse_result.erros,
-        "sucesso": sucesso,
-    }
+    return not erros, erros
 
 
 def main() -> int:
     hoje = date(2026, 5, 22)
-    results: list[dict[str, object]] = []
+    results_out: list[dict[str, object]] = []
     falhas: list[str] = []
 
-    for email in SYNTHETIC_EMAILS:
+    for case in SYNTHETIC_CASES:
         try:
-            r = run_pipeline(str(email["text"]), hoje=hoje)
-            r["idx"] = email["idx"]
-            r["descricao"] = email["descricao"]
-            results.append(r)
-            if not r["sucesso"]:
-                falhas.append(f"#{email['idx']}: {email['descricao']}")
-        except Exception as e:  # noqa: BLE001
-            results.append(
+            processed = process_email(
+                str(case["text"]),
+                parte=str(case["parte"]),  # type: ignore[arg-type]
+                via_dje=bool(case["via_dje"]),
+                hoje=hoje,
+            )
+            ok, erros_caso = _validate_case(case, processed)
+
+            results_out.append(
                 {
-                    "idx": email["idx"],
-                    "descricao": email["descricao"],
-                    "erro": str(e),
-                    "sucesso": False,
+                    "idx": case["idx"],
+                    "descricao": case["descricao"],
+                    "parte": case["parte"],
+                    "via_dje": case["via_dje"],
+                    "n_intimacoes": len(processed),
+                    "prazos": [
+                        {
+                            "numero_processo": r.numero_processo,
+                            "prazo_efetivo_dias": r.prazo.prazo_efetivo_dias
+                            if r.prazo
+                            else None,
+                            "dies_a_quo": r.prazo.dies_a_quo.isoformat()
+                            if r.prazo
+                            else None,
+                            "dies_ad_quem": r.prazo.dies_ad_quem.isoformat()
+                            if r.prazo
+                            else None,
+                            "alerta": r.prazo.alerta if r.prazo else None,
+                        }
+                        for r in processed
+                    ],
+                    "ok": ok,
+                    "erros": erros_caso,
                 }
             )
-            falhas.append(f"#{email['idx']}: EXCEPTION {e}")
+            if not ok:
+                falhas.append(f"#{case['idx']}: {erros_caso}")
+        except Exception as e:  # noqa: BLE001
+            results_out.append(
+                {
+                    "idx": case["idx"],
+                    "descricao": case["descricao"],
+                    "ok": False,
+                    "erros": [f"EXCEPTION: {e}"],
+                }
+            )
+            falhas.append(f"#{case['idx']}: EXCEPTION {e}")
 
-    total_sucesso = sum(1 for r in results if r.get("sucesso"))
+    total_ok = sum(1 for r in results_out if r.get("ok"))
 
     metrics = {
         "tested_at": dt.datetime.now(dt.UTC).isoformat(),
-        "n_emails": len(SYNTHETIC_EMAILS),
-        "total_sucesso": total_sucesso,
+        "n_cases": len(SYNTHETIC_CASES),
+        "total_ok": total_ok,
         "falhas": falhas,
-        "results": results,
+        "results": results_out,
     }
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -157,26 +194,15 @@ def main() -> int:
     out_path.write_text(json.dumps(metrics, indent=2, ensure_ascii=False, default=str))
 
     print("\n=== Pipeline Validation ===")
-    print(f"Emails testados:     {len(SYNTHETIC_EMAILS)}")
-    print(f"Sucesso:             {total_sucesso}/{len(SYNTHETIC_EMAILS)}")
+    print(f"Casos testados:      {len(SYNTHETIC_CASES)}")
+    print(f"OK:                  {total_ok}/{len(SYNTHETIC_CASES)}")
     if falhas:
         print("Falhas:")
         for f in falhas:
             print(f"  - {f}")
     print(f"\nDetalhes em:         {out_path}")
 
-    for r in results:
-        idx = r.get("idx")
-        desc = r.get("descricao")
-        intim = r.get("intimacoes_found", "?")
-        pii = r.get("pii_redacted", "?")
-        prazos = r.get("prazos_calculados", [])
-        n_prazos = len(prazos) if isinstance(prazos, list) else 0
-        print(f"  #{idx} '{desc}': pii={pii}, intim={intim}, prazos={n_prazos}")
-
-    if total_sucesso < len(SYNTHETIC_EMAILS) - 1:
-        return 1
-    return 0
+    return 0 if total_ok == len(SYNTHETIC_CASES) else 1
 
 
 if __name__ == "__main__":

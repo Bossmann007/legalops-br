@@ -51,3 +51,9 @@ audit_*.db
 
 # OS
 Thumbs.db
+
+# Slides build artifacts (npm deps not relevant to Python core)
+slide/node_modules/
+slide/package-lock.json
+slide/yarn.lock
+slide/dist/

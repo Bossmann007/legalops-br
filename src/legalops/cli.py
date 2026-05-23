@@ -233,12 +233,14 @@ def cmd_notify(args: argparse.Namespace) -> int:
         return 0
 
     try:
-        msg = notifier.notify_urgentes(u, hoje=hoje)
+        sent_msg = notifier.notify_urgentes(u, hoje=hoje)
     except WhatsAppNotifierError as e:
         print(_dump({"sent": False, "error": str(e), "urgent_count": len(u)}))
         return 2
 
-    print(_dump({"sent": True, "urgent_count": len(u), "message": msg}))
+    # u nao-vazio garante msg nao-None
+    assert sent_msg is not None
+    print(_dump({"sent": True, "urgent_count": len(u), "message": sent_msg}))
     return 0
 
 
