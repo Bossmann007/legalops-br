@@ -17,6 +17,7 @@ from dataclasses import asdict, is_dataclass
 from datetime import date, datetime
 from pathlib import Path
 
+from legalops.eml_reader import read_eml_dir
 from legalops.oab_sigilo import AuditLog
 from legalops.orchestrator import process_email
 from legalops.pii_redactor import PIIRedactor
@@ -132,6 +133,74 @@ def cmd_pipeline(args: argparse.Namespace) -> int:
     return 0 if results else 1
 
 
+def cmd_batch(args: argparse.Namespace) -> int:
+    """Processa diretorio de .eml files via pipeline completo."""
+    directory = Path(args.dir)
+    hoje = date.fromisoformat(args.hoje) if args.hoje else None
+    audit_log = AuditLog(Path(args.audit_db)) if args.audit_db else None
+
+    emails = read_eml_dir(directory)
+    results_out: list[dict[str, object]] = []
+    n_intimacoes = 0
+
+    for eml in emails:
+        # Inject header Date no body se nao tiver data inline (tjpr_parser precisa)
+        body = eml.body_text
+        if eml.date is not None:
+            body = f"Data: {eml.date.date().isoformat()}\n{body}"
+
+        processed = process_email(
+            body,
+            parte=args.parte,
+            via_dje=args.via_dje,
+            hoje=hoje,
+            audit_log=audit_log,
+        )
+        n_intimacoes += len(processed)
+
+        results_out.append(
+            {
+                "eml_path": eml.source_path,
+                "subject": eml.subject,
+                "sender": eml.sender,
+                "date": eml.date.isoformat() if eml.date else None,
+                "n_attachments": eml.attachments_count,
+                "processed": [
+                    {
+                        "numero_processo": r.numero_processo,
+                        "pii_matches": r.pii_matches,
+                        "tipo_ato": r.parsed.tipo_ato,
+                        "prazo_dias": r.parsed.prazo_dias,
+                        "calc": {
+                            "dies_a_quo": r.prazo.dies_a_quo.isoformat()
+                            if r.prazo
+                            else None,
+                            "dies_ad_quem": r.prazo.dies_ad_quem.isoformat()
+                            if r.prazo
+                            else None,
+                            "alerta": r.prazo.alerta if r.prazo else None,
+                        },
+                        "audit_seq": r.audit_entry_seq,
+                        "erros": r.erros,
+                    }
+                    for r in processed
+                ],
+            }
+        )
+
+    print(
+        _dump(
+            {
+                "batch_dir": str(directory),
+                "n_emails": len(emails),
+                "n_intimacoes": n_intimacoes,
+                "results": results_out,
+            }
+        )
+    )
+    return 0 if emails else 1
+
+
 def cmd_audit_verify(args: argparse.Namespace) -> int:
     log = AuditLog(Path(args.db))
     valid = log.verify_chain()
@@ -191,6 +260,20 @@ def build_parser() -> argparse.ArgumentParser:
     p_pipe.add_argument("--hoje", help="Data atual ISO (default hoje)")
     p_pipe.add_argument("--audit-db", help="Caminho SQLite audit log")
     p_pipe.set_defaults(func=cmd_pipeline)
+
+    p_batch = sub.add_parser(
+        "batch", help="Processa diretorio de .eml files via pipeline"
+    )
+    p_batch.add_argument("--dir", required=True, help="Diretorio com arquivos .eml")
+    p_batch.add_argument(
+        "--parte",
+        choices=["particular", "fazenda", "mp", "defensoria"],
+        default="particular",
+    )
+    p_batch.add_argument("--via-dje", action="store_true")
+    p_batch.add_argument("--hoje", help="Data atual ISO")
+    p_batch.add_argument("--audit-db", help="Caminho SQLite audit log")
+    p_batch.set_defaults(func=cmd_batch)
 
     p_audit = sub.add_parser("audit", help="Operacoes sobre audit log")
     audit_sub = p_audit.add_subparsers(dest="audit_cmd", required=True)

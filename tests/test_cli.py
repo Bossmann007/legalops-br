@@ -215,6 +215,86 @@ class TestCmdAudit:
         assert all(e["entry_hash"].endswith("...") for e in data)
 
 
+class TestCmdBatch:
+    @pytest.fixture
+    def eml_dir(self, tmp_path: Path) -> Path:
+        d = tmp_path / "inbox"
+        d.mkdir()
+        (d / "a.eml").write_bytes(
+            b"From: projudisistema@tjpr.jus.br\n"
+            b"Subject: Test 1\n"
+            b"Date: Thu, 21 May 2026 10:00:00 -0300\n"
+            b"Content-Type: text/plain; charset=utf-8\n\n"
+            b"Processo 0001234-56.2026.8.16.0001\n"
+            b"Despacho: prazo de 15 dias uteis.\n"
+        )
+        (d / "b.eml").write_bytes(
+            b"From: projudisistema@tjpr.jus.br\n"
+            b"Subject: Test 2\n"
+            b"Date: Fri, 22 May 2026 10:00:00 -0300\n"
+            b"Content-Type: text/plain; charset=utf-8\n\n"
+            b"Processo 0009999-22.2026.8.16.0002\n"
+            b"Despacho: prazo de 10 dias.\n"
+        )
+        return d
+
+    def test_batch_processa_dois_emails(
+        self, eml_dir: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        code = main(["batch", "--dir", str(eml_dir), "--hoje", "2026-05-23"])
+        assert code == 0
+        data = json.loads(capsys.readouterr().out)
+        assert data["n_emails"] == 2
+        assert data["n_intimacoes"] == 2
+
+    def test_batch_extrai_processos(
+        self, eml_dir: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        code = main(["batch", "--dir", str(eml_dir), "--hoje", "2026-05-23"])
+        assert code == 0
+        data = json.loads(capsys.readouterr().out)
+        numeros = {p["numero_processo"] for r in data["results"] for p in r["processed"]}
+        assert "0001234-56.2026.8.16.0001" in numeros
+        assert "0009999-22.2026.8.16.0002" in numeros
+
+    def test_batch_audit_db(
+        self,
+        eml_dir: Path,
+        tmp_path: Path,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        db = tmp_path / "audit.db"
+        code = main(
+            [
+                "batch",
+                "--dir",
+                str(eml_dir),
+                "--audit-db",
+                str(db),
+                "--hoje",
+                "2026-05-23",
+            ]
+        )
+        assert code == 0
+        assert db.exists()
+        capsys.readouterr()
+        code = main(["audit", "verify", "--db", str(db)])
+        assert code == 0
+        verify = json.loads(capsys.readouterr().out)
+        assert verify["valid"] is True
+        assert verify["entries"] >= 6
+
+    def test_batch_dir_vazio_retorna_1(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        d = tmp_path / "empty"
+        d.mkdir()
+        code = main(["batch", "--dir", str(d)])
+        assert code == 1
+        data = json.loads(capsys.readouterr().out)
+        assert data["n_emails"] == 0
+
+
 class TestStdin:
     def test_redact_from_stdin(
         self, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
