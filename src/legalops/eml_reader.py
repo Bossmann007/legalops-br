@@ -148,8 +148,37 @@ def read_eml(path: Path) -> EmailContent:
     )
 
 
-def read_eml_dir(directory: Path, glob_pattern: str = "*.eml") -> list[EmailContent]:
-    """Le todos os .eml em um diretorio (nao recursivo)."""
+MAX_FILES_DEFAULT = 1000
+
+
+def read_eml_dir(
+    directory: Path,
+    glob_pattern: str = "*.eml",
+    max_files: int = MAX_FILES_DEFAULT,
+) -> list[EmailContent]:
+    """Le todos os .eml em um diretorio.
+
+    Args:
+        directory: diretorio a ler.
+        glob_pattern: pattern do glob (default "*.eml"). NAO recursivo —
+            apenas o diretorio direto. Use "**/*.eml" + rglob se precisar
+            recursivo (custom).
+        max_files: limite defensivo de arquivos (default 1000). Evita
+            esgotar memoria/file descriptors se diretorio acidentalmente
+            apontar pra /home ou similar.
+
+    Returns:
+        Lista ordenada por path de EmailContent.
+
+    Raises:
+        NotADirectoryError: directory nao e diretorio.
+        ValueError: numero de arquivos excede max_files.
+    """
     if not directory.is_dir():
         raise NotADirectoryError(f"Nao e diretorio: {directory}")
-    return [read_eml(p) for p in sorted(directory.glob(glob_pattern))]
+    paths = sorted(directory.glob(glob_pattern))
+    if len(paths) > max_files:
+        raise ValueError(
+            f"Diretorio tem {len(paths)} arquivos > limite {max_files}"
+        )
+    return [read_eml(p) for p in paths]

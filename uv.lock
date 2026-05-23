@@ -194,13 +194,13 @@ name = "legalops-br"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "faker" },
     { name = "pydantic" },
     { name = "python-dateutil" },
 ]
 
 [package.optional-dependencies]
 dev = [
-    { name = "faker" },
     { name = "mypy" },
     { name = "pytest" },
     { name = "pytest-cov" },
@@ -209,7 +209,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "faker", marker = "extra == 'dev'", specifier = ">=25.0" },
+    { name = "faker", specifier = ">=25.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.10" },
     { name = "pydantic", specifier = ">=2.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },

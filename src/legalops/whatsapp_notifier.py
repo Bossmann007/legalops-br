@@ -16,7 +16,7 @@ from __future__ import annotations
 import json
 from datetime import date
 from typing import TYPE_CHECKING
-from urllib import error, request
+from urllib import error, parse, request
 
 if TYPE_CHECKING:
     from legalops.orchestrator import ProcessedIntimacao
@@ -41,6 +41,13 @@ class WhatsAppNotifier:
     ) -> None:
         if not chat_id:
             raise ValueError("chat_id obrigatorio")
+        parsed = parse.urlparse(base_url)
+        if parsed.scheme not in ("http", "https"):
+            raise ValueError(
+                f"base_url scheme invalido: {parsed.scheme!r} (use http ou https)"
+            )
+        if not parsed.netloc:
+            raise ValueError(f"base_url sem host: {base_url!r}")
         self.chat_id = chat_id
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout

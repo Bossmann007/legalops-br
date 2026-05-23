@@ -67,6 +67,22 @@ class TestInit:
         with pytest.raises(ValueError, match="chat_id"):
             WhatsAppNotifier(chat_id="")
 
+    def test_invalid_scheme_ftp_raises(self) -> None:
+        with pytest.raises(ValueError, match="scheme invalido"):
+            WhatsAppNotifier(chat_id=FAKE_CHAT_ID, base_url="ftp://example.com")
+
+    def test_invalid_scheme_file_raises(self) -> None:
+        with pytest.raises(ValueError, match="scheme invalido"):
+            WhatsAppNotifier(chat_id=FAKE_CHAT_ID, base_url="file:///etc/passwd")
+
+    def test_no_host_raises(self) -> None:
+        with pytest.raises(ValueError, match="sem host"):
+            WhatsAppNotifier(chat_id=FAKE_CHAT_ID, base_url="http://")
+
+    def test_https_accepted(self) -> None:
+        n = WhatsAppNotifier(chat_id=FAKE_CHAT_ID, base_url="https://bridge.example/")
+        assert n.base_url == "https://bridge.example"
+
 
 class TestSend:
     def test_send_post_payload(self) -> None:
