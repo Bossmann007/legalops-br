@@ -43,5 +43,10 @@ proxy/galileu/*.log
 # Synthetic corpus output (regenerable)
 corpus/synthetic/docs/
 
+# Audit log databases (runtime data)
+*.db
+audit.db
+audit_*.db
+
 # OS
 Thumbs.db
