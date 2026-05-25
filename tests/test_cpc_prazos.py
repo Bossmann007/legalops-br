@@ -7,6 +7,7 @@ from datetime import date
 import pytest
 
 from legalops.cpc_prazos import (
+    RECESSO_POR_TRIBUNAL,
     PrazoInput,
     _easter_date,
     calcular_prazo,
@@ -14,6 +15,7 @@ from legalops.cpc_prazos import (
     feriados_moveis,
     is_dia_util,
     is_feriado,
+    is_recesso_forense,
     is_recesso_forense_tjpr,
     proximo_dia_util,
     soma_dias_uteis,
@@ -44,6 +46,47 @@ class TestFeriadosMoveis:
     def test_corpus_christi_2026(self) -> None:
         feriados = feriados_moveis(2026)
         assert date(2026, 6, 4) in feriados
+
+
+class TestRecessoOutrosTribunais:
+    def test_stj_recesso(self) -> None:
+        assert is_recesso_forense(date(2026, 12, 25), "STJ")
+        assert is_recesso_forense(date(2027, 1, 10), "STJ")
+        assert not is_recesso_forense(date(2026, 6, 15), "STJ")
+
+    def test_stf_recesso(self) -> None:
+        assert is_recesso_forense(date(2026, 12, 31), "STF")
+
+    def test_trf4_recesso(self) -> None:
+        assert is_recesso_forense(date(2027, 1, 5), "TRF4")
+
+    def test_tst_recesso(self) -> None:
+        assert is_recesso_forense(date(2026, 12, 22), "TST")
+
+    def test_tribunal_invalido(self) -> None:
+        with pytest.raises(ValueError, match="Tribunal desconhecido"):
+            is_recesso_forense(date(2026, 12, 25), "TJSP")
+
+    def test_recesso_por_tribunal_dict(self) -> None:
+        assert "TJPR" in RECESSO_POR_TRIBUNAL
+        assert "STJ" in RECESSO_POR_TRIBUNAL
+        assert RECESSO_POR_TRIBUNAL["TJPR"] == ((12, 20), (1, 20))
+
+    def test_tjpr_backward_compat_wrapper(self) -> None:
+        # is_recesso_forense_tjpr ainda funciona
+        assert is_recesso_forense_tjpr(date(2026, 12, 25))
+        assert not is_recesso_forense_tjpr(date(2026, 6, 15))
+
+    def test_calc_prazo_com_tribunal_stj(self) -> None:
+        inp = PrazoInput(
+            data_publicacao=date(2026, 12, 10),
+            prazo_dias=15,
+            parte="particular",
+            tribunal="STJ",
+        )
+        result = calcular_prazo(inp, hoje=date(2026, 12, 11))
+        # mesmo recesso 20/12-20/01 → dies_ad_quem cai apos 20/01/2027
+        assert result.dies_ad_quem > date(2027, 1, 20)
 
 
 class TestRecessoForense:

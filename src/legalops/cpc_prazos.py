@@ -82,43 +82,65 @@ def feriados_moveis(year: int) -> dict[date, str]:
     }
 
 
-def is_recesso_forense_tjpr(d: date) -> bool:
-    """Recesso forense TJPR: 20 dez a 20 jan."""
-    if d.month == 12 and d.day >= 20:
+# Recesso forense por tribunal: (mes_inicio, dia_inicio) -> (mes_fim, dia_fim).
+# Lei 5.010/66 art. 62 (federais) + Res. TJ/PR 11/2007 (TJPR) — todos 20/12-20/01.
+RECESSO_POR_TRIBUNAL: dict[str, tuple[tuple[int, int], tuple[int, int]]] = {
+    "TJPR": ((12, 20), (1, 20)),
+    "STJ": ((12, 20), (1, 20)),
+    "STF": ((12, 20), (1, 20)),
+    "TRF4": ((12, 20), (1, 20)),
+    "TST": ((12, 20), (1, 20)),
+}
+
+
+def is_recesso_forense(d: date, tribunal: str = "TJPR") -> bool:
+    """Recesso forense por tribunal. Default TJPR."""
+    if tribunal not in RECESSO_POR_TRIBUNAL:
+        raise ValueError(
+            f"Tribunal desconhecido: {tribunal!r}. "
+            f"Suportados: {sorted(RECESSO_POR_TRIBUNAL)}"
+        )
+    (m_ini, d_ini), (m_fim, d_fim) = RECESSO_POR_TRIBUNAL[tribunal]
+    if d.month == m_ini and d.day >= d_ini:
         return True
-    if d.month == 1 and d.day <= 20:
+    if d.month == m_fim and d.day <= d_fim:
         return True
     return False
 
 
-def is_feriado(d: date) -> bool:
+def is_recesso_forense_tjpr(d: date) -> bool:
+    """Recesso forense TJPR (compat). Use is_recesso_forense(d, 'TJPR')."""
+    return is_recesso_forense(d, "TJPR")
+
+
+def is_feriado(d: date, tribunal: str = "TJPR") -> bool:
     if (d.month, d.day) in FERIADOS_FIXOS_NACIONAIS:
         return True
     if d in feriados_moveis(d.year):
         return True
-    if is_recesso_forense_tjpr(d):
+    if is_recesso_forense(d, tribunal):
         return True
     return False
 
 
-def is_dia_util(d: date) -> bool:
+def is_dia_util(d: date, tribunal: str = "TJPR") -> bool:
     """Dia util = nao final-de-semana e nao feriado."""
     if d.weekday() >= 5:
         return False
-    if is_feriado(d):
+    if is_feriado(d, tribunal):
         return False
     return True
 
 
-def proximo_dia_util(d: date) -> date:
+def proximo_dia_util(d: date, tribunal: str = "TJPR") -> date:
     """Proximo dia util >= d."""
     cur = d
-    while not is_dia_util(cur):
+    while not is_dia_util(cur, tribunal):
         cur += timedelta(days=1)
     return cur
 
 
-def soma_dias_uteis(start: date, n_dias: int) -> date:
+def soma_dias_uteis(start: date, n_dias: int, tribunal: str = "TJPR") -> date:
     """Data apos N dias uteis a partir de start."""
     if n_dias <= 0:
         return start
@@ -126,19 +148,19 @@ def soma_dias_uteis(start: date, n_dias: int) -> date:
     count = 0
     while count < n_dias:
         cur += timedelta(days=1)
-        if is_dia_util(cur):
+        if is_dia_util(cur, tribunal):
             count += 1
     return cur
 
 
-def conta_dias_uteis_entre(start: date, end: date) -> int:
+def conta_dias_uteis_entre(start: date, end: date, tribunal: str = "TJPR") -> int:
     """Conta dias uteis entre start (exclusivo) e end (inclusivo)."""
     if end <= start:
         return 0
     cur = start + timedelta(days=1)
     count = 0
     while cur <= end:
-        if is_dia_util(cur):
+        if is_dia_util(cur, tribunal):
             count += 1
         cur += timedelta(days=1)
     return count
@@ -151,6 +173,7 @@ class PrazoInput:
     tipo_dia: TipoDia = "uteis"
     parte: ParteType = "particular"
     via_dje: bool = False
+    tribunal: str = "TJPR"
 
 
 @dataclass(frozen=True)
@@ -189,12 +212,14 @@ def calcular_prazo(inp: PrazoInput, hoje: date | None = None) -> PrazoResult:
     ]
 
     if inp.via_dje:
-        data_intimacao = proximo_dia_util(inp.data_publicacao + timedelta(days=1))
+        data_intimacao = proximo_dia_util(
+            inp.data_publicacao + timedelta(days=1), inp.tribunal
+        )
         fundamentos.append("Art. 231 #1 CPC (intimacao eletronica)")
     else:
         data_intimacao = inp.data_publicacao
 
-    dies_a_quo = proximo_dia_util(data_intimacao + timedelta(days=1))
+    dies_a_quo = proximo_dia_util(data_intimacao + timedelta(days=1), inp.tribunal)
     fundamentos.append("Art. 224 CPC (dies a quo)")
 
     prazo_efetivo = inp.prazo_dias
@@ -208,19 +233,23 @@ def calcular_prazo(inp: PrazoInput, hoje: date | None = None) -> PrazoResult:
             fundamentos.append("Art. 186 CPC (Defensoria em dobro)")
 
     if inp.tipo_dia == "uteis":
-        dies_ad_quem = soma_dias_uteis(dies_a_quo, prazo_efetivo - 1)
+        dies_ad_quem = soma_dias_uteis(dies_a_quo, prazo_efetivo - 1, inp.tribunal)
     else:
         dies_ad_quem = dies_a_quo + timedelta(days=prazo_efetivo - 1)
 
     if hoje < dies_a_quo:
         consumidos = 0
-        restantes = conta_dias_uteis_entre(dies_a_quo - timedelta(days=1), dies_ad_quem)
+        restantes = conta_dias_uteis_entre(
+            dies_a_quo - timedelta(days=1), dies_ad_quem, inp.tribunal
+        )
     elif hoje > dies_ad_quem:
         consumidos = prazo_efetivo
         restantes = 0
     else:
-        consumidos = conta_dias_uteis_entre(dies_a_quo - timedelta(days=1), hoje)
-        restantes = conta_dias_uteis_entre(hoje, dies_ad_quem)
+        consumidos = conta_dias_uteis_entre(
+            dies_a_quo - timedelta(days=1), hoje, inp.tribunal
+        )
+        restantes = conta_dias_uteis_entre(hoje, dies_ad_quem, inp.tribunal)
 
     if restantes <= 3:
         alerta: Alerta = "URGENTE"
