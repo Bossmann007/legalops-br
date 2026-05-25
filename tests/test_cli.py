@@ -9,7 +9,6 @@ import pytest
 
 from legalops.cli import build_parser, main
 
-
 EMAIL_SAMPLE = (
     "De: projudisistema@tjpr.jus.br\n"
     "Data: 21/05/2026\n"
@@ -71,7 +70,7 @@ class TestCmdParse:
     def test_parse_extrai_prazo(
         self, email_file: Path, capsys: pytest.CaptureFixture[str]
     ) -> None:
-        code = main(["parse", "--input", str(email_file)])
+        assert main(["parse", "--input", str(email_file)]) == 0
         data = json.loads(capsys.readouterr().out)
         assert data["intimacoes"][0]["prazo_dias"] == 15
 

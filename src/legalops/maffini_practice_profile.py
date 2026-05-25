@@ -7,10 +7,10 @@ Usado por agentes Claude Projects pra ter contexto sem ingerir vault inteiro.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 
 
-class AreaPratica(str, Enum):
+class AreaPratica(StrEnum):
     BANCARIO = "bancario"
     CONSUMIDOR = "consumidor"
     CIVEL = "civel"

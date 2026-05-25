@@ -13,7 +13,6 @@ from legalops.eml_reader import (
     read_eml_dir,
 )
 
-
 EML_PLAIN = b"""From: projudisistema@tjpr.jus.br
 To: advogada@maffini.test
 Subject: Intimacao - Processo 0001234-56.2026.8.16.0001

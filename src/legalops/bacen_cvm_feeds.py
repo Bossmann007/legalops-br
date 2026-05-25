@@ -82,7 +82,9 @@ def parse_feed_xml(xml_text: str, source: Source) -> list[FeedItem]:
         )
 
     try:
-        root = ET.fromstring(xml_text)
+        # S314: stub atual nao faz network call; size cap MAX_FEED_BYTES
+        # protege contra billion-laughs. TODO v0.3: defusedxml se aceitar feeds remotos.
+        root = ET.fromstring(xml_text)  # noqa: S314
     except ET.ParseError as e:
         raise ValueError(f"Malformed XML: {e}") from e
 

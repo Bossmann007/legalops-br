@@ -18,10 +18,10 @@ Referencias:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 
 
-class BaseLegal(str, Enum):
+class BaseLegal(StrEnum):
     """Bases legais LGPD para tratamento de dados pessoais (Art. 7 e Art. 11)."""
 
     CONSENTIMENTO = "consentimento"            # Art. 7 I
@@ -36,7 +36,7 @@ class BaseLegal(str, Enum):
     PROTECAO_CREDITO = "protecao_credito"      # Art. 7 X
 
 
-class TipoDado(str, Enum):
+class TipoDado(StrEnum):
     """Categorias de dados pessoais conforme LGPD."""
 
     COMUM = "comum"          # Art. 5 I - dado pessoal
@@ -88,7 +88,10 @@ DIREITOS_TITULAR: list[DireitoTitular] = [
     DireitoTitular(
         codigo="informacao_compartilhamento",
         artigo="Art. 18 VII",
-        descricao="Informacao sobre entidades publicas/privadas com as quais houve compartilhamento.",
+        descricao=(
+            "Informacao sobre entidades publicas/privadas com as quais "
+            "houve compartilhamento."
+        ),
     ),
     DireitoTitular(
         codigo="informacao_consequencias",
@@ -103,7 +106,10 @@ DIREITOS_TITULAR: list[DireitoTitular] = [
     DireitoTitular(
         codigo="oposicao",
         artigo="Art. 18 paragrafo 2",
-        descricao="Oposicao a tratamento realizado com fundamento em hipotese de dispensa de consentimento.",
+        descricao=(
+            "Oposicao a tratamento realizado com fundamento em hipotese "
+            "de dispensa de consentimento."
+        ),
     ),
 ]
 

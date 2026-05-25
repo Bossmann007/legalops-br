@@ -39,6 +39,11 @@ target-version = "py311"
 select = ["E", "F", "W", "I", "B", "UP", "N", "S"]
 ignore = ["S101"]
 
+[tool.ruff.lint.per-file-ignores]
+"corpus/synthetic/*" = ["S311"]
+"tests/*" = ["S311"]
+"scripts/*" = ["S311"]
+
 [tool.mypy]
 strict = true
 python_version = "3.11"

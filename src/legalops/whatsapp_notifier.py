@@ -66,7 +66,8 @@ class WhatsAppNotifier:
             {"chatId": self.chat_id, "message": message}, ensure_ascii=False
         ).encode("utf-8")
 
-        req = request.Request(
+        # S310: scheme http/https validado em __init__
+        req = request.Request(  # noqa: S310
             url,
             data=payload,
             headers={"Content-Type": "application/json"},

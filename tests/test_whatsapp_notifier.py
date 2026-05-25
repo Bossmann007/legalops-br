@@ -17,7 +17,6 @@ from legalops.whatsapp_notifier import (
     WhatsAppNotifierError,
 )
 
-
 FAKE_CHAT_ID = "5541999999999@s.whatsapp.net"
 
 

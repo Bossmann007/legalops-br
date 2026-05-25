@@ -13,7 +13,6 @@ from legalops.orchestrator import (
     urgentes,
 )
 
-
 EMAIL_BASICO = (
     "De: projudisistema@tjpr.jus.br\n"
     "Data: 21/05/2026\n"
