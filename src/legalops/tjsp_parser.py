@@ -16,10 +16,9 @@ Padroes TJSP vs TJPR:
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
 from datetime import date
 
-from legalops.tjpr_parser import Intimacao, TipoAto
+from legalops.tjpr_parser import Intimacao, ParseResult, TipoAto
 
 __all__ = ["Intimacao", "ParseResult", "TipoAto", "parse_email"]
 
@@ -50,15 +49,6 @@ PRAZO_RE = re.compile(
     r"prazo\s+(?:legal\s+|peremp?t[óo]rio\s+|comum\s+)?(?:de\s+)?(\d+)\s*\(?[\wÀ-ÿ]*?\)?\s*dias?\s*(?:[úu]teis)?",
     re.IGNORECASE,
 )
-
-
-@dataclass
-class ParseResult:
-    """Resultado do parse de um email TJSP."""
-
-    intimacoes: list[Intimacao] = field(default_factory=list)
-    total: int = 0
-    erros: list[str] = field(default_factory=list)
 
 
 def _parse_date_first(text: str) -> date | None:

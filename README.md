@@ -8,12 +8,14 @@ WhatsApp. Local-first, **nenhuma chamada automatica a LLM externa**.
 
 ---
 
-## Status v0.1 PoC
+## Status v0.3
 
-- **216/216 tests** passing, `mypy --strict` clean
-- 100% recall PII em corpus 200 docs sinteticos, 0 leaks
-- 5/5 cenarios pipeline E2E (inclui dobro Fazenda)
-- 12 commits master
+- **323/323 tests** passing, `mypy --strict` clean, `ruff` clean
+- 100% recall + 100% precision por tipo PII (corpus 500 sintetico, 0 leaks)
+- 8/8 cenarios pipeline E2E (dobro Fazenda, multiplos processos, multi-tribunal)
+- Parsers: TJPR, TJSP, TJSC, TJRJ (detector via sender domain + header)
+- PII v0.2: CPF/CNPJ sem mascara com modulo 11 (Receita Federal)
+- 17+ commits master
 
 ---
 
@@ -23,7 +25,12 @@ WhatsApp. Local-first, **nenhuma chamada automatica a LLM externa**.
 |--------|--------|
 | `pii_redactor` | Redacao 7 patterns BR (CPF/CNPJ/RG/OAB/PIX/email/telefone) com SHA-256 salted placeholders |
 | `cpc_prazos` | Calculo CPC/2015 — arts. 219/224/231/183/180/186, feriados nacionais + recesso TJPR (20/12–20/01), dobro Fazenda/MP/Defensoria, DJE exception |
-| `tjpr_parser` | Parse emails Projudi via regex — numero CNJ, vara, comarca, tipo ato, prazo |
+| `tjpr_parser` | Parse emails Projudi (TJPR) via regex |
+| `tjsp_parser` | Parse emails e-SAJ / PJe-SP (TJSP), reusa engine TJSP |
+| `tjsc_parser` | Parse emails e-Proc (TJSC), reusa engine TJSP |
+| `tjrj_parser` | Parse emails PJe-RJ (TJRJ), reusa engine TJSP |
+| `tribunal_detector` | Rota por sender domain + header fingerprint |
+| `br_validators` | Validacao modulo 11 (CPF/CNPJ) — gate pra patterns numericos |
 | `eml_reader` | Parser RFC 822 stdlib (text/plain preferido + HTML strip fallback) |
 | `orchestrator` | Encadeia pii → parse → prazos → audit; retorna `ProcessedIntimacao` por intimacao |
 | `oab_sigilo` | Audit log SHA-256 chain SQLite, BEGIN IMMEDIATE atomic, rejeita PII em metadata |

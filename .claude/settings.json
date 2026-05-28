@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /home/bossmann/Projects/legalops-br && uv run pytest --tb=no -q 2>&1 | tail -3",
+            "statusMessage": "Running legalops tests..."
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"systemMessage\": \"⚖️ LEGALOPS: Verifique — tipo hints obrigatórios, sem PII real em tests, cobertura ≥95% em código crítico\"}'"
+          }
+        ]
+      }
+    ]
+  }
+}

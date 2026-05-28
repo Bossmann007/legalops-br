@@ -12,6 +12,7 @@ Uso:
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import date
 
@@ -23,10 +24,19 @@ from legalops.cpc_prazos import (
 )
 from legalops.oab_sigilo import AuditLog
 from legalops.pii_redactor import PIIRedactor
-from legalops.tjpr_parser import Intimacao
+from legalops.tjpr_parser import Intimacao, ParseResult
 from legalops.tjpr_parser import parse_email as parse_tjpr
+from legalops.tjrj_parser import parse_email as parse_tjrj
+from legalops.tjsc_parser import parse_email as parse_tjsc
 from legalops.tjsp_parser import parse_email as parse_tjsp
 from legalops.tribunal_detector import detect_tribunal
+
+_PARSERS: dict[str, Callable[[str], ParseResult]] = {
+    "tjsp": parse_tjsp,
+    "tjsc": parse_tjsc,
+    "tjrj": parse_tjrj,
+    "tjpr": parse_tjpr,
+}
 
 
 @dataclass
@@ -78,7 +88,7 @@ def process_email(
         )
 
     tribunal = detect_tribunal(email_text, sender=sender)
-    _parse = parse_tjsp if tribunal == "tjsp" else parse_tjpr
+    _parse = _PARSERS.get(tribunal, parse_tjpr)
     parse_result = _parse(redacted.redacted_text)
     if audit_log is not None:
         audit_log.append(

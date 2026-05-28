@@ -104,6 +104,7 @@ def cmd_pipeline(args: argparse.Namespace) -> int:
         via_dje=args.via_dje,
         hoje=hoje,
         audit_log=audit_log,
+        sender=getattr(args, "sender", "") or "",
     )
 
     out = [
@@ -208,6 +209,7 @@ def cmd_notify(args: argparse.Namespace) -> int:
         via_dje=args.via_dje,
         hoje=hoje,
         audit_log=audit_log,
+        sender=getattr(args, "sender", "") or "",
     )
 
     u = urgentes(results)
@@ -294,6 +296,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_pipe.add_argument("--via-dje", action="store_true", help="Intimacao via DJE")
     p_pipe.add_argument("--hoje", help="Data atual ISO (default hoje)")
     p_pipe.add_argument("--audit-db", help="Caminho SQLite audit log")
+    p_pipe.add_argument(
+        "--sender",
+        default="",
+        help="Email From: header (forca deteccao tribunal por domain, ex: x@tjsp.jus.br)",
+    )
     p_pipe.set_defaults(func=cmd_pipeline)
 
     p_batch = sub.add_parser("batch", help="Processa diretorio de .eml files via pipeline")
@@ -330,6 +337,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_notify.add_argument("--via-dje", action="store_true")
     p_notify.add_argument("--hoje", help="Data atual ISO")
     p_notify.add_argument("--audit-db", help="SQLite audit log")
+    p_notify.add_argument(
+        "--sender",
+        default="",
+        help="Email From: header (forca deteccao tribunal)",
+    )
     p_notify.set_defaults(func=cmd_notify)
 
     p_audit = sub.add_parser("audit", help="Operacoes sobre audit log")

@@ -33,7 +33,7 @@ DATE_DDMMYYYY_RE = re.compile(r"\b(\d{2})[/-](\d{2})[/-](\d{4})\b")
 DATE_YYYYMMDD_RE = re.compile(r"\b(\d{4})-(\d{2})-(\d{2})\b")
 
 TIPO_ATO_PATTERNS: dict[TipoAto, re.Pattern[str]] = {
-    "sentenca": re.compile(r"\bsente[nç]ca\b", re.IGNORECASE),
+    "sentenca": re.compile(r"\bsenten[çc]a\b", re.IGNORECASE),
     "decisao": re.compile(r"\bdecis[ãa]o\b", re.IGNORECASE),
     "despacho": re.compile(r"\bdespacho\b", re.IGNORECASE),
     "edital": re.compile(r"\bedital\b", re.IGNORECASE),

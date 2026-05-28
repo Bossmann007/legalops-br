@@ -42,6 +42,29 @@ class TestPriority:
         assert detect_tribunal("Projudi", sender="x@tjsp.jus.br") == "tjsp"
 
 
+class TestTJSC:
+    def test_tjsc_via_sender(self) -> None:
+        assert detect_tribunal("", sender="eproc@tjsc.jus.br") == "tjsc"
+
+    def test_tjsc_via_eproc_header(self) -> None:
+        assert detect_tribunal("Sistema e-Proc TJSC", sender="") == "tjsc"
+
+    def test_tjsc_full_name(self) -> None:
+        assert detect_tribunal("Tribunal de Justica de Santa Catarina", sender="") == "tjsc"
+
+
+class TestTJRJ:
+    def test_tjrj_via_sender(self) -> None:
+        assert detect_tribunal("", sender="pje@tjrj.jus.br") == "tjrj"
+
+    def test_tjrj_pje_header(self) -> None:
+        assert detect_tribunal("Notificacao PJe-RJ", sender="") == "tjrj"
+
+    def test_tjrj_full_name(self) -> None:
+        txt = "Tribunal de Justica do Estado do Rio de Janeiro"
+        assert detect_tribunal(txt, sender="") == "tjrj"
+
+
 class TestUnknown:
     def test_empty(self) -> None:
         assert detect_tribunal("", sender="") == "unknown"

@@ -96,6 +96,59 @@ SYNTHETIC_CASES: list[dict[str, object]] = [
         "text": "Email comum sem numero de processo.",
         "expected_intimacoes": 0,
     },
+    {
+        "idx": 5,
+        "descricao": "TJSP e-SAJ: despacho particular 15 dias",
+        "parte": "particular",
+        "via_dje": False,
+        "sender": "naoresponda@tjsp.jus.br",
+        "text": (
+            "Tribunal de Justica de Sao Paulo - e-SAJ\n"
+            "Data: 21/05/2026\n"
+            "Autos nro 1234567-89.2026.8.26.0100\n"
+            "3a Vara Civel - Foro Regional de Santo Amaro\n"
+            "Despacho: cumpra-se. Apresente em prazo de 15 dias.\n"
+            "Procurador OAB/SP 54321.\n"
+        ),
+        "expected_intimacoes": 1,
+        "expected_prazo_efetivo_dias": 15,
+    },
+    {
+        "idx": 6,
+        "descricao": "TJSP PJe-SP: sentenca contra Fazenda (dobro)",
+        "parte": "fazenda",
+        "via_dje": False,
+        "sender": "pje-sp@tjsp.jus.br",
+        "text": (
+            "PJe-SP\n"
+            "Data: 15/06/2026\n"
+            "Processo nro 7654321-12.2026.8.26.0200\n"
+            "Vara da Fazenda Publica - Foro Central\n"
+            "Sentenca: julgo procedente. Apele no prazo de 15 dias uteis.\n"
+        ),
+        "expected_intimacoes": 1,
+        "expected_prazo_efetivo_dias": 30,
+    },
+    {
+        "idx": 7,
+        "descricao": "TJSP multi-processo (3 autos no mesmo email)",
+        "parte": "particular",
+        "via_dje": False,
+        "sender": "esaj@tjsp.jus.br",
+        "text": (
+            "e-SAJ - Tribunal de Justica de Sao Paulo\n"
+            "Data: 22/05/2026\n"
+            "Autos nro 1111111-11.2026.8.26.0100\n"
+            "Despacho: prazo de 5 dias.\n"
+            "---\n"
+            "Autos nro 2222222-22.2026.8.26.0100\n"
+            "Decisao: agravo em 15 dias.\n"
+            "---\n"
+            "Autos nro 3333333-33.2026.8.26.0100\n"
+            "Sentenca: prazo de 30 dias para apelacao.\n"
+        ),
+        "expected_intimacoes": 3,
+    },
 ]
 
 
@@ -133,6 +186,7 @@ def main() -> int:
                 parte=str(case["parte"]),  # type: ignore[arg-type]
                 via_dje=bool(case["via_dje"]),
                 hoje=hoje,
+                sender=str(case.get("sender", "")),
             )
             ok, erros_caso = _validate_case(case, processed)
 
