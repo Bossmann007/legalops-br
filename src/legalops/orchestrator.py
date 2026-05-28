@@ -23,7 +23,10 @@ from legalops.cpc_prazos import (
 )
 from legalops.oab_sigilo import AuditLog
 from legalops.pii_redactor import PIIRedactor
-from legalops.tjpr_parser import Intimacao, parse_email
+from legalops.tjpr_parser import Intimacao
+from legalops.tjpr_parser import parse_email as parse_tjpr
+from legalops.tjsp_parser import parse_email as parse_tjsp
+from legalops.tribunal_detector import detect_tribunal
 
 
 @dataclass
@@ -47,6 +50,7 @@ def process_email(
     hoje: date | None = None,
     audit_log: AuditLog | None = None,
     redactor_salt: str = "legalops-br-v0.1",
+    sender: str = "",
 ) -> list[ProcessedIntimacao]:
     """Roda pipeline completo em um email.
 
@@ -73,13 +77,15 @@ def process_email(
             metadata={"pii_matches": len(redacted.matches)},
         )
 
-    parse_result = parse_email(redacted.redacted_text)
+    tribunal = detect_tribunal(email_text, sender=sender)
+    _parse = parse_tjsp if tribunal == "tjsp" else parse_tjpr
+    parse_result = _parse(redacted.redacted_text)
     if audit_log is not None:
         audit_log.append(
             actor="orchestrator",
             action="parse",
             resource="email:inbox",
-            metadata={"intimacoes_found": parse_result.total},
+            metadata={"intimacoes_found": parse_result.total, "tribunal": tribunal},
         )
 
     results: list[ProcessedIntimacao] = []
