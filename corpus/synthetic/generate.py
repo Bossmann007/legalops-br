@@ -18,30 +18,36 @@ from pathlib import Path
 
 from faker import Faker
 
-TEMPLATES = [
+# (template, expected_count, expected_by_type)
+TEMPLATES: list[tuple[str, int, dict[str, int]]] = [
     (
         "Procurador OAB/{uf} {oab_n}, em nome do cliente CPF {cpf}, "
         "comunica que a empresa CNPJ {cnpj} efetuou pagamento via PIX para "
         "{email}. Telefone de contato: {phone}.",
         5,
+        {"OAB": 1, "CPF": 1, "CNPJ": 1, "EMAIL": 1, "PHONE_BR": 1},
     ),
     (
         "Acao trabalhista. Reclamante CPF {cpf}. Reclamada CNPJ {cnpj}. "
         "Procuradora OAB-{uf} {oab_n}. Email: {email}.",
         4,
+        {"CPF": 1, "CNPJ": 1, "OAB": 1, "EMAIL": 1},
     ),
     (
         "Contrato de prestacao de servicos entre {cnpj} e cliente CPF {cpf}. "
         "Pagamento via PIX chave {pix_uuid}. Comunicacoes para {email}.",
         4,
+        {"CNPJ": 1, "CPF": 1, "PIX_UUID": 1, "EMAIL": 1},
     ),
     (
         "Processo movido por procurador OAB/{uf} {oab_n}. Cliente: CPF {cpf}.",
         2,
+        {"OAB": 1, "CPF": 1},
     ),
     (
         "Documento sem dados pessoais — apenas texto comum sobre direito processual.",
         0,
+        {},
     ),
 ]
 
@@ -57,7 +63,7 @@ def gen_cnpj() -> str:
 
 
 def gen_doc(fake: Faker, idx: int) -> dict[str, object]:
-    template, expected = random.choice(TEMPLATES)
+    template, expected, expected_by_type = random.choice(TEMPLATES)
     text = template.format(
         cpf=gen_cpf(),
         cnpj=gen_cnpj(),
@@ -71,6 +77,7 @@ def gen_doc(fake: Faker, idx: int) -> dict[str, object]:
         "id": f"synthetic-{idx:04d}",
         "text": text,
         "expected_pii_count": expected,
+        "expected_by_type": expected_by_type,
         "generated_at": dt.datetime.now(dt.UTC).isoformat(),
     }
 

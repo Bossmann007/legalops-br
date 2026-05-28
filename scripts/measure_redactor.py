@@ -51,18 +51,27 @@ def main() -> int:
     total_expected = 0
     total_detected = 0
     type_counter: Counter[str] = Counter()
+    expected_by_type: Counter[str] = Counter()
+    detected_by_type_tp: Counter[str] = Counter()  # true positives per type
     leak_counter: Counter[str] = Counter()
     docs_with_leak = 0
 
     for doc in docs:
         expected = int(doc["expected_pii_count"])
+        exp_by_type = doc.get("expected_by_type", {})
         result = redactor.redact(doc["text"])
         detected = len(result.matches)
 
         total_expected += expected
         total_detected += detected
+        per_doc_detected: Counter[str] = Counter()
         for m in result.matches:
             type_counter[m.pii_type] += 1
+            per_doc_detected[m.pii_type] += 1
+
+        for ptype, exp_n in exp_by_type.items():
+            expected_by_type[ptype] += exp_n
+            detected_by_type_tp[ptype] += min(per_doc_detected.get(ptype, 0), exp_n)
 
         doc_had_leak = False
         for label, pat in LEAK_PATTERNS.items():
@@ -77,6 +86,14 @@ def main() -> int:
     recall_count = min(total_detected, total_expected) / total_expected if total_expected else 0
     leak_rate = docs_with_leak / n if n else 0
 
+    recall_by_type: dict[str, float] = {}
+    precision_by_type: dict[str, float] = {}
+    for ptype, exp_n in expected_by_type.items():
+        tp = detected_by_type_tp.get(ptype, 0)
+        det = type_counter.get(ptype, 0)
+        recall_by_type[ptype] = round(tp / exp_n, 4) if exp_n else 0.0
+        precision_by_type[ptype] = round(tp / det, 4) if det else 0.0
+
     metrics = {
         "corpus_size": n,
         "total_expected_pii": total_expected,
@@ -86,6 +103,9 @@ def main() -> int:
         "docs_with_any_leak": docs_with_leak,
         "leaks_by_type": dict(leak_counter),
         "detected_by_type": dict(type_counter),
+        "expected_by_type": dict(expected_by_type),
+        "recall_by_type": recall_by_type,
+        "precision_by_type": precision_by_type,
         "generated_at": dt.datetime.now(dt.UTC).isoformat(),
     }
 
@@ -102,6 +122,9 @@ def main() -> int:
     print(f"Leak rate:             {leak_rate:.2%}")
     print(f"Docs with any leak:    {docs_with_leak}/{n}")
     print(f"Detected by type:      {dict(type_counter)}")
+    print(f"Expected by type:      {dict(expected_by_type)}")
+    print(f"Recall by type:        {recall_by_type}")
+    print(f"Precision by type:     {precision_by_type}")
     print(f"Leaks by type:         {dict(leak_counter) if leak_counter else 'NONE'}")
     print(f"\nMetrics written to:    {out_path}")
 
