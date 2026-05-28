@@ -17,6 +17,7 @@ from dataclasses import asdict, is_dataclass
 from datetime import date, datetime
 from pathlib import Path
 
+from legalops.config import load_config
 from legalops.eml_reader import read_eml_dir
 from legalops.oab_sigilo import AuditLog
 from legalops.orchestrator import process_email, urgentes
@@ -275,6 +276,10 @@ def build_parser() -> argparse.ArgumentParser:
         prog="legalops",
         description="LegalOps BR CLI — redact + parse + calc prazos + audit",
     )
+    p.add_argument(
+        "--config",
+        help="Path TOML config (default ~/.config/legalops/config.toml se existir)",
+    )
     sub = p.add_subparsers(dest="cmd", required=True)
 
     p_redact = sub.add_parser("redact", help="Redact PII de um texto")
@@ -358,9 +363,27 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
+def _apply_config_defaults(args: argparse.Namespace) -> None:
+    """Override args com valores do config TOML quando flag CLI nao explicita."""
+    cfg_path = Path(args.config) if getattr(args, "config", None) else None
+    cfg = load_config(cfg_path)
+
+    if hasattr(args, "parte") and args.parte == "particular":
+        args.parte = cfg.parte
+    if hasattr(args, "via_dje") and not args.via_dje:
+        args.via_dje = cfg.via_dje
+    if hasattr(args, "audit_db") and not args.audit_db and cfg.audit_db:
+        args.audit_db = cfg.audit_db
+    if hasattr(args, "bridge_url") and args.bridge_url == "http://localhost:3000":
+        args.bridge_url = cfg.whatsapp_bridge_url
+    if hasattr(args, "chat_id") and not args.chat_id and cfg.whatsapp_chat_id:
+        args.chat_id = cfg.whatsapp_chat_id
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+    _apply_config_defaults(args)
     return int(args.func(args))
 
 

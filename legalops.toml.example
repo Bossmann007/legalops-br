@@ -1,0 +1,15 @@
+# LegalOps BR config example.
+# Copy to ~/.config/legalops/config.toml and customize.
+
+[defaults]
+parte = "particular"   # particular | fazenda | mp | defensoria
+via_dje = false        # if true, intimacao via DJE: dies a quo + 1 dia util
+tribunal = "TJPR"      # TJPR | TJSP | TJSC | TJRJ
+
+[audit]
+db = "~/.local/share/legalops/audit.db"
+
+[whatsapp]
+chat_id = "5541999999999@s.whatsapp.net"
+bridge_url = "http://localhost:3000"
+timeout = 10.0
