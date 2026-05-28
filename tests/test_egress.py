@@ -21,10 +21,7 @@ CORPUS_DIR = Path(__file__).parent.parent / "corpus" / "synthetic" / "docs"
 
 def _load_corpus() -> list[dict[str, object]]:
     if not CORPUS_DIR.exists():
-        pytest.skip(
-            f"Corpus nao gerado em {CORPUS_DIR}. "
-            "Rode: python corpus/synthetic/generate.py"
-        )
+        pytest.skip(f"Corpus nao gerado em {CORPUS_DIR}. Rode: python corpus/synthetic/generate.py")
     docs = []
     for path in sorted(CORPUS_DIR.glob("doc_*.json")):
         docs.append(json.loads(path.read_text(encoding="utf-8")))
@@ -46,9 +43,7 @@ LEAK_PATTERNS = {
     "CNPJ": re.compile(r"\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}"),
     "OAB": re.compile(r"OAB[/-][A-Z]{2}\s?\d+"),
     "EMAIL": re.compile(r"[\w.+-]+@[\w.-]+\.\w+"),
-    "PIX_UUID": re.compile(
-        r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
-    ),
+    "PIX_UUID": re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"),
 }
 
 
@@ -82,9 +77,7 @@ class TestEgress:
         ratio = ok / len(corpus) if corpus else 0
         assert ratio >= 0.80, f"Apenas {ratio:.1%} dos docs tem match count esperado"
 
-    def test_corpus_is_synthetic_marker(
-        self, corpus: list[dict[str, object]]
-    ) -> None:
+    def test_corpus_is_synthetic_marker(self, corpus: list[dict[str, object]]) -> None:
         for doc in corpus:
             assert str(doc["id"]).startswith("synthetic-"), (
                 "Corpus nao sintetico detectado — abortar"

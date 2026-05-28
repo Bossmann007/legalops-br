@@ -67,9 +67,7 @@ class TestLoadFromFile:
         assert cfg.via_dje is False
         assert cfg.tribunal == "TJPR"
 
-    def test_audit_db_expands_tilde(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_audit_db_expands_tilde(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("HOME", str(tmp_path))
         cfg_file = tmp_path / "config.toml"
         cfg_file.write_text(
@@ -82,9 +80,7 @@ class TestLoadFromFile:
         assert cfg.audit_db is not None
         assert cfg.audit_db == str(tmp_path / "audit.db")
 
-    def test_audit_db_expands_envvar(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_audit_db_expands_envvar(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("LEGALOPS_DATA", "/var/legalops")
         cfg_file = tmp_path / "config.toml"
         cfg_file.write_text(

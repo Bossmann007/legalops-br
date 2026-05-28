@@ -102,11 +102,7 @@ class TestParseMultiplas:
 
 class TestVaraComarca:
     def test_extrai_comarca(self) -> None:
-        txt = (
-            "Comarca de Curitiba.\n"
-            "Processo 0001234-56.2026.8.16.0001\n"
-            "Despacho."
-        )
+        txt = "Comarca de Curitiba.\nProcesso 0001234-56.2026.8.16.0001\nDespacho."
         result = parse_email(txt)
         assert result.intimacoes[0].comarca is not None
         assert "Curitiba" in result.intimacoes[0].comarca

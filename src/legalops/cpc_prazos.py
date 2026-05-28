@@ -97,8 +97,7 @@ def is_recesso_forense(d: date, tribunal: str = "TJPR") -> bool:
     """Recesso forense por tribunal. Default TJPR."""
     if tribunal not in RECESSO_POR_TRIBUNAL:
         raise ValueError(
-            f"Tribunal desconhecido: {tribunal!r}. "
-            f"Suportados: {sorted(RECESSO_POR_TRIBUNAL)}"
+            f"Tribunal desconhecido: {tribunal!r}. Suportados: {sorted(RECESSO_POR_TRIBUNAL)}"
         )
     (m_ini, d_ini), (m_fim, d_fim) = RECESSO_POR_TRIBUNAL[tribunal]
     if d.month == m_ini and d.day >= d_ini:
@@ -212,9 +211,7 @@ def calcular_prazo(inp: PrazoInput, hoje: date | None = None) -> PrazoResult:
     ]
 
     if inp.via_dje:
-        data_intimacao = proximo_dia_util(
-            inp.data_publicacao + timedelta(days=1), inp.tribunal
-        )
+        data_intimacao = proximo_dia_util(inp.data_publicacao + timedelta(days=1), inp.tribunal)
         fundamentos.append("Art. 231 #1 CPC (intimacao eletronica)")
     else:
         data_intimacao = inp.data_publicacao
@@ -246,9 +243,7 @@ def calcular_prazo(inp: PrazoInput, hoje: date | None = None) -> PrazoResult:
         consumidos = prazo_efetivo
         restantes = 0
     else:
-        consumidos = conta_dias_uteis_entre(
-            dies_a_quo - timedelta(days=1), hoje, inp.tribunal
-        )
+        consumidos = conta_dias_uteis_entre(dies_a_quo - timedelta(days=1), hoje, inp.tribunal)
         restantes = conta_dias_uteis_entre(hoje, dies_ad_quem, inp.tribunal)
 
     if restantes <= 3:

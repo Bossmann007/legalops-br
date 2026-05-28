@@ -24,24 +24,24 @@ from enum import StrEnum
 class BaseLegal(StrEnum):
     """Bases legais LGPD para tratamento de dados pessoais (Art. 7 e Art. 11)."""
 
-    CONSENTIMENTO = "consentimento"            # Art. 7 I
-    OBRIGACAO_LEGAL = "obrigacao_legal"        # Art. 7 II
-    POLITICA_PUBLICA = "politica_publica"      # Art. 7 III
-    PESQUISA = "pesquisa"                      # Art. 7 IV
-    EXECUCAO_CONTRATO = "execucao_contrato"    # Art. 7 V
-    EXERCICIO_DIREITO = "exercicio_direito"    # Art. 7 VI
-    PROTECAO_VIDA = "protecao_vida"            # Art. 7 VII
-    TUTELA_SAUDE = "tutela_saude"              # Art. 7 VIII / Art. 11 II f
+    CONSENTIMENTO = "consentimento"  # Art. 7 I
+    OBRIGACAO_LEGAL = "obrigacao_legal"  # Art. 7 II
+    POLITICA_PUBLICA = "politica_publica"  # Art. 7 III
+    PESQUISA = "pesquisa"  # Art. 7 IV
+    EXECUCAO_CONTRATO = "execucao_contrato"  # Art. 7 V
+    EXERCICIO_DIREITO = "exercicio_direito"  # Art. 7 VI
+    PROTECAO_VIDA = "protecao_vida"  # Art. 7 VII
+    TUTELA_SAUDE = "tutela_saude"  # Art. 7 VIII / Art. 11 II f
     LEGITIMO_INTERESSE = "legitimo_interesse"  # Art. 7 IX
-    PROTECAO_CREDITO = "protecao_credito"      # Art. 7 X
+    PROTECAO_CREDITO = "protecao_credito"  # Art. 7 X
 
 
 class TipoDado(StrEnum):
     """Categorias de dados pessoais conforme LGPD."""
 
-    COMUM = "comum"          # Art. 5 I - dado pessoal
-    SENSIVEL = "sensivel"    # Art. 5 II - origem racial, saude, biometria, etc.
-    CRIANCA = "crianca"      # Art. 14 - menor de 12 anos
+    COMUM = "comum"  # Art. 5 I - dado pessoal
+    SENSIVEL = "sensivel"  # Art. 5 II - origem racial, saude, biometria, etc.
+    CRIANCA = "crianca"  # Art. 14 - menor de 12 anos
 
 
 @dataclass(frozen=True)
@@ -89,8 +89,7 @@ DIREITOS_TITULAR: list[DireitoTitular] = [
         codigo="informacao_compartilhamento",
         artigo="Art. 18 VII",
         descricao=(
-            "Informacao sobre entidades publicas/privadas com as quais "
-            "houve compartilhamento."
+            "Informacao sobre entidades publicas/privadas com as quais houve compartilhamento."
         ),
     ),
     DireitoTitular(
@@ -189,4 +188,4 @@ def validar_operacao(op: OperacaoTratamento) -> tuple[bool, list[str]]:
 
 # Constantes ANPD / prazos LGPD
 PRAZO_RESPOSTA_TITULAR_DIAS: int = 15  # Art. 19
-PRAZO_INCIDENTE_ANPD_DIAS: int = 2     # Art. 48 - orientacao ANPD: 2 dias uteis
+PRAZO_INCIDENTE_ANPD_DIAS: int = 2  # Art. 48 - orientacao ANPD: 2 dias uteis

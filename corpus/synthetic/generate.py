@@ -48,18 +48,12 @@ TEMPLATES = [
 
 def gen_cpf() -> str:
     n = [random.randint(0, 9) for _ in range(9)]
-    return (
-        f"{n[0]}{n[1]}{n[2]}.{n[3]}{n[4]}{n[5]}.{n[6]}{n[7]}{n[8]}-"
-        f"{random.randint(10, 99)}"
-    )
+    return f"{n[0]}{n[1]}{n[2]}.{n[3]}{n[4]}{n[5]}.{n[6]}{n[7]}{n[8]}-{random.randint(10, 99)}"
 
 
 def gen_cnpj() -> str:
     n = [random.randint(0, 9) for _ in range(8)]
-    return (
-        f"{n[0]}{n[1]}.{n[2]}{n[3]}{n[4]}.{n[5]}{n[6]}{n[7]}/0001-"
-        f"{random.randint(10, 99)}"
-    )
+    return f"{n[0]}{n[1]}.{n[2]}{n[3]}{n[4]}.{n[5]}{n[6]}{n[7]}/0001-{random.randint(10, 99)}"
 
 
 def gen_doc(fake: Faker, idx: int) -> dict[str, object]:

@@ -33,9 +33,7 @@ LEAK_PATTERNS = {
     "CNPJ": re.compile(r"\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}"),
     "OAB": re.compile(r"OAB[/-][A-Z]{2}\s?\d+"),
     "EMAIL": re.compile(r"[\w.+-]+@[\w.-]+\.\w+"),
-    "PIX_UUID": re.compile(
-        r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
-    ),
+    "PIX_UUID": re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"),
     "PHONE_BR": re.compile(r"\+?55?\s?\(?\d{2}\)?\s?9?\d{4}-?\d{4}"),
 }
 
@@ -76,9 +74,7 @@ def main() -> int:
         if doc_had_leak:
             docs_with_leak += 1
 
-    recall_count = (
-        min(total_detected, total_expected) / total_expected if total_expected else 0
-    )
+    recall_count = min(total_detected, total_expected) / total_expected if total_expected else 0
     leak_rate = docs_with_leak / n if n else 0
 
     metrics = {

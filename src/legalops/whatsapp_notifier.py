@@ -43,9 +43,7 @@ class WhatsAppNotifier:
             raise ValueError("chat_id obrigatorio")
         parsed = parse.urlparse(base_url)
         if parsed.scheme not in ("http", "https"):
-            raise ValueError(
-                f"base_url scheme invalido: {parsed.scheme!r} (use http ou https)"
-            )
+            raise ValueError(f"base_url scheme invalido: {parsed.scheme!r} (use http ou https)")
         if not parsed.netloc:
             raise ValueError(f"base_url sem host: {base_url!r}")
         self.chat_id = chat_id
@@ -101,11 +99,7 @@ class WhatsAppNotifier:
         Returns:
             Mensagem enviada (string) ou None se nenhum urgente.
         """
-        urgent = [
-            r
-            for r in results
-            if r.prazo is not None and r.prazo.alerta == "URGENTE"
-        ]
+        urgent = [r for r in results if r.prazo is not None and r.prazo.alerta == "URGENTE"]
         if not urgent:
             return None
 

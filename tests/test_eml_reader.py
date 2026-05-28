@@ -144,9 +144,7 @@ class TestReadEmlErrors:
         with pytest.raises(FileNotFoundError):
             read_eml(tmp_path / "nao_existe.eml")
 
-    def test_size_limit_exceeded(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_size_limit_exceeded(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr("legalops.eml_reader.MAX_EML_BYTES", 100)
         p = tmp_path / "big.eml"
         p.write_bytes(b"X" * 200)

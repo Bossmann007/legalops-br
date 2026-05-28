@@ -37,18 +37,14 @@ class TestParserBuild:
 
 
 class TestCmdRedact:
-    def test_redact_strips_cpf(
-        self, email_file: Path, capsys: pytest.CaptureFixture[str]
-    ) -> None:
+    def test_redact_strips_cpf(self, email_file: Path, capsys: pytest.CaptureFixture[str]) -> None:
         code = main(["redact", "--input", str(email_file)])
         assert code == 0
         out = capsys.readouterr().out
         assert "123.456.789-00" not in out
         assert "0001234-56.2026.8.16.0001" in out
 
-    def test_redact_json_output(
-        self, email_file: Path, capsys: pytest.CaptureFixture[str]
-    ) -> None:
+    def test_redact_json_output(self, email_file: Path, capsys: pytest.CaptureFixture[str]) -> None:
         code = main(["redact", "--input", str(email_file), "--json"])
         assert code == 0
         data = json.loads(capsys.readouterr().out)
@@ -67,21 +63,15 @@ class TestCmdParse:
         assert data["total"] == 1
         assert data["intimacoes"][0]["numero_processo"] == "0001234-56.2026.8.16.0001"
 
-    def test_parse_extrai_prazo(
-        self, email_file: Path, capsys: pytest.CaptureFixture[str]
-    ) -> None:
+    def test_parse_extrai_prazo(self, email_file: Path, capsys: pytest.CaptureFixture[str]) -> None:
         assert main(["parse", "--input", str(email_file)]) == 0
         data = json.loads(capsys.readouterr().out)
         assert data["intimacoes"][0]["prazo_dias"] == 15
 
 
 class TestCmdPipeline:
-    def test_pipeline_basico(
-        self, email_file: Path, capsys: pytest.CaptureFixture[str]
-    ) -> None:
-        code = main(
-            ["pipeline", "--input", str(email_file), "--hoje", "2026-05-22"]
-        )
+    def test_pipeline_basico(self, email_file: Path, capsys: pytest.CaptureFixture[str]) -> None:
+        code = main(["pipeline", "--input", str(email_file), "--hoje", "2026-05-22"])
         assert code == 0
         data = json.loads(capsys.readouterr().out)
         assert data["count"] == 1
@@ -109,9 +99,7 @@ class TestCmdPipeline:
         data = json.loads(capsys.readouterr().out)
         assert data["results"][0]["calc"]["prazo_efetivo_dias"] == 30
 
-    def test_pipeline_via_dje(
-        self, email_file: Path, capsys: pytest.CaptureFixture[str]
-    ) -> None:
+    def test_pipeline_via_dje(self, email_file: Path, capsys: pytest.CaptureFixture[str]) -> None:
         code = main(
             [
                 "pipeline",

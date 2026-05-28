@@ -29,9 +29,7 @@ def _fake_intimacao(numero: str, prazo_dias: int, hoje: date) -> ProcessedIntima
         tipo_ato="despacho",
     )
     prazo = calcular_prazo(
-        PrazoInput(
-            data_publicacao=hoje, prazo_dias=prazo_dias, parte="particular"
-        ),
+        PrazoInput(data_publicacao=hoje, prazo_dias=prazo_dias, parte="particular"),
         hoje=hoje,
     )
     return ProcessedIntimacao(

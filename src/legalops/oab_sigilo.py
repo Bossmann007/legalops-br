@@ -164,20 +164,14 @@ class AuditLog:
         conn = self._connect()
         try:
             conn.execute("BEGIN IMMEDIATE")
-            cur = conn.execute(
-                "SELECT entry_hash FROM audit_log ORDER BY seq DESC LIMIT 1"
-            )
+            cur = conn.execute("SELECT entry_hash FROM audit_log ORDER BY seq DESC LIMIT 1")
             row = cur.fetchone()
             prev_hash = row["entry_hash"] if row is not None else ZERO_HASH
 
-            cur = conn.execute(
-                "SELECT COALESCE(MAX(seq), 0) + 1 AS next_seq FROM audit_log"
-            )
+            cur = conn.execute("SELECT COALESCE(MAX(seq), 0) + 1 AS next_seq FROM audit_log")
             next_seq = int(cur.fetchone()["next_seq"])
 
-            serialized = _serialize(
-                next_seq, timestamp, actor, action, resource, meta_normalized
-            )
+            serialized = _serialize(next_seq, timestamp, actor, action, resource, meta_normalized)
             entry_hash = _compute_hash(prev_hash, serialized)
 
             conn.execute(

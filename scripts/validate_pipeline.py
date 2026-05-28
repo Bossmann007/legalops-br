@@ -116,9 +116,7 @@ def _validate_case(
         if prazo is None:
             erros.append("prazo None inesperado")
         elif prazo.prazo_efetivo_dias != expected:
-            erros.append(
-                f"prazo_efetivo_dias={prazo.prazo_efetivo_dias} esperado={expected}"
-            )
+            erros.append(f"prazo_efetivo_dias={prazo.prazo_efetivo_dias} esperado={expected}")
 
     return not erros, erros
 
@@ -148,15 +146,9 @@ def main() -> int:
                     "prazos": [
                         {
                             "numero_processo": r.numero_processo,
-                            "prazo_efetivo_dias": r.prazo.prazo_efetivo_dias
-                            if r.prazo
-                            else None,
-                            "dies_a_quo": r.prazo.dies_a_quo.isoformat()
-                            if r.prazo
-                            else None,
-                            "dies_ad_quem": r.prazo.dies_ad_quem.isoformat()
-                            if r.prazo
-                            else None,
+                            "prazo_efetivo_dias": r.prazo.prazo_efetivo_dias if r.prazo else None,
+                            "dies_a_quo": r.prazo.dies_a_quo.isoformat() if r.prazo else None,
+                            "dies_ad_quem": r.prazo.dies_ad_quem.isoformat() if r.prazo else None,
                             "alerta": r.prazo.alerta if r.prazo else None,
                         }
                         for r in processed

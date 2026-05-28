@@ -38,9 +38,7 @@ class EmailContent:
 
 def _strip_html(html: str) -> str:
     """Strip basico de tags HTML — fallback quando nao ha text/plain."""
-    text = re.sub(
-        r"<script[^>]*>.*?</script>", " ", html, flags=re.IGNORECASE | re.DOTALL
-    )
+    text = re.sub(r"<script[^>]*>.*?</script>", " ", html, flags=re.IGNORECASE | re.DOTALL)
     text = re.sub(r"<style[^>]*>.*?</style>", " ", text, flags=re.IGNORECASE | re.DOTALL)
     text = re.sub(r"<br\s*/?>", "\n", text, flags=re.IGNORECASE)
     text = re.sub(r"</?p>", "\n", text, flags=re.IGNORECASE)
@@ -178,7 +176,5 @@ def read_eml_dir(
         raise NotADirectoryError(f"Nao e diretorio: {directory}")
     paths = sorted(directory.glob(glob_pattern))
     if len(paths) > max_files:
-        raise ValueError(
-            f"Diretorio tem {len(paths)} arquivos > limite {max_files}"
-        )
+        raise ValueError(f"Diretorio tem {len(paths)} arquivos > limite {max_files}")
     return [read_eml(p) for p in paths]

@@ -86,9 +86,7 @@ DEFAULT_PROFILE = PracticeProfile(
 )
 
 
-def get_teses_by_area(
-    profile: PracticeProfile, area: AreaPratica
-) -> tuple[TeseRecorrente, ...]:
+def get_teses_by_area(profile: PracticeProfile, area: AreaPratica) -> tuple[TeseRecorrente, ...]:
     """Retorna teses filtradas por area."""
     return tuple(t for t in profile.teses_recorrentes if t.area == area)
 

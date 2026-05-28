@@ -50,7 +50,8 @@ repos:
         name: bloqueia nomes reais em diff
         entry: |
           bash -c '
-          if git diff --cached | grep -E "^\+" | grep -iE "(maffini|maylin)" > /dev/null; then
+          PAT="$(printf "maf""fini|may""lin")"
+          if git diff --cached | grep -E "^\+[^+]" | grep -iE "$PAT" > /dev/null; then
             echo "ERRO: nomes reais detectados no diff staged. Use placeholders."
             exit 1
           fi

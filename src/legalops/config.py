@@ -91,9 +91,7 @@ def load_config(path: Path | None = None) -> LegalOpsConfig:
         tribunal=str(defaults.get("tribunal", "TJPR")),
         audit_db=audit_db,
         whatsapp_chat_id=whatsapp.get("chat_id"),
-        whatsapp_bridge_url=str(
-            whatsapp.get("bridge_url", "http://localhost:3000")
-        ),
+        whatsapp_bridge_url=str(whatsapp.get("bridge_url", "http://localhost:3000")),
         whatsapp_timeout=float(whatsapp.get("timeout", 10.0)),
         source_path=str(target),
     )

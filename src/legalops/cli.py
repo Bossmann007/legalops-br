@@ -118,9 +118,7 @@ def cmd_pipeline(args: argparse.Namespace) -> int:
             "calc": {
                 "dies_a_quo": r.prazo.dies_a_quo.isoformat() if r.prazo else None,
                 "dies_ad_quem": r.prazo.dies_ad_quem.isoformat() if r.prazo else None,
-                "dias_uteis_restantes": r.prazo.dias_uteis_restantes_hoje
-                if r.prazo
-                else None,
+                "dias_uteis_restantes": r.prazo.dias_uteis_restantes_hoje if r.prazo else None,
                 "alerta": r.prazo.alerta if r.prazo else None,
                 "prazo_efetivo_dias": r.prazo.prazo_efetivo_dias if r.prazo else None,
                 "fundamentos": list(r.prazo.fundamentos_aplicados) if r.prazo else [],
@@ -173,12 +171,8 @@ def cmd_batch(args: argparse.Namespace) -> int:
                         "tipo_ato": r.parsed.tipo_ato,
                         "prazo_dias": r.parsed.prazo_dias,
                         "calc": {
-                            "dies_a_quo": r.prazo.dies_a_quo.isoformat()
-                            if r.prazo
-                            else None,
-                            "dies_ad_quem": r.prazo.dies_ad_quem.isoformat()
-                            if r.prazo
-                            else None,
+                            "dies_a_quo": r.prazo.dies_a_quo.isoformat() if r.prazo else None,
+                            "dies_ad_quem": r.prazo.dies_ad_quem.isoformat() if r.prazo else None,
                             "alerta": r.prazo.alerta if r.prazo else None,
                         },
                         "audit_seq": r.audit_entry_seq,
@@ -290,9 +284,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_parse.add_argument("--input", "-i")
     p_parse.set_defaults(func=cmd_parse)
 
-    p_pipe = sub.add_parser(
-        "pipeline", help="Pipeline completo: redact + parse + calc + audit"
-    )
+    p_pipe = sub.add_parser("pipeline", help="Pipeline completo: redact + parse + calc + audit")
     p_pipe.add_argument("--input", "-i")
     p_pipe.add_argument(
         "--parte",
@@ -304,9 +296,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_pipe.add_argument("--audit-db", help="Caminho SQLite audit log")
     p_pipe.set_defaults(func=cmd_pipeline)
 
-    p_batch = sub.add_parser(
-        "batch", help="Processa diretorio de .eml files via pipeline"
-    )
+    p_batch = sub.add_parser("batch", help="Processa diretorio de .eml files via pipeline")
     p_batch.add_argument("--dir", required=True, help="Diretorio com arquivos .eml")
     p_batch.add_argument(
         "--parte",
@@ -318,9 +308,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_batch.add_argument("--audit-db", help="Caminho SQLite audit log")
     p_batch.set_defaults(func=cmd_batch)
 
-    p_notify = sub.add_parser(
-        "notify", help="Pipeline + envia urgentes via WhatsApp bridge :3000"
-    )
+    p_notify = sub.add_parser("notify", help="Pipeline + envia urgentes via WhatsApp bridge :3000")
     p_notify.add_argument("--input", "-i", help="Email file (default stdin)")
     p_notify.add_argument(
         "--chat-id",

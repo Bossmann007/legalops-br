@@ -101,9 +101,7 @@ class TestProcessEmailVazio:
 
 class TestDobroFazenda:
     def test_fazenda_aplica_dobro(self) -> None:
-        results = process_email(
-            EMAIL_BASICO, parte="fazenda", hoje=date(2026, 5, 22)
-        )
+        results = process_email(EMAIL_BASICO, parte="fazenda", hoje=date(2026, 5, 22))
         assert results[0].prazo is not None
         assert results[0].prazo.prazo_efetivo_dias == 30
 
@@ -115,9 +113,7 @@ class TestDobroFazenda:
 
 class TestDJE:
     def test_via_dje_pula_dia(self) -> None:
-        results = process_email(
-            EMAIL_BASICO, via_dje=True, hoje=date(2026, 5, 22)
-        )
+        results = process_email(EMAIL_BASICO, via_dje=True, hoje=date(2026, 5, 22))
         assert results[0].prazo is not None
         assert results[0].prazo.data_intimacao_considerada == date(2026, 5, 22)
         assert results[0].prazo.dies_a_quo == date(2026, 5, 25)
@@ -138,9 +134,7 @@ class TestAuditLogIntegration:
     def test_audit_seq_no_resultado(self, tmp_path: Path) -> None:
         db = tmp_path / "audit.db"
         log = AuditLog(db)
-        results = process_email(
-            EMAIL_BASICO, hoje=date(2026, 5, 22), audit_log=log
-        )
+        results = process_email(EMAIL_BASICO, hoje=date(2026, 5, 22), audit_log=log)
         assert results[0].audit_entry_seq is not None
         assert results[0].audit_entry_seq > 0
 

@@ -77,9 +77,7 @@ def parse_feed_xml(xml_text: str, source: Source) -> list[FeedItem]:
         ValueError: If feed exceeds ``MAX_FEED_BYTES`` or XML is malformed.
     """
     if len(xml_text.encode("utf-8")) > MAX_FEED_BYTES:
-        raise ValueError(
-            f"Feed exceeds {MAX_FEED_BYTES} bytes (defensive limit)"
-        )
+        raise ValueError(f"Feed exceeds {MAX_FEED_BYTES} bytes (defensive limit)")
 
     try:
         # S314: stub atual nao faz network call; size cap MAX_FEED_BYTES
@@ -107,11 +105,7 @@ def parse_feed_xml(xml_text: str, source: Source) -> list[FeedItem]:
             raise ValueError("Missing required <pubDate> in item")
         published = _parse_pub_date(pub_el.text or "")
 
-        categories = tuple(
-            (c.text or "").strip()
-            for c in cat_els
-            if (c.text or "").strip()
-        )
+        categories = tuple((c.text or "").strip() for c in cat_els if (c.text or "").strip())
 
         results.append(
             FeedItem(
@@ -127,9 +121,7 @@ def parse_feed_xml(xml_text: str, source: Source) -> list[FeedItem]:
     return results
 
 
-def filter_by_keywords(
-    items: list[FeedItem], keywords: list[str]
-) -> list[FeedItem]:
+def filter_by_keywords(items: list[FeedItem], keywords: list[str]) -> list[FeedItem]:
     """Return items whose title OR summary contains any keyword (case-insensitive)."""
     lowered = [k.lower() for k in keywords if k]
     if not lowered:
@@ -142,9 +134,7 @@ def filter_by_keywords(
     return out
 
 
-def filter_by_date_range(
-    items: list[FeedItem], start: date, end: date
-) -> list[FeedItem]:
+def filter_by_date_range(items: list[FeedItem], start: date, end: date) -> list[FeedItem]:
     """Return items with ``start <= published_date <= end``."""
     if start > end:
         raise ValueError("start must be <= end")
