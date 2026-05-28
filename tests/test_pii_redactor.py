@@ -80,6 +80,41 @@ class TestMultiple:
         assert result.has_pii is False
 
 
+class TestCPFNumeric:
+    def test_valid_cpf_sem_mascara_redacted(self, redactor: PIIRedactor) -> None:
+        # 12345678909 e CPF matematicamente valido
+        text = "Cliente CPF 12345678909 ajuizou"
+        result = redactor.redact(text)
+        assert "12345678909" not in result.redacted_text
+        assert any(m.pii_type == "CPF_NUMERIC" for m in result.matches)
+
+    def test_invalid_cpf_not_redacted(self, redactor: PIIRedactor) -> None:
+        # 12345678900 dv errado — nao deve redigir (evita false positive)
+        text = "ID interno 12345678900 referencia X"
+        result = redactor.redact(text)
+        assert "12345678900" in result.redacted_text
+        assert not any(m.pii_type == "CPF_NUMERIC" for m in result.matches)
+
+    def test_repeated_digits_not_redacted(self, redactor: PIIRedactor) -> None:
+        text = "Codigo 11111111111 fake"
+        result = redactor.redact(text)
+        assert "11111111111" in result.redacted_text
+
+
+class TestCNPJNumeric:
+    def test_valid_cnpj_sem_mascara_redacted(self, redactor: PIIRedactor) -> None:
+        # 11222333000181 valido
+        text = "Empresa CNPJ 11222333000181 contratou"
+        result = redactor.redact(text)
+        assert "11222333000181" not in result.redacted_text
+        assert any(m.pii_type == "CNPJ_NUMERIC" for m in result.matches)
+
+    def test_invalid_cnpj_not_redacted(self, redactor: PIIRedactor) -> None:
+        text = "Codigo 11222333000180 dv errado"
+        result = redactor.redact(text)
+        assert "11222333000180" in result.redacted_text
+
+
 class TestStructure:
     def test_returns_redaction_result(self, redactor: PIIRedactor) -> None:
         result = redactor.redact("CPF 000.000.000-00")

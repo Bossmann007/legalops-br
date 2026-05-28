@@ -1,0 +1,18 @@
+{
+  "corpus_size": 500,
+  "total_expected_pii": 1528,
+  "total_detected_pii": 1528,
+  "recall_count_based": 1.0,
+  "leak_rate": 0.0,
+  "docs_with_any_leak": 0,
+  "leaks_by_type": {},
+  "detected_by_type": {
+    "OAB": 301,
+    "CPF": 411,
+    "CNPJ": 303,
+    "EMAIL": 303,
+    "PHONE_BR": 100,
+    "PIX_UUID": 110
+  },
+  "generated_at": "2026-05-28T00:08:25.137258+00:00"
+}

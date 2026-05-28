@@ -16,8 +16,11 @@ from __future__ import annotations
 
 import hashlib
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Literal
+
+from legalops.br_validators import is_valid_cnpj, is_valid_cpf
 
 PIIType = Literal[
     "CPF",
@@ -27,6 +30,8 @@ PIIType = Literal[
     "PIX_UUID",
     "EMAIL",
     "PHONE_BR",
+    "CPF_NUMERIC",
+    "CNPJ_NUMERIC",
 ]
 
 
@@ -52,7 +57,8 @@ class RedactionResult:
         return len(self.matches) > 0
 
 
-# Patterns ordered by specificity (longer/more-specific first)
+# Patterns ordered by specificity (longer/more-specific first).
+# Numeric variants (sem mascara) ficam por ultimo + tem validator gate.
 PATTERNS: dict[PIIType, re.Pattern[str]] = {
     "CNPJ": re.compile(r"\b\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}\b"),
     "CPF": re.compile(r"\b\d{3}\.\d{3}\.\d{3}-\d{2}\b"),
@@ -63,6 +69,16 @@ PATTERNS: dict[PIIType, re.Pattern[str]] = {
     ),
     "EMAIL": re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b"),
     "PHONE_BR": re.compile(r"\+?55?\s?\(?\d{2}\)?\s?9?\d{4}-?\d{4}\b"),
+    # CNJ format NNNNNNN-DD.AAAA.J.TR.OOOO ~ 25 digitos; PIX UUID = 32 hex
+    # 14 digitos puros = CNPJ; 11 = CPF. Validator dv reduz falso positivo.
+    "CNPJ_NUMERIC": re.compile(r"\b\d{14}\b"),
+    "CPF_NUMERIC": re.compile(r"\b\d{11}\b"),
+}
+
+# Validators opcionais por tipo. So redige se validator (se presente) retornar True.
+PATTERN_VALIDATORS: dict[PIIType, Callable[[str], bool]] = {
+    "CPF_NUMERIC": is_valid_cpf,
+    "CNPJ_NUMERIC": is_valid_cnpj,
 }
 
 
@@ -99,9 +115,12 @@ class PIIRedactor:
 
         all_hits: list[tuple[int, int, PIIType, str]] = []
         for pii_type, pattern in PATTERNS.items():
+            validator = PATTERN_VALIDATORS.get(pii_type)
             for m in pattern.finditer(text):
                 start, end = m.span()
                 if any(s <= start < e or s < end <= e for s, e in seen_spans):
+                    continue
+                if validator is not None and not validator(m.group()):
                     continue
                 seen_spans.add((start, end))
                 all_hits.append((start, end, pii_type, m.group()))
