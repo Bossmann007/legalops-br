@@ -1,7 +1,8 @@
-"""Profile estruturado do escritorio Maffini Advocacia.
+"""Profile estruturado do escritorio parceiro (piloto).
 
-Gerado por cold-start interview com Tia May. Sem PII real — apenas placeholders.
-Usado por agentes Claude Projects pra ter contexto sem ingerir vault inteiro.
+Gerado por cold-start interview. Sem PII real nem identificacao do cliente —
+apenas placeholders. Usado por agentes Claude Projects pra ter contexto sem
+ingerir vault inteiro.
 """
 
 from __future__ import annotations
@@ -33,9 +34,9 @@ class TeseRecorrente:
 
 @dataclass(frozen=True)
 class PracticeProfile:
-    """Profile estruturado do escritorio Maffini."""
+    """Profile estruturado do escritorio parceiro (placeholders, sem PII)."""
 
-    escritorio: str = "Maffini Advocacia"
+    escritorio: str = "[ESCRITORIO]"
     advogada_responsavel: str = "[OAB_REDACTED]"
     cidade: str = "Curitiba"
     estado: str = "PR"

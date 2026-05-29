@@ -4,12 +4,39 @@ from __future__ import annotations
 
 import pytest
 
-from legalops.pii_redactor import PIIRedactor, RedactionResult
+from legalops.pii_redactor import (
+    SALT_ENV_VAR,
+    MissingSaltError,
+    PIIRedactor,
+    RedactionResult,
+)
 
 
 @pytest.fixture
 def redactor() -> PIIRedactor:
-    return PIIRedactor(salt="test-salt-v1")
+    return PIIRedactor(salt="test-salt-v1-synthetic")
+
+
+class TestSaltSecurity:
+    def test_missing_salt_raises(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv(SALT_ENV_VAR, raising=False)
+        with pytest.raises(MissingSaltError):
+            PIIRedactor()
+
+    def test_short_salt_rejected(self) -> None:
+        with pytest.raises(ValueError, match="curto"):
+            PIIRedactor(salt="short")
+
+    def test_env_salt_used(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv(SALT_ENV_VAR, "env-provided-salt-16+")
+        r = PIIRedactor()
+        assert r.redact("CPF 123.456.789-09").has_pii
+
+    def test_different_salt_different_hash(self) -> None:
+        text = "CPF 123.456.789-09"
+        a = PIIRedactor(salt="salt-alpha-16bytes!!").redact(text).matches[0].sha256
+        b = PIIRedactor(salt="salt-bravo-16bytes!!").redact(text).matches[0].sha256
+        assert a != b
 
 
 class TestCPF:

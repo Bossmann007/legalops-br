@@ -63,7 +63,7 @@ def process_email(
     via_dje: bool = False,
     hoje: date | None = None,
     audit_log: AuditLog | None = None,
-    redactor_salt: str = "legalops-br-v0.1",
+    redactor_salt: str | None = None,
     sender: str = "",
 ) -> list[ProcessedIntimacao]:
     """Roda pipeline completo em um email.
@@ -74,7 +74,8 @@ def process_email(
         via_dje: se True, aplica Art. 231 #1 (intimacao eletronica).
         hoje: data atual (default date.today()) — util pra testes deterministicos.
         audit_log: opcional AuditLog pra registrar cada operacao.
-        redactor_salt: salt do PIIRedactor (override pra testes).
+        redactor_salt: salt do PIIRedactor. Se None, le de LEGALOPS_PII_SALT
+            (obrigatorio — sem default publico, ver MissingSaltError).
 
     Returns:
         Lista de ProcessedIntimacao, uma por processo encontrado no email.

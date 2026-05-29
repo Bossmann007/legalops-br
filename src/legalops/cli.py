@@ -28,7 +28,7 @@ from legalops.metrics import MetricsRegistry
 from legalops.notification_multiplex import NotificationMultiplex
 from legalops.oab_sigilo import AuditLog
 from legalops.orchestrator import ProcessedIntimacao, process_email, urgentes
-from legalops.pii_redactor import PIIRedactor
+from legalops.pii_redactor import MissingSaltError, PIIRedactor
 from legalops.slack_notifier import SlackNotifier
 from legalops.tjpr_parser import parse_email
 from legalops.tribunal_detector import detect_tribunal
@@ -57,9 +57,22 @@ def _dump(obj: object) -> str:
     return json.dumps(obj, default=_json_default, ensure_ascii=False, indent=2)
 
 
+def _make_redactor() -> PIIRedactor:
+    """Cria PIIRedactor com salt secreto do ambiente.
+
+    Sai com codigo 2 e mensagem acionavel se LEGALOPS_PII_SALT nao estiver
+    definido — pseudonimizacao sem salt secreto seria reversivel.
+    """
+    try:
+        return PIIRedactor()
+    except MissingSaltError as e:
+        print(f"erro: {e}", file=sys.stderr)
+        raise SystemExit(2) from e
+
+
 def cmd_redact(args: argparse.Namespace) -> int:
     text = _read_input(args.input)
-    result = PIIRedactor().redact(text)
+    result = _make_redactor().redact(text)
     if args.json:
         print(
             _dump(
@@ -473,7 +486,9 @@ def _run_health_checks(audit_db: str | None) -> tuple[list[dict[str, object]], M
         checks.append(entry)
 
     def _pii_check() -> None:
-        r = PIIRedactor().redact("CPF 123.456.789-09 contato test@example.com")
+        r = PIIRedactor(salt="healthcheck-synthetic-salt").redact(
+            "CPF 123.456.789-09 contato test@example.com"
+        )
         if not r.has_pii:
             raise RuntimeError("PIIRedactor.has_pii=False on synthetic input")
 
@@ -580,7 +595,7 @@ def cmd_contract(args: argparse.Namespace) -> int:
     """
     text = _read_input(args.input)
     if not args.skip_redact:
-        text = PIIRedactor().redact(text).redacted_text
+        text = _make_redactor().redact(text).redacted_text
     rel = analisar_contrato(text)
     print(
         _dump(
@@ -604,7 +619,7 @@ def cmd_dsar(args: argparse.Namespace) -> int:
     """
     text = _read_input(args.input)
     if not args.skip_redact:
-        text = PIIRedactor().redact(text).redacted_text
+        text = _make_redactor().redact(text).redacted_text
 
     codigo = args.direito or classify_request(text)
     if not codigo:

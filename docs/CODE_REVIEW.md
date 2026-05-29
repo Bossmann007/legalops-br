@@ -122,7 +122,7 @@ Sem GitHub Actions, ninguém garante `pytest` / `ruff` / `mypy` antes de merge. 
 
 - `proxy/galileu/galileu.yml` coerente com redactor Python.
 - Caminho absoluto para `galileu-cli` só em comentário — documentar env var.
-- Padrão "Clientes Maffini" com `enabled: false` — correto; nunca commitar nomes reais.
+- Padrão "Clientes [REDACTED]" com `enabled: false` — correto; nunca commitar nomes reais.
 
 ---
 

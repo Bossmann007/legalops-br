@@ -1,4 +1,4 @@
-"""Tests para maffini_practice_profile — sem PII real."""
+"""Tests para practice_profile — sem PII real."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import re
 
 import pytest
 
-from legalops.maffini_practice_profile import (
+from legalops.practice_profile import (
     DEFAULT_PROFILE,
     AreaPratica,
     PracticeProfile,
@@ -17,8 +17,8 @@ from legalops.maffini_practice_profile import (
 
 
 class TestDefaultProfile:
-    def test_escritorio_correto(self) -> None:
-        assert DEFAULT_PROFILE.escritorio == "Maffini Advocacia"
+    def test_escritorio_e_placeholder(self) -> None:
+        assert DEFAULT_PROFILE.escritorio == "[ESCRITORIO]"
 
     def test_advogada_e_placeholder(self) -> None:
         assert DEFAULT_PROFILE.advogada_responsavel.startswith("[")

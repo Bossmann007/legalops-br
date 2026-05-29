@@ -38,7 +38,7 @@ const makeShadow = () => ({ type: "outer", blur: 8, offset: 2, angle: 135, color
 
   s.addShape(pres.shapes.RECTANGLE, { x: 0.7, y: 3.4, w: 5.0, h: 0.04, fill: { color: C.accent }, line: { color: C.accent } });
   s.addText("Proposta técnica para implementação de IA no escritório jurídico", { x: 0.7, y: 3.6, w: 8.5, h: 0.5, fontSize: 14, color: C.iceBlue, fontFace: "Calibri", italic: true });
-  s.addText("Maffini Advocacia  ·  Maio 2026  ·  Confidencial", { x: 0.7, y: 5.1, w: 8.5, h: 0.35, fontSize: 11, color: "8899BB", fontFace: "Calibri" });
+  s.addText("Escritório Parceiro  ·  Maio 2026  ·  Confidencial", { x: 0.7, y: 5.1, w: 8.5, h: 0.35, fontSize: 11, color: "8899BB", fontFace: "Calibri" });
 }
 
 // ── SLIDE 2: O Problema ─────────────────────────────────────────────────────
@@ -146,7 +146,7 @@ const makeShadow = () => ({ type: "outer", blur: 8, offset: 2, angle: 135, color
     },
     {
       icon: "📋", title: "Vantagem Claude for Legal",
-      items: ["Treinado em direito corporativo BR", "Processa contratos longos sem perder contexto", "Geração de relatórios estruturados", "Integração com templates Maffini"],
+      items: ["Treinado em direito corporativo BR", "Processa contratos longos sem perder contexto", "Geração de relatórios estruturados", "Integração com templates do escritório"],
     },
   ];
 
@@ -208,7 +208,7 @@ const makeShadow = () => ({ type: "outer", blur: 8, offset: 2, angle: 135, color
 
   const phases = [
     { phase: "v0.1", label: "PoC Local", time: "Sem. 1–2", color: "16A34A", items: ["Sem dados reais", "Testa redação de peças com dados fictícios", "Valida cálculo de prazo CPC", "Testa fluxo completo sem risco"] },
-    { phase: "v1.0", label: "TJPR Shadow", time: "Mês 1–2", color: "2563EB", items: ["Lê Diário Oficial do TJPR diariamente", "Identifica intimações do escritório", "Calcula prazos automaticamente", "Maylin confirma antes de qualquer ação"] },
+    { phase: "v1.0", label: "TJPR Shadow", time: "Mês 1–2", color: "2563EB", items: ["Lê Diário Oficial do TJPR diariamente", "Identifica intimações do escritório", "Calcula prazos automaticamente", "Tia May confirma antes de qualquer ação"] },
     { phase: "v1.1", label: "Documentos", time: "Mês 3", color: "7C3AED", items: ["Rascunha procurações com dados do cliente", "Gera contratos de serviço estruturados", "Adapta templates do escritório", "Revisão humana sempre obrigatória"] },
     { phase: "v1.2+", label: "Expansão", time: "Mês 4–6+", color: C.amber, items: ["Contract AI — análise de contratos", "Pesquisa jurisprudencial assistida", "M&A e Due Diligence", "LGPD assistant"] },
   ];
@@ -243,12 +243,12 @@ const makeShadow = () => ({ type: "outer", blur: 8, offset: 2, angle: 135, color
     {
       icon: "⚠️", title: "Falhas Irreversíveis",
       medo: "E se a IA cometer um erro grave?",
-      resp: ["Gate humano em toda ação concreta — a advogada aprova antes de qualquer envio", "IA só sugere; Maylin decide e assina", "4 níveis de reversibilidade: cancelar → reprocessar → rollback → modo manual", "Shadow mode: IA monitora mas não age sem liberação"],
+      resp: ["Gate humano em toda ação concreta — a advogada aprova antes de qualquer envio", "IA só sugere; Tia May decide e assina", "4 níveis de reversibilidade: cancelar → reprocessar → rollback → modo manual", "Shadow mode: IA monitora mas não age sem liberação"],
     },
     {
       icon: "💰", title: "Custo de Tokens",
       medo: "Risco de cobrança exorbitante?",
-      resp: ["Stack de 3 tiers: Haiku (triagem) → Sonnet (rascunho) → Opus (crítico)", "Custo estimado: R$ 30–50/mês para volume Maffini", "Alerta automático ao atingir 70% do crédito mensal", "Hard stop: sistema pausa e aguarda instrução humana"],
+      resp: ["Stack de 3 tiers: Haiku (triagem) → Sonnet (rascunho) → Opus (crítico)", "Custo estimado: R$ 30–50/mês para volume do escritório", "Alerta automático ao atingir 70% do crédito mensal", "Hard stop: sistema pausa e aguarda instrução humana"],
     },
   ];
 
@@ -277,7 +277,7 @@ const makeShadow = () => ({ type: "outer", blur: 8, offset: 2, angle: 135, color
   const zones = [
     {
       num: "1", title: "Servidores Anthropic", color: C.amber, bg: "FFFBEB",
-      items: ["✅  Prompts redacted da Maylin", "✅  Fragmentos sem PII real", "🚫  Documentos brutos — bloqueado", "🚫  CPF / CNPJ / nomes reais", "🚫  Conteúdo bruto de emails TJPR"],
+      items: ["✅  Prompts redacted da Tia May", "✅  Fragmentos sem PII real", "🚫  Documentos brutos — bloqueado", "🚫  CPF / CNPJ / nomes reais", "🚫  Conteúdo bruto de emails TJPR"],
       note: "Retenção máx. 30 dias · DPA disponível",
     },
     {
@@ -409,10 +409,10 @@ const makeShadow = () => ({ type: "outer", blur: 8, offset: 2, angle: 135, color
   s.addText("Próximos Passos — Formalização do Piloto", { x: 0.5, y: 0, w: 9, h: 0.85, fontSize: 24, bold: true, color: C.white, fontFace: "Calibri", valign: "middle" });
 
   const steps = [
-    { n: "1", title: "Responder §11", desc: "Maylin responde às perguntas técnicas pendentes: acesso remoto, desktop, conta Anthropic, Outlook TJPR, templates.", color: C.accent },
+    { n: "1", title: "Responder §11", desc: "Tia May responde às perguntas técnicas pendentes: acesso remoto, desktop, conta Anthropic, Outlook TJPR, templates.", color: C.accent },
     { n: "2", title: "Formalização", desc: "Assinar: Contrato de prestação técnica · DPA (acordo de processamento de dados) · Termo de licença do plugin.", color: "7C3AED" },
     { n: "3", title: "v0.1 — PoC", desc: "Instalar ambiente local. Testar pipeline com dados fictícios. Validar cálculo de prazos e redação de peças sem dado real.", color: C.green },
-    { n: "4", title: "v1.0 — Shadow", desc: "Conectar ao Diário TJPR. Rodar em shadow por 2 semanas. Maylin avalia alertas antes de qualquer ação automática.", color: C.navy },
+    { n: "4", title: "v1.0 — Shadow", desc: "Conectar ao Diário TJPR. Rodar em shadow por 2 semanas. Tia May avalia alertas antes de qualquer ação automática.", color: C.navy },
   ];
 
   steps.forEach((st, i) => {
@@ -437,7 +437,7 @@ const makeShadow = () => ({ type: "outer", blur: 8, offset: 2, angle: 135, color
 
   s.addShape(pres.shapes.RECTANGLE, { x: 0, y: 0, w: 10, h: 0.85, fill: { color: C.accentDark }, line: { color: C.accentDark } });
   s.addText("Suite de Agentes de IA — 48 Agentes · 6 Frentes", { x: 0.5, y: 0, w: 9, h: 0.85, fontSize: 24, bold: true, color: C.white, fontFace: "Calibri", valign: "middle" });
-  s.addText("Desenvolvido pela Maffini Advocacia · Integrado ao Claude Projects (claude.ai)", {
+  s.addText("Desenvolvido pela Escritório Parceiro · Integrado ao Claude Projects (claude.ai)", {
     x: 0.5, y: 0.92, w: 9, h: 0.32, fontSize: 12, color: C.iceBlue, fontFace: "Calibri", italic: true,
   });
 
@@ -509,11 +509,11 @@ const makeShadow = () => ({ type: "outer", blur: 8, offset: 2, angle: 135, color
   s.background = { color: C.lightBg };
   s.addShape(pres.shapes.RECTANGLE, { x: 0, y: 0, w: 10, h: 0.85, fill: { color: "2563EB" }, line: { color: "2563EB" } });
   s.addText("📝  Frente 02 · Petições & Peças", { x: 0.5, y: 0, w: 9, h: 0.85, fontSize: 24, bold: true, color: C.white, fontFace: "Calibri", valign: "middle" });
-  s.addText("10 agentes · Fase v1.1–v1.2 · MCP: maffini-practice-profile + pii-redactor-br", { x: 0.5, y: 0.9, w: 9, h: 0.3, fontSize: 11, color: C.gray, fontFace: "Calibri", italic: true });
+  s.addText("10 agentes · Fase v1.1–v1.2 · MCP: practice-profile + pii-redactor-br", { x: 0.5, y: 0.9, w: 9, h: 0.3, fontSize: 11, color: C.gray, fontFace: "Calibri", italic: true });
 
   const agents = [
     { name: "Petição Inicial Cível", desc: "Gera inicial a partir de fatos + causa de pedir", fase: "v1.1" },
-    { name: "Contestação", desc: "Gera contestação com teses padrão Maffini", fase: "v1.1" },
+    { name: "Contestação", desc: "Gera contestação com teses padrão do escritório", fase: "v1.1" },
     { name: "Réplica", desc: "Responde contestação adversa automaticamente", fase: "v1.1" },
     { name: "Embargos de Declaração", desc: "Identifica omissão/contradição e gera ED", fase: "v1.1" },
     { name: "Manifestação Genérica", desc: "Peça avulsa para qualquer movimentação processual", fase: "v1.1" },

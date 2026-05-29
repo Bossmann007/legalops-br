@@ -58,3 +58,19 @@ repos:
           '
         language: system
         pass_filenames: false
+
+      - id: no-real-pii-fulltree
+        name: bloqueia nomes reais no repo inteiro (pre-push)
+        entry: |
+          bash -c '
+          PAT="$(printf "maf""fini|may""lin")"
+          if git grep -iIE "$PAT" -- ":(exclude).pre-commit-config.yaml" > /dev/null; then
+            echo "ERRO: nomes reais presentes em arquivos rastreados:"
+            git grep -inIE "$PAT" -- ":(exclude).pre-commit-config.yaml"
+            echo "Limpe-os antes do push (e considere reescrever historico)."
+            exit 1
+          fi
+          '
+        language: system
+        pass_filenames: false
+        stages: [pre-push]

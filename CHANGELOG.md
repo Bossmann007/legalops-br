@@ -5,6 +5,22 @@ All notable changes to LegalOps BR.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Security
+- **pii_redactor**: removido salt público fixo (`legalops-br-v0.1`). Salt secreto agora
+  obrigatório via `LEGALOPS_PII_SALT` (>=16 bytes); hash do audit migrado de SHA-256 salted
+  para **HMAC-SHA256**. Sem salt secreto o hash de CPF/CNPJ era reversível por força bruta
+  (espaço pequeno + salt público) — pseudonimização não-conforme (Art. 13 LGPD). `MissingSaltError`
+  se ausente. CLI sai com código 2 e mensagem acionável.
+- **Confidencialidade**: removida identificação real do cliente (nome do escritório e da
+  advogada) de todos os arquivos rastreados; módulo de profile do escritório renomeado para
+  `practice_profile` com placeholders genéricos. Hook `no-real-pii-fulltree` (pre-push) agora
+  varre o repo inteiro, não só o diff staged.
+
+### Changed
+- `orchestrator.process_email(redactor_salt=...)` aceita `None` (lê de `LEGALOPS_PII_SALT`).
+
 ## [1.5.0] — 2026-05-29
 
 LGPD assistant: DSAR (direitos do titular) + PIA/RIPD + DPA + playbook ANPD + revisão de

@@ -75,11 +75,11 @@ analyzer:
       label: "[PROCESS_NUMBER_REDACTED]"
       enabled: true
 
-    - name: "Clientes Maffini"
+    - name: "Clientes [REDACTED]"
       type: literal
       values:
         - "PLACEHOLDER_CLIENT_NAME"
-      label: "[MAFFINI_CLIENT_REDACTED]"
+      label: "[CLIENT_NAME_REDACTED]"
       enabled: false
 
     - name: "JWT Token"

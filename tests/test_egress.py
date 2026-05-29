@@ -35,7 +35,7 @@ def corpus() -> list[dict[str, object]]:
 
 @pytest.fixture(scope="module")
 def redactor() -> PIIRedactor:
-    return PIIRedactor()
+    return PIIRedactor(salt="test-salt-egress-v1")
 
 
 LEAK_PATTERNS = {

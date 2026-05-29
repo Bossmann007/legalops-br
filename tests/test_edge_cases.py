@@ -15,13 +15,13 @@ from legalops.tjsp_parser import parse_email as parse_tjsp
 
 class TestEmptyInput:
     def test_redactor_empty(self) -> None:
-        r = PIIRedactor().redact("")
+        r = PIIRedactor(salt="test-salt-edgecase-v1").redact("")
         assert r.redacted_text == ""
         assert r.matches == []
         assert not r.has_pii
 
     def test_redactor_whitespace_only(self) -> None:
-        r = PIIRedactor().redact("   \n\t  ")
+        r = PIIRedactor(salt="test-salt-edgecase-v1").redact("   \n\t  ")
         assert r.has_pii is False
 
     def test_tjpr_empty(self) -> None:
@@ -63,14 +63,14 @@ class TestEncoding:
     def test_latin1_chars_in_redactor(self) -> None:
         # caracter pt-BR
         text = "Procurador OAB/PR 12345 (CPF 123.456.789-00) — anotação"
-        r = PIIRedactor().redact(text)
+        r = PIIRedactor(salt="test-salt-edgecase-v1").redact(text)
         assert r.has_pii is True
 
 
 class TestLargeInput:
     def test_redactor_500_cpfs(self) -> None:
         text = "\n".join(f"CPF 123.456.789-{i:02d}" for i in range(10, 100))
-        r = PIIRedactor().redact(text)
+        r = PIIRedactor(salt="test-salt-edgecase-v1").redact(text)
         assert len(r.matches) == 90
 
     def test_tjpr_many_processes(self) -> None:
@@ -87,17 +87,17 @@ class TestRedactorNoFalsePositives:
     def test_invalid_cpf_numeric_passes(self) -> None:
         # CPF numerico com DV invalido NAO eh redigido
         text = "Codigo interno 12345678900 referencia X"
-        r = PIIRedactor().redact(text)
+        r = PIIRedactor(salt="test-salt-edgecase-v1").redact(text)
         assert "12345678900" in r.redacted_text
 
     def test_invalid_cnpj_numeric_passes(self) -> None:
         text = "Identificador 11222333000180 (DV errado)"
-        r = PIIRedactor().redact(text)
+        r = PIIRedactor(salt="test-salt-edgecase-v1").redact(text)
         assert "11222333000180" in r.redacted_text
 
     def test_repeated_digits_not_pii(self) -> None:
         text = "Valor 00000000000 (11 zeros)"
-        r = PIIRedactor().redact(text)
+        r = PIIRedactor(salt="test-salt-edgecase-v1").redact(text)
         assert "00000000000" in r.redacted_text
 
 

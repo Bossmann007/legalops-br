@@ -4,7 +4,7 @@ Patterns: CPF, CNPJ, RG, OAB, PIX (email/phone/uuid), email, telefone BR.
 
 Uso:
     >>> from legalops.pii_redactor import PIIRedactor
-    >>> r = PIIRedactor()
+    >>> r = PIIRedactor(salt="exemplo-salt-secreto-32bytes!!")
     >>> result = r.redact("Cliente CPF 123.456.789-00 ajuizou ação")
     >>> "123.456.789-00" not in result.redacted_text
     True
@@ -15,12 +15,27 @@ Uso:
 from __future__ import annotations
 
 import hashlib
+import hmac
+import os
 import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Literal
 
 from legalops.br_validators import is_valid_cnpj, is_valid_cpf
+
+#: Variavel de ambiente que fornece o salt secreto da pseudonimizacao.
+SALT_ENV_VAR = "LEGALOPS_PII_SALT"
+
+
+class MissingSaltError(RuntimeError):
+    """Salt secreto ausente.
+
+    Sem salt secreto o hash do audit vira reversivel por forca bruta (espaco CPF
+    pequeno), o que derrota a pseudonimizacao (Art. 13 LGPD). Defina
+    ``LEGALOPS_PII_SALT`` com segredo aleatorio (>=16 bytes) ou passe ``salt=``.
+    """
+
 
 PIIType = Literal[
     "CPF",
@@ -87,16 +102,35 @@ class PIIRedactor:
 
     Strategy:
     - Run patterns in order of specificity (CNPJ → CPF → RG → OAB → PIX UUID → email → phone)
-    - Replace each match with `[TYPE_<sha256_6>]` placeholder
-    - Store deterministic salted SHA-256 of original for audit reconciliation
+    - Replace each match with `[TYPE_<hmac_6>]` placeholder
+    - Store deterministic HMAC-SHA256 (secret salt) of original for audit reconciliation
     - Track spans in ORIGINAL text for downstream alignment
     """
 
-    def __init__(self, salt: str = "legalops-br-v0.1") -> None:
-        self._salt = salt.encode("utf-8")
+    _MIN_SALT_LEN = 16
+
+    def __init__(self, salt: str | None = None) -> None:
+        """Cria o redactor.
+
+        Args:
+            salt: Salt secreto. Se ``None``, le de ``LEGALOPS_PII_SALT``.
+
+        Raises:
+            MissingSaltError: Salt ausente (env nao definido e ``salt`` None).
+            ValueError: Salt mais curto que ``_MIN_SALT_LEN`` bytes.
+        """
+        resolved = salt if salt is not None else os.environ.get(SALT_ENV_VAR)
+        if not resolved:
+            raise MissingSaltError(
+                f"Salt secreto obrigatorio: defina {SALT_ENV_VAR} ou passe salt=."
+            )
+        raw = resolved.encode("utf-8")
+        if len(raw) < self._MIN_SALT_LEN:
+            raise ValueError(f"Salt muito curto ({len(raw)}B); minimo {self._MIN_SALT_LEN}B.")
+        self._salt = raw
 
     def _hash_full(self, value: str) -> str:
-        return hashlib.sha256(self._salt + value.encode("utf-8")).hexdigest()
+        return hmac.new(self._salt, value.encode("utf-8"), hashlib.sha256).hexdigest()
 
     def _placeholder(self, pii_type: PIIType, original: str) -> str:
         return f"[{pii_type}_{self._hash_full(original)[:6]}]"

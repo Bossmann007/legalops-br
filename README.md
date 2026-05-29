@@ -42,7 +42,7 @@ WhatsApp. Local-first, **nenhuma chamada automatica a LLM externa**.
 
 | Modulo | Funcao |
 |--------|--------|
-| `pii_redactor` | Redacao 7 patterns BR (CPF/CNPJ/RG/OAB/PIX/email/telefone) com SHA-256 salted placeholders |
+| `pii_redactor` | Redacao 7 patterns BR (CPF/CNPJ/RG/OAB/PIX/email/telefone); placeholders HMAC-SHA256 com salt secreto (`LEGALOPS_PII_SALT`) |
 | `cpc_prazos` | Calculo CPC/2015 — arts. 219/224/231/183/180/186, feriados nacionais + recesso TJPR (20/12–20/01), dobro Fazenda/MP/Defensoria, DJE exception |
 | `tjpr_parser` | Parse emails Projudi (TJPR) via regex |
 | `tjsp_parser` | Parse emails e-SAJ / PJe-SP (TJSP), reusa engine TJSP |
@@ -55,7 +55,7 @@ WhatsApp. Local-first, **nenhuma chamada automatica a LLM externa**.
 | `oab_sigilo` | Audit log SHA-256 chain SQLite, BEGIN IMMEDIATE atomic, rejeita PII em metadata |
 | `lgpd_specifics` | Constantes LGPD — `BaseLegal`, `TipoDado`, `DIREITOS_TITULAR`, `validar_operacao` |
 | `bacen_cvm_feeds` | Parser RSS BACEN/CVM (stdlib xml.etree, XXE-safe) |
-| `maffini_practice_profile` | Profile estruturado escritorio (sem PII, placeholders apenas) |
+| `practice_profile` | Profile estruturado escritorio (sem PII, placeholders apenas) |
 | `whatsapp_notifier` | Cliente HTTP stdlib pra bridge.js :3000, filtra alerta URGENTE |
 | `doc_extractor` | Extrai campos de procuracao + contrato honorarios (fase v1.1) |
 | `doc_templates` | Render procuracao + contrato honorarios; placeholders `[A PREENCHER]` (v1.1) |
@@ -94,6 +94,17 @@ uv run pytest
 ```
 
 Após install, comando `legalops` disponivel via entry point `[project.scripts]`.
+
+### Salt de pseudonimizacao (obrigatorio)
+
+O `pii_redactor` exige um salt secreto (>=16 bytes) via `LEGALOPS_PII_SALT`.
+Sem ele os subcomandos que redigem PII falham com codigo 2. O salt entra no
+HMAC-SHA256 do audit; **nao** use valor publico/previsivel (CPF tem espaco
+pequeno e seria reversivel por forca bruta).
+
+```bash
+export LEGALOPS_PII_SALT="$(openssl rand -hex 24)"   # guarde em secret manager
+```
 
 ### Gerar corpus sintetico (necessario para tests/test_egress.py)
 

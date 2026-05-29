@@ -14,7 +14,7 @@ from legalops.eml_reader import (
 )
 
 EML_PLAIN = b"""From: projudisistema@tjpr.jus.br
-To: advogada@maffini.test
+To: advogada@exemplo.test
 Subject: Intimacao - Processo 0001234-56.2026.8.16.0001
 Date: Thu, 21 May 2026 10:00:00 -0300
 Content-Type: text/plain; charset=utf-8
