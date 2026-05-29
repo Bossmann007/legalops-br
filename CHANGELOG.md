@@ -5,6 +5,34 @@ All notable changes to LegalOps BR.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] — 2026-05-29
+
+LGPD assistant: DSAR (direitos do titular) + PIA/RIPD + DPA + playbook ANPD + revisão de
+fornecedores de IA. Entrega o **tooling determinístico BR** da fase **v1.4 do roadmap de
+produto**. Camada de prompts/Claude Projects continua dependente da Tia May (fora do repo).
+
+> Nota de versionamento: SemVer técnico (1.x) ≠ fases de produto (v1.x). A release `1.5.0`
+> implementa a fase de produto **v1.4**.
+
+### Added — fase produto v1.4 (LGPD assistant)
+- `dsar.py` — `classify_request()` mapeia texto livre → direito do titular (Art. 18); `processar_dsar()` calcula prazo de resposta (15 dias, Art. 19), status (no_prazo/vence_hoje/em_atraso) e texto-padrão pt-BR. `DSARError` para código desconhecido. Roda após pii_redactor.
+- `pia.py` — `avaliar_ripd()` produz Relatório de Impacto (Art. 38): riscos curados por categoria de dado/base legal/princípios, score ponderado e nível. Cada risco aparece **uma única vez** (sem duplicação de avisos); nível acompanha o pior risco isolado ou o score acumulado.
+- `dpa_templates.py` — `render_dpa()` + `clausulas_obrigatorias()` (8 cláusulas: objeto/escopo/segurança/subcontratação/incidente/titular/eliminação/auditoria). Campos ausentes viram placeholder, nunca lança.
+- `anpd_playbook.py` — `avaliar_severidade()` + `gerar_plano()` para incidente de segurança: prazo de comunicação à ANPD em **dias úteis** (Art. 48) + `conteudo_minimo_comunicacao()`.
+- `vendor_ai_review.py` — `checklist_vendor_padrao()` (10 itens: Art. 33/39/7/16/46/20/37/48/41) + `VendorReview.set_status/flags/score/aprovado` para avaliar fornecedores de IA sob LGPD.
+- `legalops dsar` CLI — processa requisição de titular; redige PII por padrão (`--skip-redact`), classifica direito ou aceita `--direito`, calcula prazo.
+
+### Changed
+- `pia.avaliar_ripd()` — removida a conversão genérica dos avisos de `validar_operacao` em riscos, que duplicava a mesma questão (ex.: Art. 14) com severidades conflitantes. Nível agora = `max(classificação por score, pior risco isolado)`.
+
+### Tests
+- +90 testes: dsar/pia/dpa (46) · anpd/vendor (41) · CLI dsar (3). Total: 649 → 739.
+
+### Mapeamento versão técnica × fase produto
+| Fase roadmap | Entrega | Módulos | Versão técnica |
+|--------------|---------|---------|----------------|
+| v1.4 | LGPD assistant | dsar, pia, dpa_templates, anpd_playbook, vendor_ai_review | 1.5.0 |
+
 ## [1.4.0] — 2026-05-29
 
 Camada de capacidades jurídicas: documentos estruturados + Contract AI + M&A/Due Diligence.

@@ -20,8 +20,10 @@ from pathlib import Path
 from legalops.config import LegalOpsConfig, load_config
 from legalops.contract_analyzer import analisar_contrato
 from legalops.cpc_prazos import calcular_prazo
+from legalops.dsar import DSARError, DSARRequest, classify_request, processar_dsar
 from legalops.email_notifier import EmailNotifier
 from legalops.eml_reader import read_eml_dir
+from legalops.lgpd_specifics import DIREITOS_TITULAR
 from legalops.metrics import MetricsRegistry
 from legalops.notification_multiplex import NotificationMultiplex
 from legalops.oab_sigilo import AuditLog
@@ -594,6 +596,58 @@ def cmd_contract(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_dsar(args: argparse.Namespace) -> int:
+    """Processa requisicao de titular (DSAR — Art. 18/19 LGPD, fase v1.4).
+
+    Le o texto da requisicao, redige PII por padrao, classifica o direito
+    invocado e calcula prazo de resposta (15 dias, Art. 19).
+    """
+    text = _read_input(args.input)
+    if not args.skip_redact:
+        text = PIIRedactor().redact(text).redacted_text
+
+    codigo = args.direito or classify_request(text)
+    if not codigo:
+        print(
+            _dump(
+                {
+                    "error": "nao foi possivel classificar o direito (use --direito)",
+                    "direitos": [d.codigo for d in DIREITOS_TITULAR],
+                }
+            )
+        )
+        return 2
+
+    recebimento = date.fromisoformat(args.recebimento) if args.recebimento else date.today()
+    hoje = date.fromisoformat(args.hoje) if args.hoje else None
+    req = DSARRequest(
+        request_id=args.request_id,
+        codigo_direito=codigo,
+        data_recebimento=recebimento,
+        titular_ref=args.titular_ref,
+    )
+    try:
+        resp = processar_dsar(req, hoje=hoje)
+    except DSARError as e:
+        print(_dump({"error": str(e)}))
+        return 2
+
+    print(
+        _dump(
+            {
+                "request_id": resp.request_id,
+                "codigo_direito": resp.codigo_direito,
+                "artigo": resp.artigo,
+                "prazo_final": resp.prazo_final.isoformat(),
+                "dias_restantes": resp.dias_restantes,
+                "status": resp.status,
+                "texto_resposta": resp.texto_resposta,
+            }
+        )
+    )
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     from legalops import __version__
 
@@ -721,6 +775,30 @@ def build_parser() -> argparse.ArgumentParser:
         help="Pula redacao de PII (use so se texto ja redigido)",
     )
     p_contract.set_defaults(func=cmd_contract)
+
+    p_dsar = sub.add_parser(
+        "dsar", help="Processa requisicao de titular (Art. 18/19 LGPD) + prazo resposta"
+    )
+    p_dsar.add_argument("--input", "-i", help="Texto da requisicao (default: stdin)")
+    p_dsar.add_argument(
+        "--direito",
+        default=None,
+        help="Codigo do direito (Art. 18); se omitido, classifica do texto",
+    )
+    p_dsar.add_argument("--request-id", default="req-1", help="ID opaco da requisicao")
+    p_dsar.add_argument(
+        "--titular-ref",
+        default="titular-anon",
+        help="Pseudonimo opaco do titular (NUNCA PII real)",
+    )
+    p_dsar.add_argument("--recebimento", help="Data recebimento ISO (default: hoje)")
+    p_dsar.add_argument("--hoje", help="Data atual ISO (default: hoje)")
+    p_dsar.add_argument(
+        "--skip-redact",
+        action="store_true",
+        help="Pula redacao de PII (use so se texto ja redigido)",
+    )
+    p_dsar.set_defaults(func=cmd_dsar)
 
     p_health = sub.add_parser("health", help="Health checks dos componentes core")
     p_health.add_argument("--format", choices=["json", "text"], default="text")

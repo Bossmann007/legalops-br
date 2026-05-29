@@ -62,6 +62,45 @@ class TestCmdContract:
         assert code == 0 and out["nivel"] == "baixo"
 
 
+class TestCmdDsar:
+    def test_dsar_classifica_e_calcula_prazo(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        f = tmp_path / "req.txt"
+        f.write_text(
+            "Solicito acesso aos meus dados pessoais (CPF 123.456.789-00).",
+            encoding="utf-8",
+        )
+        code = main(
+            ["dsar", "--input", str(f), "--recebimento", "2026-05-20", "--hoje", "2026-05-22"]
+        )
+        out = json.loads(capsys.readouterr().out)
+        assert code == 0
+        assert out["codigo_direito"] == "acesso"
+        assert out["prazo_final"] == "2026-06-04"
+        assert "123.456.789-00" not in json.dumps(out)
+
+    def test_dsar_direito_explicito(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        f = tmp_path / "req.txt"
+        f.write_text("texto generico sem palavra-chave", encoding="utf-8")
+        code = main(["dsar", "--input", str(f), "--direito", "eliminacao"])
+        out = json.loads(capsys.readouterr().out)
+        assert code == 0
+        assert out["codigo_direito"] == "eliminacao"
+
+    def test_dsar_sem_classificacao_retorna_2(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        f = tmp_path / "req.txt"
+        f.write_text("xyz", encoding="utf-8")
+        code = main(["dsar", "--input", str(f)])
+        out = json.loads(capsys.readouterr().out)
+        assert code == 2
+        assert "direitos" in out
+
+
 class TestCmdRedact:
     def test_redact_strips_cpf(self, email_file: Path, capsys: pytest.CaptureFixture[str]) -> None:
         code = main(["redact", "--input", str(email_file)])

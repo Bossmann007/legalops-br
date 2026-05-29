@@ -8,16 +8,16 @@ WhatsApp. Local-first, **nenhuma chamada automatica a LLM externa**.
 
 ---
 
-## Status v1.4.0 — fases produto v1.1→v1.3 (docs + Contract AI + M&A/DD)
+## Status v1.5.0 — fases produto v1.1→v1.4 (docs + Contract AI + M&A/DD + LGPD assistant)
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](pyproject.toml)
-[![Tests](https://img.shields.io/badge/tests-649%2F649-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/tests-739%2F739-brightgreen.svg)](tests/)
 [![Coverage](https://img.shields.io/badge/PII_recall-100%25-brightgreen.svg)](metrics/)
 [![mypy](https://img.shields.io/badge/mypy-strict-blue.svg)](pyproject.toml)
 [![ruff](https://img.shields.io/badge/ruff-clean-brightgreen.svg)](pyproject.toml)
 
-- **649/649 tests** passing, `mypy --strict` clean (36 modulos), `ruff` clean
+- **739/739 tests** passing, `mypy --strict` clean (41 modulos), `ruff` clean
 - 100% recall + 100% precision por tipo PII (corpus 500 sintetico, 0 leaks)
 - 6 tribunais: TJPR · TJSP · TJSC · TJRJ · TJDFT · TJMG (regex tribunal-specific)
 - M365 ingest real (OAuth client_credentials + Graph API, stdlib only)
@@ -26,11 +26,12 @@ WhatsApp. Local-first, **nenhuma chamada automatica a LLM externa**.
 - **Contract AI**: clausulas abusivas (CDC Art. 51), financiamento, NDA, renewal watcher
 - **M&A + Due Diligence**: societario, DD checklist BR, data room, disclosure, red flags
 - **Docs estruturados**: extractor/templates procuracao + contrato honorarios + approval gate
-- CLI: `redact`, `parse`, `pipeline`, `batch`, `notify`, `contract`, `health`, `metrics`, `audit`
+- **LGPD assistant**: DSAR (Art. 18/19), PIA/RIPD (Art. 38), DPA, playbook ANPD, vendor AI review
+- CLI: `redact`, `parse`, `pipeline`, `batch`, `notify`, `contract`, `dsar`, `health`, `metrics`, `audit`
 - Benchmark: 12.9k docs/sec full pipeline (corpus 500)
 
-> **Versionamento:** SemVer do repo (`1.4.0`) ≠ fases do roadmap de produto (v1.1→v1.3).
-> A release `1.4.0` entrega o tooling Python das fases de produto 1.1, 1.2 e 1.3. Camada de
+> **Versionamento:** SemVer do repo (`1.5.0`) ≠ fases do roadmap de produto (v1.1→v1.4).
+> A release `1.5.0` entrega o tooling Python das fases de produto 1.1→1.4. Camada de
 > prompts/Claude Projects (interface claude.ai) depende da Tia May — fora do repo.
 
 - See [CHANGELOG.md](CHANGELOG.md) · [ARCHITECTURE.md](docs/ARCHITECTURE.md) · [RUNBOOK.md](RUNBOOK.md) · [SECURITY.md](SECURITY.md)
@@ -66,7 +67,12 @@ WhatsApp. Local-first, **nenhuma chamada automatica a LLM externa**.
 | `data_room` | Classifica docs do data room + audita completude (v1.3) |
 | `disclosure` | Gaps + inconsistencias em disclosure schedules M&A (v1.3) |
 | `red_flags` | Red flags em contrato de aquisicao: CoC/MAC/cap/survival/non-compete/earn-out (v1.3) |
-| `cli` | argparse — `redact`, `parse`, `pipeline`, `batch`, `notify`, `contract`, `health`, `metrics`, `audit` |
+| `dsar` | Requisicao de titular (Art. 18): classifica direito + calcula prazo resposta 15d (Art. 19) (v1.4) |
+| `pia` | RIPD/PIA (Art. 38): riscos curados + score + nivel; sem duplicacao de risco (v1.4) |
+| `dpa_templates` | Render DPA + 8 clausulas obrigatorias (objeto/seguranca/incidente/auditoria) (v1.4) |
+| `anpd_playbook` | Incidente de seguranca: severidade + prazo comunicacao ANPD em dias uteis (Art. 48) (v1.4) |
+| `vendor_ai_review` | Checklist 10 itens LGPD pra fornecedor de IA (Art. 33/39/7/16/46/20/37/48/41) (v1.4) |
+| `cli` | argparse — `redact`, `parse`, `pipeline`, `batch`, `notify`, `contract`, `dsar`, `health`, `metrics`, `audit` |
 
 ---
 
@@ -178,7 +184,8 @@ Ver `LegalOps — Roadmap.md` no vault Mafioso ou `docs/`. **Tooling Python (est
 - fase produto **v1.1** — docs estruturados (procuracao/contrato + approval gate) ✅ tooling
 - fase produto **v1.2** — Contract AI (clausulas abusivas + financiamento + renewal) ✅ tooling
 - fase produto **v1.3** — M&A + Due Diligence (societario/DD/data room/disclosure/red flags) ✅ tooling
-- fase produto **v1.4** — LGPD assistant (DSAR/PIA) — proximo
+- fase produto **v1.4** — LGPD assistant (DSAR/PIA/DPA/ANPD/vendor AI review) ✅ tooling
+- fase produto **v1.5** — proxima (a definir no roadmap)
 - Camada prompts/Claude Projects + ativacao do piloto: **depende da Tia May** (claude.ai)
 
 ---
