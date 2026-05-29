@@ -8,14 +8,24 @@ WhatsApp. Local-first, **nenhuma chamada automatica a LLM externa**.
 
 ---
 
-## Status v0.3
+## Status v1.0.0 — production-ready
 
-- **323/323 tests** passing, `mypy --strict` clean, `ruff` clean
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](pyproject.toml)
+[![Tests](https://img.shields.io/badge/tests-362%2F362-brightgreen.svg)](tests/)
+[![Coverage](https://img.shields.io/badge/PII_recall-100%25-brightgreen.svg)](metrics/)
+[![mypy](https://img.shields.io/badge/mypy-strict-blue.svg)](pyproject.toml)
+[![ruff](https://img.shields.io/badge/ruff-clean-brightgreen.svg)](pyproject.toml)
+
+- **362/362 tests** passing, `mypy --strict` clean, `ruff` clean
 - 100% recall + 100% precision por tipo PII (corpus 500 sintetico, 0 leaks)
 - 8/8 cenarios pipeline E2E (dobro Fazenda, multiplos processos, multi-tribunal)
-- Parsers: TJPR, TJSP, TJSC, TJRJ (detector via sender domain + header)
-- PII v0.2: CPF/CNPJ sem mascara com modulo 11 (Receita Federal)
-- 17+ commits master
+- Parsers standalone: TJPR · TJSP · TJSC · TJRJ (regex tribunal-specific)
+- M365 ingest real (OAuth client_credentials + Graph API, stdlib only)
+- CLI: `redact`, `parse`, `pipeline`, `batch`, `notify`, `audit` + `--config` TOML
+- Deploy: Dockerfile + RUNBOOK + config.toml example
+- Benchmark: 12.9k docs/sec full pipeline (corpus 500)
+- See [CHANGELOG.md](CHANGELOG.md) · [ARCHITECTURE.md](docs/ARCHITECTURE.md) · [RUNBOOK.md](RUNBOOK.md) · [SECURITY.md](SECURITY.md)
 
 ---
 

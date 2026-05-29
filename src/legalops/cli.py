@@ -272,9 +272,16 @@ def cmd_audit_list(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    from legalops import __version__
+
     p = argparse.ArgumentParser(
         prog="legalops",
         description="LegalOps BR CLI — redact + parse + calc prazos + audit",
+    )
+    p.add_argument(
+        "--version",
+        action="version",
+        version=f"legalops {__version__}",
     )
     p.add_argument(
         "--config",

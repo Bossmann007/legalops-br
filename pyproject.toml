@@ -1,7 +1,7 @@
 [project]
 name = "legalops-br"
-version = "0.1.0"
-description = "LegalOps BR — extensões brasileiras sobre Claude for Legal (PII redaction, CPC prazos, TJPR parser)"
+version = "1.0.0"
+description = "LegalOps BR — pipeline LGPD-first para intimacoes TJ (PII redact + CPC prazos + parsers TJPR/TJSP/TJSC/TJRJ + audit + M365)"
 authors = [{name = "Enzo Bossmann", email = "enzombromanus@gmail.com"}]
 requires-python = ">=3.11"
 license = {text = "Apache-2.0"}

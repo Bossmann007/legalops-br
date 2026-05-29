@@ -1,3 +1,4 @@
-"""LegalOps BR — extensões brasileiras sobre Claude for Legal."""
+"""LegalOps BR — pipeline LGPD-first para intimacoes TJ multi-tribunal."""
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
+__all__ = ["__version__"]
