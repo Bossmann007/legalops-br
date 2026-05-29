@@ -8,23 +8,31 @@ WhatsApp. Local-first, **nenhuma chamada automatica a LLM externa**.
 
 ---
 
-## Status v1.0.0 — production-ready
+## Status v1.4.0 — fases produto v1.1→v1.3 (docs + Contract AI + M&A/DD)
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](pyproject.toml)
-[![Tests](https://img.shields.io/badge/tests-362%2F362-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/tests-649%2F649-brightgreen.svg)](tests/)
 [![Coverage](https://img.shields.io/badge/PII_recall-100%25-brightgreen.svg)](metrics/)
 [![mypy](https://img.shields.io/badge/mypy-strict-blue.svg)](pyproject.toml)
 [![ruff](https://img.shields.io/badge/ruff-clean-brightgreen.svg)](pyproject.toml)
 
-- **362/362 tests** passing, `mypy --strict` clean, `ruff` clean
+- **649/649 tests** passing, `mypy --strict` clean (36 modulos), `ruff` clean
 - 100% recall + 100% precision por tipo PII (corpus 500 sintetico, 0 leaks)
-- 8/8 cenarios pipeline E2E (dobro Fazenda, multiplos processos, multi-tribunal)
-- Parsers standalone: TJPR · TJSP · TJSC · TJRJ (regex tribunal-specific)
+- 6 tribunais: TJPR · TJSP · TJSC · TJRJ · TJDFT · TJMG (regex tribunal-specific)
 - M365 ingest real (OAuth client_credentials + Graph API, stdlib only)
-- CLI: `redact`, `parse`, `pipeline`, `batch`, `notify`, `audit` + `--config` TOML
-- Deploy: Dockerfile + RUNBOOK + config.toml example
+- Observability: structured logs + Prometheus metrics + `health`/`metrics` CLI
+- Multi-channel notify: WhatsApp + SMTP + Slack (threshold + quiet hours)
+- **Contract AI**: clausulas abusivas (CDC Art. 51), financiamento, NDA, renewal watcher
+- **M&A + Due Diligence**: societario, DD checklist BR, data room, disclosure, red flags
+- **Docs estruturados**: extractor/templates procuracao + contrato honorarios + approval gate
+- CLI: `redact`, `parse`, `pipeline`, `batch`, `notify`, `contract`, `health`, `metrics`, `audit`
 - Benchmark: 12.9k docs/sec full pipeline (corpus 500)
+
+> **Versionamento:** SemVer do repo (`1.4.0`) ≠ fases do roadmap de produto (v1.1→v1.3).
+> A release `1.4.0` entrega o tooling Python das fases de produto 1.1, 1.2 e 1.3. Camada de
+> prompts/Claude Projects (interface claude.ai) depende da Tia May — fora do repo.
+
 - See [CHANGELOG.md](CHANGELOG.md) · [ARCHITECTURE.md](docs/ARCHITECTURE.md) · [RUNBOOK.md](RUNBOOK.md) · [SECURITY.md](SECURITY.md)
 
 ---
@@ -48,7 +56,17 @@ WhatsApp. Local-first, **nenhuma chamada automatica a LLM externa**.
 | `bacen_cvm_feeds` | Parser RSS BACEN/CVM (stdlib xml.etree, XXE-safe) |
 | `maffini_practice_profile` | Profile estruturado escritorio (sem PII, placeholders apenas) |
 | `whatsapp_notifier` | Cliente HTTP stdlib pra bridge.js :3000, filtra alerta URGENTE |
-| `cli` | argparse — `redact`, `parse`, `pipeline`, `batch`, `notify`, `audit` |
+| `doc_extractor` | Extrai campos de procuracao + contrato honorarios (fase v1.1) |
+| `doc_templates` | Render procuracao + contrato honorarios; placeholders `[A PREENCHER]` (v1.1) |
+| `approval_gate` | Gate write/rollback sobre AuditLog — sem escrita sem aprovacao (v1.1) |
+| `contract_analyzer` | Clausulas abusivas CDC Art. 51 + financiamento + NDA + relatorio risco (v1.2) |
+| `renewal_watcher` | Monitor de vencimento de contratos + aviso previo (v1.2) |
+| `societario` | Estrutura societaria BR: tipo, quorum CC/2002 + Lei 6.404, participacoes (v1.3) |
+| `due_diligence` | Checklist DD BR (trabalhista/fiscal/ambiental/contratual/societario) + gaps (v1.3) |
+| `data_room` | Classifica docs do data room + audita completude (v1.3) |
+| `disclosure` | Gaps + inconsistencias em disclosure schedules M&A (v1.3) |
+| `red_flags` | Red flags em contrato de aquisicao: CoC/MAC/cap/survival/non-compete/earn-out (v1.3) |
+| `cli` | argparse — `redact`, `parse`, `pipeline`, `batch`, `notify`, `contract`, `health`, `metrics`, `audit` |
 
 ---
 
@@ -155,13 +173,13 @@ uv run python scripts/measure_redactor.py      # recall + leak rate metrics
 
 ## Roadmap
 
-Ver `LegalOps — Roadmap.md` no vault Mafioso ou `docs/`:
-- v0.1 PoC ✅
-- v0.2 — gaps PII (CPF/CNPJ sem mascara — ver `docs/PII_GAPS.md`)
-- v1.0 — Project 1 (Prazos) deploy + Tia May (30 dias producao limitada)
-- v1.2 — Contract AI (commercial-legal plugin upstream)
-- v1.3 — M&A + Due Diligence
-- v1.4 — LGPD assistant
+Ver `LegalOps — Roadmap.md` no vault Mafioso ou `docs/`. **Tooling Python (este repo):**
+- v0.1 PoC ✅ · v1.0 production-ready (prazos/parsers/PII/audit/M365) ✅
+- fase produto **v1.1** — docs estruturados (procuracao/contrato + approval gate) ✅ tooling
+- fase produto **v1.2** — Contract AI (clausulas abusivas + financiamento + renewal) ✅ tooling
+- fase produto **v1.3** — M&A + Due Diligence (societario/DD/data room/disclosure/red flags) ✅ tooling
+- fase produto **v1.4** — LGPD assistant (DSAR/PIA) — proximo
+- Camada prompts/Claude Projects + ativacao do piloto: **depende da Tia May** (claude.ai)
 
 ---
 

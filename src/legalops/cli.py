@@ -18,6 +18,7 @@ from datetime import date, datetime, time
 from pathlib import Path
 
 from legalops.config import LegalOpsConfig, load_config
+from legalops.contract_analyzer import analisar_contrato
 from legalops.cpc_prazos import calcular_prazo
 from legalops.email_notifier import EmailNotifier
 from legalops.eml_reader import read_eml_dir
@@ -569,6 +570,30 @@ def cmd_metrics(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_contract(args: argparse.Namespace) -> int:
+    """Analisa risco de um contrato (Contract AI — fase v1.2).
+
+    LGPD: por padrao redige PII antes da analise. ``--skip-redact`` so deve ser
+    usado quando o texto ja passou pelo redactor.
+    """
+    text = _read_input(args.input)
+    if not args.skip_redact:
+        text = PIIRedactor().redact(text).redacted_text
+    rel = analisar_contrato(text)
+    print(
+        _dump(
+            {
+                "score": rel.score,
+                "nivel": rel.nivel,
+                "clausulas": rel.clausulas,
+                "financiamento": rel.financiamento,
+                "recomendacoes": rel.recomendacoes,
+            }
+        )
+    )
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     from legalops import __version__
 
@@ -685,6 +710,17 @@ def build_parser() -> argparse.ArgumentParser:
     p_al = audit_sub.add_parser("list", help="Lista entries do audit log")
     p_al.add_argument("--db", required=True)
     p_al.set_defaults(func=cmd_audit_list)
+
+    p_contract = sub.add_parser(
+        "contract", help="Analisa risco de contrato (clausulas abusivas CDC + financiamento)"
+    )
+    p_contract.add_argument("--input", "-i", help="Arquivo (default: stdin)")
+    p_contract.add_argument(
+        "--skip-redact",
+        action="store_true",
+        help="Pula redacao de PII (use so se texto ja redigido)",
+    )
+    p_contract.set_defaults(func=cmd_contract)
 
     p_health = sub.add_parser("health", help="Health checks dos componentes core")
     p_health.add_argument("--format", choices=["json", "text"], default="text")

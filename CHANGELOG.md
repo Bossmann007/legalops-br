@@ -5,6 +5,43 @@ All notable changes to LegalOps BR.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] — 2026-05-29
+
+Camada de capacidades jurídicas: documentos estruturados + Contract AI + M&A/Due Diligence.
+Entrega o **tooling determinístico BR** das fases **v1.1, v1.2 e v1.3 do roadmap de produto**
+(`LegalOps — Roadmap.md`). A camada de prompts/Claude Projects (interface claude.ai) depende
+da Tia May e fica fora do repo.
+
+> Nota de versionamento: o SemVer do repositório (1.x) ≠ as fases do roadmap de produto (v1.x).
+> Esta release técnica `1.4.0` implementa as fases de produto **1.1 → 1.3**. Mapeamento abaixo.
+
+### Added — fase produto v1.1 (Procurações e contratos estruturados)
+- `doc_extractor.py` — `extract_procuracao()` / `extract_contrato_honorarios()` via regex. Dataclasses `ProcuracaoCampos` / `ContratoHonorariosCampos` com `campos_ausentes` + `confianca`. Roda após pii_redactor; não loga conteúdo.
+- `doc_templates.py` — `render_procuracao()` / `render_contrato_honorarios()`; campos ausentes viram `[A PREENCHER: <campo>]`, nunca lança.
+- `approval_gate.py` — `ApprovalGate` sobre `AuditLog`: `request/approve/reject/commit/pending`. "Nenhuma escrita em ficha/financeiro sem aprovação explícita." `commit()` antes de aprovação levanta `ApprovalError`. Audit recebe só change_id/resource/status (payload nunca vai ao log).
+
+### Added — fase produto v1.2 (Contract AI)
+- `contract_analyzer.py` — `scan_clausulas_abusivas()` (CDC Art. 51 + Súmulas STJ 539/541), `analisar_financiamento()` (spread/indexador/capitalização/IOF), `scan_nda()`, `analisar_contrato()` → `RelatorioRisco` pontuado (score + nível baixo/médio/alto + recomendações).
+- `renewal_watcher.py` — `RenewalWatcher` monitora vencimento + aviso prévio; `check(hoje)` → alertas ordenados por urgência (vencido/crítico/atenção/ok). LGPD: só id + descrição + datas.
+- `legalops contract` CLI — analisa risco de contrato; redige PII por padrão (`--skip-redact` opcional).
+
+### Added — fase produto v1.3 (M&A + Due Diligence) ⭐ prioridade Tia May
+- `societario.py` — `detect_tipo_sociedade()`, `quorum_deliberacao()` (CC/2002 arts. 1.061/1.071/1.076 + Lei 6.404), `validar_participacoes()`. Dataclasses `Socio` / `EstruturaSocietaria`.
+- `due_diligence.py` — `checklist_padrao()` (5 áreas: trabalhista/fiscal/ambiental/contratual/societário), `gaps()`, `score()`, `resumo_por_area()`. Referências CVM/Junta/Receita.
+- `data_room.py` — `classify_document()` + `DataRoomIndex.auditar_completude()` (detecta categorias requeridas ausentes).
+- `disclosure.py` — `find_gaps()` / `inconsistencias()` para disclosure schedules.
+- `red_flags.py` — `scan_acquisition_contract()` detecta change of control / MAC / cap de indenização / survival R&W / non-compete / earn-out, **incluindo ausências de risco** (`mac_ausente`, `sem_cap_indenizacao`).
+
+### Tests
+- +183 testes: docs (72) · M&A/DD (75) · Contract AI (36). Total: 464 → 649+.
+
+### Mapeamento versão técnica × fase produto
+| Fase roadmap | Entrega | Módulos | Versão técnica |
+|--------------|---------|---------|----------------|
+| v1.1 | Docs estruturados | doc_extractor, doc_templates, approval_gate | 1.4.0 |
+| v1.2 | Contract AI | contract_analyzer, renewal_watcher | 1.4.0 |
+| v1.3 | M&A + Due Diligence | societario, due_diligence, data_room, disclosure, red_flags | 1.4.0 |
+
 ## [1.3.0] — 2026-05-28
 
 Multi-channel notifications: SMTP email + Slack webhook + fan-out multiplex.

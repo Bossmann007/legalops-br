@@ -36,6 +36,32 @@ class TestParserBuild:
         assert args.cmd == "redact"
 
 
+class TestCmdContract:
+    def test_contract_detecta_clausula_e_redige_pii(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        # Arrange
+        f = tmp_path / "contrato.txt"
+        f.write_text(
+            "Contratante CPF 123.456.789-00. Havera capitalizacao mensal de juros.",
+            encoding="utf-8",
+        )
+        # Act
+        code = main(["contract", "--input", str(f)])
+        out = json.loads(capsys.readouterr().out)
+        # Assert
+        assert code == 0
+        assert "123.456.789-00" not in json.dumps(out)
+        assert any(c["tipo"] == "juros_capitalizados" for c in out["clausulas"])
+
+    def test_contract_skip_redact(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+        f = tmp_path / "contrato.txt"
+        f.write_text("Contrato equilibrado de prestacao de servicos.", encoding="utf-8")
+        code = main(["contract", "--input", str(f), "--skip-redact"])
+        out = json.loads(capsys.readouterr().out)
+        assert code == 0 and out["nivel"] == "baixo"
+
+
 class TestCmdRedact:
     def test_redact_strips_cpf(self, email_file: Path, capsys: pytest.CaptureFixture[str]) -> None:
         code = main(["redact", "--input", str(email_file)])
