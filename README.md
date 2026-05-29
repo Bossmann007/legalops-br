@@ -95,6 +95,9 @@ uv run pytest
 
 Após install, comando `legalops` disponivel via entry point `[project.scripts]`.
 
+Copie `.env.example` → `.env` e preencha as variáveis (mínimo `LEGALOPS_PII_SALT`).
+`chmod 600 .env` em seguida.
+
 ### Salt de pseudonimizacao (obrigatorio)
 
 O `pii_redactor` exige um salt secreto (>=16 bytes) via `LEGALOPS_PII_SALT`.
