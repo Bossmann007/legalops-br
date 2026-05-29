@@ -80,8 +80,12 @@ def parse_feed_xml(xml_text: str, source: Source) -> list[FeedItem]:
         raise ValueError(f"Feed exceeds {MAX_FEED_BYTES} bytes (defensive limit)")
 
     try:
-        # S314: stub atual nao faz network call; size cap MAX_FEED_BYTES
-        # protege contra billion-laughs. TODO v0.3: defusedxml se aceitar feeds remotos.
+        # S314: este parser recebe `xml_text` como argumento — nao faz fetch
+        # remoto. CPython >= 3.7.1 desabilita external entity resolution em
+        # `xml.etree.ElementTree.fromstring` por default (sem `XMLParser`
+        # customizado), entao XXE classico nao se aplica. MAX_FEED_BYTES corta
+        # billion-laughs antes do parse. Quando passar a aceitar feeds remotos
+        # nao confiaveis (v0.3+): trocar pra `defusedxml.ElementTree.fromstring`.
         root = ET.fromstring(xml_text)  # noqa: S314
     except ET.ParseError as e:
         raise ValueError(f"Malformed XML: {e}") from e

@@ -178,6 +178,70 @@ class TestReadEmlDir:
             read_eml_dir(f)
 
 
+EML_BAD_DATE = b"""From: a@b.test
+Subject: Bad date hdr
+Date: this-is-not-a-date
+
+body
+"""
+
+EML_WITH_ATTACHMENT = b"""From: a@b.test
+Subject: Attach test
+Date: Thu, 21 May 2026 10:00:00 -0300
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="X"
+
+--X
+Content-Type: text/plain; charset=utf-8
+
+corpo do email
+--X
+Content-Type: application/pdf; name="laudo.pdf"
+Content-Disposition: attachment; filename="laudo.pdf"
+Content-Transfer-Encoding: base64
+
+ZmFrZS1wZGYtY29udGVudA==
+--X--
+"""
+
+EML_EMPTY_BODY = b"""From: a@b.test
+Subject: empty
+Date: Thu, 21 May 2026 10:00:00 -0300
+Content-Type: text/plain; charset=utf-8
+
+"""
+
+
+class TestReadEmlEdges:
+    def test_bad_date_header_returns_none_date(self, tmp_path: Path) -> None:
+        p = tmp_path / "bad_date.eml"
+        p.write_bytes(EML_BAD_DATE)
+        result = read_eml(p)
+        assert result.date is None
+
+    def test_attachment_counted_not_in_body(self, tmp_path: Path) -> None:
+        p = tmp_path / "att.eml"
+        p.write_bytes(EML_WITH_ATTACHMENT)
+        result = read_eml(p)
+        assert result.attachments_count == 1
+        assert "corpo do email" in result.body_text
+        assert "fake-pdf-content" not in result.body_text
+
+    def test_empty_body_returns_empty_string(self, tmp_path: Path) -> None:
+        p = tmp_path / "empty.eml"
+        p.write_bytes(EML_EMPTY_BODY)
+        result = read_eml(p)
+        assert result.body_text == ""
+
+
+class TestReadEmlDirLimit:
+    def test_max_files_exceeded_raises(self, tmp_path: Path) -> None:
+        for i in range(5):
+            (tmp_path / f"e{i}.eml").write_bytes(EML_PLAIN)
+        with pytest.raises(ValueError, match="limite"):
+            read_eml_dir(tmp_path, max_files=3)
+
+
 class TestStripHtml:
     def test_strip_simple_tags(self) -> None:
         assert "Hello" in _strip_html("<p>Hello</p>")

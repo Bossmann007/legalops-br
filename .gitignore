@@ -35,6 +35,14 @@ coverage.xml
 *.key
 secrets/
 
+# Local agent/IDE state (Codex, Anthropic agents, etc.)
+.agents/
+.codex/
+AGENTS.md
+
+# Release script output (generated, dated)
+metrics/
+
 # Galileu runtime (CRITICAL — never commit private key)
 proxy/galileu/galileu-ca.pem
 proxy/galileu/galileu-ca-key.pem

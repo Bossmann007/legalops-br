@@ -17,7 +17,8 @@
 ```bash
 cd ~/Projects/legalops-br
 uv sync
-uv run pytest -q --no-cov   # esperar 362/362
+export LEGALOPS_PII_SALT="$(openssl rand -hex 24)"  # obrigatorio; guardar em secret manager
+uv run pytest -q --no-cov   # esperar 763/763
 uv run mypy --strict src/    # 0 errors
 uv run ruff check .          # 0 errors
 mkdir -p ~/.config/legalops ~/.local/share/legalops
@@ -121,7 +122,8 @@ cat metrics/metrics_$(date +%Y%m%d).json | jq .recall_by_type
 
 ## Pre-release checklist
 
-- [ ] `uv run pytest -q --no-cov` → 362+ pass
+- [ ] `export LEGALOPS_PII_SALT="$(openssl rand -hex 24)"` (obrigatorio antes de scripts/CLI que tocam PII)
+- [ ] `uv run pytest -q --no-cov` → 763+ pass
 - [ ] `uv run mypy --strict src/` clean
 - [ ] `uv run ruff check .` clean
 - [ ] `uv run python scripts/measure_redactor.py` → recall ≥ 0.95 + leaks=0

@@ -7,8 +7,9 @@
 
 ## Commands
 ```bash
-uv run pytest              # run all tests (296 expected)
-uv run pytest --cov        # with coverage
+export LEGALOPS_PII_SALT="$(openssl rand -hex 24)"  # obrigatorio — scripts/CLI falham sem
+uv run pytest              # 763 expected
+uv run pytest --cov        # with coverage (>=95% gate)
 uv run ruff check .        # lint
 uv run mypy src/           # type check
 ```
@@ -35,5 +36,6 @@ tests/          — mirrors src/ structure, AAA pattern
 - Anonimizar para dev/test — `faker` + CPF sintético
 
 ## Status
-v0.2 · 296/296 testes · GitHub público: Bossmann007/legalops-br
+v1.5.0 · 763/763 testes · GitHub privado: Bossmann007/legalops-br
+Audit backlog M1/M2/L1/L2/L3 fechado · L4 (defusedxml em bacen_cvm_feeds) deferido v0.3
 Próximo: piloto Tia May (7 Claude Projects)

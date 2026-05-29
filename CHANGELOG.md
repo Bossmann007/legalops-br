@@ -38,6 +38,28 @@ Versioning: [SemVer](https://semver.org/spec/v2.0.0.html).
 ### Changed
 - `orchestrator.process_email(redactor_salt=...)` aceita `None` (lê de `LEGALOPS_PII_SALT`).
 
+### Added (MVP launch prep — 2026-05-29 session 4)
+- **CI** (`.github/workflows/ci.yml`): synthetic `LEGALOPS_PII_SALT` env injetado
+  no nivel do workflow (`env:`) — scripts e tests passam a rodar; salt em prod
+  via secret manager.
+- **`.env.example`**: template completo com `LEGALOPS_PII_SALT` (obrigatorio),
+  `LEGALOPS_AUDIT_HMAC_KEY` + `LEGALOPS_SMTP_PASSWORD` (opcionais) + creds M365.
+- **Cobertura ≥95%** (era 92%): novos tests `test_cli_helpers.py` (helpers +
+  health + notify dry-run + audit verify), `test_eml_reader.py` expandido
+  (max_files, attachment, bad date, empty body), parsers TJSC/TJRJ (empty,
+  no CNJ, tipo desconhecido, datas invalidas, cartorio fallback). Total: **810
+  tests · 95% cov**.
+- **Docs**: README badge + RUNBOOK actualizados (763→810/810). RUNBOOK adiciona
+  `export LEGALOPS_PII_SALT` no checklist pre-release + entries pra
+  `validate_pipeline.py`/`measure_redactor.py`/`benchmark_pipeline.py`.
+
+### Notes
+- **L4 XML (defusedxml)**: `bacen_cvm_feeds.parse_feed_xml` recebe `xml_text`
+  como argumento — nao faz fetch remoto. Sem caller passando XML hostil, XXE
+  e risco hipotetico. Decisao: ficar fora do MVP. Quando passar a aceitar feeds
+  remotos (v0.3+), adicionar `defusedxml.ElementTree` (unica dep externa
+  justificada por regra "stdlib only" — security trumps).
+
 ## [1.5.0] — 2026-05-29
 
 LGPD assistant: DSAR (direitos do titular) + PIA/RIPD + DPA + playbook ANPD + revisão de

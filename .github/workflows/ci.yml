@@ -9,6 +9,11 @@ on:
 permissions:
   contents: read
 
+env:
+  # Synthetic salt used only for CI — never reuse in production.
+  # `pii_redactor` requires LEGALOPS_PII_SALT (>=16 bytes) since 9c1ce8e.
+  LEGALOPS_PII_SALT: ci-synthetic-salt-32-bytes-not-secret
+
 jobs:
   test:
     runs-on: ubuntu-latest

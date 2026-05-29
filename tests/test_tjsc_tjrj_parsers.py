@@ -230,3 +230,94 @@ class TestTJRJ:
             sender="pje@tjrj.jus.br",
         )
         assert len(results) == 1
+
+
+class TestEdgeBranches:
+    """Cobertura branches defensivos: empty, no CNJ, tipo desconhecido, data invalida."""
+
+    def test_tjsc_empty_text(self) -> None:
+        r = parse_tjsc("")
+        assert r.total == 0
+        assert "vazio" in r.erros[0].lower()
+
+    def test_tjsc_whitespace_only(self) -> None:
+        r = parse_tjsc("   \n\t  ")
+        assert r.total == 0
+        assert "vazio" in r.erros[0].lower()
+
+    def test_tjsc_no_cnj_number(self) -> None:
+        r = parse_tjsc("Email sem numero de processo, nada parsavel")
+        assert r.total == 0
+        assert any("cnj" in e.lower() for e in r.erros)
+
+    def test_tjsc_tipo_desconhecido(self) -> None:
+        # Texto com CNJ mas sem palavra-chave de tipo_ato
+        txt = "e-Proc TJSC\nAutos n. 1234567-89.2026.8.24.0001\nXXX YYY ZZZ unknown.\n"
+        r = parse_tjsc(txt)
+        assert r.total == 1
+        assert r.intimacoes[0].tipo_ato == "desconhecido"
+
+    def test_tjsc_invalid_yyyymmdd_falls_through(self) -> None:
+        # YYYYMMDD com mes=13 — regex casa, date() lanca ValueError, cai pra
+        # DDMMYYYY ou retorna None.
+        txt = (
+            "e-Proc TJSC\n"
+            "Data: 2026-13-45\n"
+            "Autos n. 1234567-89.2026.8.24.0001\n"
+            "Despacho prazo 10 dias.\n"
+        )
+        r = parse_tjsc(txt)
+        assert r.total == 1
+        # data_publicacao deveria ser None (regex casou mas date() falhou)
+        # ou cair em DDMMYYYY parsing diferente
+        # nao asseguramos o valor — so que nao crashou
+
+    def test_tjsc_invalid_ddmmyyyy(self) -> None:
+        # DDMMYYYY com mes=13 — regex casa, date() lanca ValueError
+        txt = (
+            "e-Proc TJSC\n"
+            "Data: 45/13/2026\n"
+            "Autos n. 1234567-89.2026.8.24.0001\n"
+            "Despacho prazo 10 dias.\n"
+        )
+        r = parse_tjsc(txt)
+        assert r.total == 1
+
+    def test_tjrj_empty_text(self) -> None:
+        r = parse_tjrj("")
+        assert r.total == 0
+        assert "vazio" in r.erros[0].lower()
+
+    def test_tjrj_no_cnj(self) -> None:
+        r = parse_tjrj("PJe-RJ sem processo")
+        assert r.total == 0
+        assert any("cnj" in e.lower() for e in r.erros)
+
+    def test_tjrj_tipo_desconhecido(self) -> None:
+        txt = "PJe-RJ\nProcesso n. 1234567-89.2026.8.19.0001\nXXX YYY conteudo neutro.\n"
+        r = parse_tjrj(txt)
+        assert r.total == 1
+        assert r.intimacoes[0].tipo_ato == "desconhecido"
+
+    def test_tjrj_invalid_dates(self) -> None:
+        txt = (
+            "PJe-RJ\n"
+            "Data: 2026-13-99 ou 45/13/2026\n"
+            "Processo n. 1234567-89.2026.8.19.0001\n"
+            "Despacho prazo 10 dias.\n"
+        )
+        r = parse_tjrj(txt)
+        assert r.total == 1
+
+    def test_tjrj_cartorio_fallback_vara(self) -> None:
+        # Fallback CARTORIO_RE quando nao tem VARA_RE match
+        txt = (
+            "PJe-RJ legado\n"
+            "5o Cartorio Civel\n"
+            "Processo n. 1234567-89.2026.8.19.0001\n"
+            "Despacho prazo 5 dias.\n"
+        )
+        r = parse_tjrj(txt)
+        assert r.total == 1
+        # vara deveria vir de _extract_vara via cartorio fallback
+        assert r.intimacoes[0].vara is not None
