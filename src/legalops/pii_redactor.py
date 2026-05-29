@@ -83,7 +83,8 @@ PATTERNS: dict[PIIType, re.Pattern[str]] = {
         r"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b"
     ),
     "EMAIL": re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b"),
-    "PHONE_BR": re.compile(r"\+?55?\s?\(?\d{2}\)?\s?9?\d{4}-?\d{4}\b"),
+    # Exige separador "-" no numero local: desambigua de CPF/CNPJ em digitos puros.
+    "PHONE_BR": re.compile(r"(?:\+?55\s?)?\(?\d{2}\)?\s?9?\d{4}-\d{4}\b"),
     # CNJ format NNNNNNN-DD.AAAA.J.TR.OOOO ~ 25 digitos; PIX UUID = 32 hex
     # 14 digitos puros = CNPJ; 11 = CPF. Validator dv reduz falso positivo.
     "CNPJ_NUMERIC": re.compile(r"\b\d{14}\b"),
@@ -152,7 +153,8 @@ class PIIRedactor:
             validator = PATTERN_VALIDATORS.get(pii_type)
             for m in pattern.finditer(text):
                 start, end = m.span()
-                if any(s <= start < e or s < end <= e for s, e in seen_spans):
+                # Overlap de intervalos (cobre tambem containment em ambos sentidos).
+                if any(start < e and s < end for s, e in seen_spans):
                     continue
                 if validator is not None and not validator(m.group()):
                     continue

@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from legalops.oab_sigilo import ZERO_HASH, AuditEntry, AuditLog, PIIInAuditError
+from legalops.oab_sigilo import AUDIT_HMAC_ENV, ZERO_HASH, AuditEntry, AuditLog, PIIInAuditError
 
 
 @pytest.fixture
@@ -159,6 +159,79 @@ def test_metadata_default_is_empty_dict(log: AuditLog) -> None:
     fetched = log.get(1)
     assert fetched is not None
     assert fetched.metadata == {}
+
+
+class TestHMACTamperEvidence:
+    """M1: tamper-evidence via HMAC-SHA256 com chave secreta."""
+
+    _KEY = "test-hmac-key-32-bytes-synthetic!!"  # noqa: S105 — test fixture
+
+    def test_hmac_chain_verifies_with_same_key(self, audit_db: Path) -> None:
+        log = AuditLog(audit_db, hmac_key=self._KEY)
+        log.append("agent:a", "redact", "res:1", {"k": "v"})
+        log.append("agent:b", "redact", "res:2", {"k": "v2"})
+        assert log.verify_chain() is True
+
+    def test_hmac_detects_metadata_tamper(self, audit_db: Path) -> None:
+        log = AuditLog(audit_db, hmac_key=self._KEY)
+        log.append("agent:a", "redact", "res:1", {"k": "v"})
+        log.append("agent:b", "redact", "res:2", {"k": "v2"})
+        with sqlite3.connect(audit_db) as conn:
+            conn.execute(
+                "UPDATE audit_log SET metadata = ? WHERE seq = ?",
+                ('{"k":"tampered"}', 1),
+            )
+            conn.commit()
+        assert log.verify_chain() is False
+
+    def test_chain_built_with_key_fails_without_key(self, audit_db: Path) -> None:
+        # Atacante que rouba o DB mas nao tem a chave nao consegue verificar.
+        log_with_key = AuditLog(audit_db, hmac_key=self._KEY)
+        log_with_key.append("agent:a", "redact", "res:1", {"k": "v"})
+        log_with_key.append("agent:b", "redact", "res:2", {"k": "v2"})
+
+        log_without_key = AuditLog(audit_db)
+        assert log_without_key.verify_chain() is False
+
+    def test_chain_built_without_key_fails_with_key(self, audit_db: Path) -> None:
+        # Simetrico: chain plain-SHA256 nao verifica como HMAC.
+        log_plain = AuditLog(audit_db)
+        log_plain.append("agent:a", "redact", "res:1", {"k": "v"})
+
+        log_hmac = AuditLog(audit_db, hmac_key=self._KEY)
+        assert log_hmac.verify_chain() is False
+
+    def test_different_keys_fail_cross_verification(self, audit_db: Path) -> None:
+        log_a = AuditLog(audit_db, hmac_key="key-alpha-32-bytes-synthetic-pad!")
+        log_a.append("agent:a", "redact", "res:1", {})
+        log_a.append("agent:b", "redact", "res:2", {})
+
+        log_b = AuditLog(audit_db, hmac_key="key-bravo-32-bytes-synthetic-pad!")
+        assert log_b.verify_chain() is False
+
+    def test_env_var_provides_key(self, audit_db: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv(AUDIT_HMAC_ENV, self._KEY)
+        log = AuditLog(audit_db)
+        log.append("agent:a", "redact", "res:1", {"k": "v"})
+        assert log.verify_chain() is True
+
+        # Sem env nem param: cai pra SHA-256 puro → nao verifica chain do HMAC.
+        monkeypatch.delenv(AUDIT_HMAC_ENV)
+        log_plain = AuditLog(audit_db)
+        assert log_plain.verify_chain() is False
+
+    def test_explicit_key_overrides_env(
+        self, audit_db: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv(AUDIT_HMAC_ENV, "env-key-should-be-overridden-pad!")
+        log = AuditLog(audit_db, hmac_key=self._KEY)
+        log.append("agent:a", "redact", "res:1", {})
+        assert log.verify_chain() is True
+
+    def test_bytes_key_accepted(self, audit_db: Path) -> None:
+        log = AuditLog(audit_db, hmac_key=self._KEY.encode("utf-8"))
+        log.append("agent:a", "redact", "res:1", {})
+        assert log.verify_chain() is True
 
 
 def test_persistence_across_instances(audit_db: Path) -> None:

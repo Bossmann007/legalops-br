@@ -275,6 +275,22 @@ class TestFetchRecent:
         with pytest.raises(M365Error, match="user_principal_name"):
             c.fetch_recent()
 
+    def test_fetch_recent_escapes_single_quote_in_sender_filter(self) -> None:
+        """L3: OData ``$filter`` injection — single-quote em sender_filter deve ser doblada."""
+        c = self._client_authed()
+        payload = {"value": []}
+        with patch("urllib.request.urlopen", return_value=_mock_response(payload)) as mock_open:
+            c.fetch_recent(sender_filter="evil'or'1=1@x.com", max_results=10)
+
+        req = mock_open.call_args[0][0]
+        url = req.full_url
+        # Cada `'` original deve aparecer como `''` (URL-encoded `%27%27`) no filter,
+        # nao como `'` isolado quebrando a string OData.
+        # urlencode codifica `'` como `%27`. Dois `'` doblados -> `%27%27`.
+        assert "%27%27" in url, f"single-quote nao foi escapada: {url}"
+        # Garante que o sentido literal (sem escape) NAO aparece:
+        # url tem `'evil%27%27or%27%27...` — o `eq '` abre e o close fecha no fim.
+
     def test_fetch_recent_http_error(self) -> None:
         c = self._client_authed()
         with patch(

@@ -6,7 +6,12 @@ from pathlib import Path
 
 import pytest
 
-from legalops.config import DEFAULT_CONFIG_PATH, LegalOpsConfig, load_config
+from legalops.config import (
+    DEFAULT_CONFIG_PATH,
+    SMTP_PASSWORD_ENV,
+    LegalOpsConfig,
+    load_config,
+)
 
 
 class TestDefaults:
@@ -116,6 +121,98 @@ class TestValidation:
             """
         )
         with pytest.raises(ValueError, match="parte invalida"):
+            load_config(cfg_file)
+
+
+class TestSMTPSecret:
+    """M2: SMTP password — env var ``LEGALOPS_SMTP_PASSWORD`` precedencia + warn world-readable."""
+
+    def test_env_var_overrides_toml_password(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv(SMTP_PASSWORD_ENV, "env-secret-pw")
+        cfg_file = tmp_path / "config.toml"
+        cfg_file.write_text(
+            """
+            [email]
+            smtp_host = "smtp.test.local"
+            password = "toml-plain-pw"
+            """
+        )
+        cfg = load_config(cfg_file)
+        assert cfg.email_password == "env-secret-pw"  # noqa: S105 — synthetic test fixture
+
+    def test_toml_password_used_when_env_unset(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.delenv(SMTP_PASSWORD_ENV, raising=False)
+        cfg_file = tmp_path / "config.toml"
+        cfg_file.write_text(
+            """
+            [email]
+            smtp_host = "smtp.test.local"
+            password = "toml-plain-pw"
+            """
+        )
+        cfg = load_config(cfg_file)
+        assert cfg.email_password == "toml-plain-pw"  # noqa: S105 — synthetic test fixture
+
+    def test_no_password_returns_none(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.delenv(SMTP_PASSWORD_ENV, raising=False)
+        cfg_file = tmp_path / "config.toml"
+        cfg_file.write_text(
+            """
+            [email]
+            smtp_host = "smtp.test.local"
+            """
+        )
+        cfg = load_config(cfg_file)
+        assert cfg.email_password is None
+
+    def test_password_expands_envvar(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv(SMTP_PASSWORD_ENV, raising=False)
+        monkeypatch.setenv("MY_SMTP_REF", "ref-secret")
+        cfg_file = tmp_path / "config.toml"
+        cfg_file.write_text(
+            """
+            [email]
+            password = "$MY_SMTP_REF"
+            """
+        )
+        cfg = load_config(cfg_file)
+        assert cfg.email_password == "ref-secret"  # noqa: S105 — synthetic test fixture
+
+    def test_world_readable_password_warns(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.delenv(SMTP_PASSWORD_ENV, raising=False)
+        cfg_file = tmp_path / "config.toml"
+        cfg_file.write_text(
+            """
+            [email]
+            password = "plain-pw"
+            """
+        )
+        cfg_file.chmod(0o644)  # group+other readable
+        with pytest.warns(UserWarning, match="chmod 600"):
+            load_config(cfg_file)
+
+    def test_restricted_perm_no_warn(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv(SMTP_PASSWORD_ENV, raising=False)
+        cfg_file = tmp_path / "config.toml"
+        cfg_file.write_text(
+            """
+            [email]
+            password = "plain-pw"
+            """
+        )
+        cfg_file.chmod(0o600)
+        import warnings
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")  # any warn would raise
             load_config(cfg_file)
 
 

@@ -107,6 +107,43 @@ class TestMultiple:
         assert result.has_pii is False
 
 
+class TestPhoneBR:
+    """L1: PHONE_BR must require hyphen in local number to avoid eating bare CPF digits."""
+
+    def test_formatted_phone_redacted(self, redactor: PIIRedactor) -> None:
+        text = "Contato (41) 99999-9999 para retorno"
+        result = redactor.redact(text)
+        assert "99999-9999" not in result.redacted_text
+        assert any(m.pii_type == "PHONE_BR" for m in result.matches)
+
+    def test_phone_with_country_code_redacted(self, redactor: PIIRedactor) -> None:
+        text = "WhatsApp +55 41 99999-9999"
+        result = redactor.redact(text)
+        assert "99999-9999" not in result.redacted_text
+        assert any(m.pii_type == "PHONE_BR" for m in result.matches)
+
+    def test_landline_redacted(self, redactor: PIIRedactor) -> None:
+        text = "Escritorio (41) 3333-4444 das 9 as 18h"
+        result = redactor.redact(text)
+        assert "3333-4444" not in result.redacted_text
+        assert any(m.pii_type == "PHONE_BR" for m in result.matches)
+
+    def test_bare_11_digits_not_matched_as_phone(self, redactor: PIIRedactor) -> None:
+        # Sem hifen no numero local — nao deve casar PHONE_BR (regex L1 exige hyphen).
+        # Vai cair em CPF_NUMERIC se dv valido, ou ficar intacto se invalido.
+        text = "Identificador interno 41999999999 nao redigir como phone"
+        result = redactor.redact(text)
+        assert not any(m.pii_type == "PHONE_BR" for m in result.matches)
+
+    def test_bare_cpf_still_redacted_as_cpf_numeric(self, redactor: PIIRedactor) -> None:
+        # Regressao: garante que fix do PHONE_BR nao quebrou CPF_NUMERIC.
+        text = "Cliente 12345678909 ajuizou"
+        result = redactor.redact(text)
+        assert "12345678909" not in result.redacted_text
+        assert any(m.pii_type == "CPF_NUMERIC" for m in result.matches)
+        assert not any(m.pii_type == "PHONE_BR" for m in result.matches)
+
+
 class TestCPFNumeric:
     def test_valid_cpf_sem_mascara_redacted(self, redactor: PIIRedactor) -> None:
         # 12345678909 e CPF matematicamente valido

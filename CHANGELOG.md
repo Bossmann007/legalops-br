@@ -18,6 +18,23 @@ Versioning: [SemVer](https://semver.org/spec/v2.0.0.html).
   `practice_profile` com placeholders genéricos. Hook `no-real-pii-fulltree` (pre-push) agora
   varre o repo inteiro, não só o diff staged.
 
+- **oab_sigilo (audit log)**: tamper-evidence opcional via HMAC-SHA256. Aceita `hmac_key=`
+  ou env `LEGALOPS_AUDIT_HMAC_KEY`. Sem chave, mantém SHA-256 puro (detecta corrupção
+  acidental, não rewrite deliberado). Com chave, um atacante que rewrita a tabela inteira
+  não consegue recomputar hashes válidos. `verify_chain()` agora usa `hmac.compare_digest`
+  (comparação em tempo constante).
+- **config (SMTP password)**: senha SMTP em texto plano no TOML deixa de ser único caminho.
+  Env `LEGALOPS_SMTP_PASSWORD` tem precedência. Aviso (`UserWarning`) quando o `config.toml`
+  contém `email.password` E tem permissões frouxas (grupo/outros podem ler) — recomenda
+  `chmod 600` ou env var.
+- **pii_redactor (PHONE_BR)**: regex agora exige hífen no número local (`\d{4}-\d{4}`).
+  Antes, um número bare de 11 dígitos (CPF sem máscara) podia ser engolido como `PHONE_BR`
+  por casar parcialmente, mascarando o gate de validação de CPF.
+- **pii_redactor (overlap)**: dedup de matches usa overlap de intervalos em vez de igualdade
+  estrita de spans — evita match duplicado quando um padrão menor está contido em outro.
+- **m365_ingest (OData injection)**: `sender_filter` agora escapa aspa simples (`'` → `''`)
+  antes de compor o `$filter` — defesa em profundidade contra injeção de OData.
+
 ### Changed
 - `orchestrator.process_email(redactor_salt=...)` aceita `None` (lê de `LEGALOPS_PII_SALT`).
 

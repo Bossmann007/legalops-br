@@ -26,13 +26,18 @@ Uso:
 from __future__ import annotations
 
 import os
+import stat
 import tomllib
+import warnings
 from dataclasses import dataclass, field
 from datetime import time
 from pathlib import Path
 from typing import Literal
 
 DEFAULT_CONFIG_PATH = Path("~/.config/legalops/config.toml")
+
+#: Env var que sobrepoe email.password do TOML (preferida — evita segredo em disco).
+SMTP_PASSWORD_ENV = "LEGALOPS_SMTP_PASSWORD"  # noqa: S105 — env var name, not a secret
 
 ParteType = Literal["particular", "fazenda", "mp", "defensoria"]
 
@@ -74,6 +79,39 @@ def _expand(value: object) -> object:
     return value
 
 
+def _resolve_smtp_password(cfg_value: object) -> str | None:
+    """Resolve a senha SMTP: env ``LEGALOPS_SMTP_PASSWORD`` tem precedencia.
+
+    Fallback para o valor do TOML (com expansao de ``$VAR``). Preferir env evita
+    manter segredo em disco em texto plano.
+    """
+    env = os.environ.get(SMTP_PASSWORD_ENV)
+    if env:
+        return env
+    if cfg_value is None:
+        return None
+    return str(_expand(cfg_value))
+
+
+def _warn_if_world_readable(target: Path, data: dict[str, object]) -> None:
+    """Avisa se o config tem senha em texto plano e permissoes frouxas (grupo/outros)."""
+    email_cfg = data.get("email")
+    has_plaintext_pw = isinstance(email_cfg, dict) and bool(email_cfg.get("password"))
+    if not has_plaintext_pw:
+        return
+    try:
+        mode = target.stat().st_mode
+    except OSError:
+        return
+    if mode & (stat.S_IRWXG | stat.S_IRWXO):
+        warnings.warn(
+            f"{target} contem email.password em texto plano e e legivel por "
+            f"grupo/outros (modo {stat.S_IMODE(mode):04o}). Restrinja com "
+            f"`chmod 600 {target}` ou use {SMTP_PASSWORD_ENV}.",
+            stacklevel=2,
+        )
+
+
 def load_config(path: Path | None = None) -> LegalOpsConfig:
     """Carrega config TOML. Se path None, usa DEFAULT_CONFIG_PATH expanded.
 
@@ -90,6 +128,8 @@ def load_config(path: Path | None = None) -> LegalOpsConfig:
             data = tomllib.load(f)
     except tomllib.TOMLDecodeError as e:
         raise ValueError(f"Config TOML invalido em {target}: {e}") from e
+
+    _warn_if_world_readable(target, data)
 
     defaults = data.get("defaults", {})
     audit = data.get("audit", {})
@@ -131,7 +171,7 @@ def load_config(path: Path | None = None) -> LegalOpsConfig:
         email_smtp_host=email_cfg.get("smtp_host"),
         email_smtp_port=int(email_cfg.get("smtp_port", 587)),
         email_username=email_cfg.get("username"),
-        email_password=email_cfg.get("password"),
+        email_password=_resolve_smtp_password(email_cfg.get("password")),
         email_from_addr=email_cfg.get("from_addr"),
         email_to_addr=email_cfg.get("to_addr"),
         email_use_tls=bool(email_cfg.get("use_tls", True)),

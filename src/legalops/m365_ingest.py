@@ -218,7 +218,9 @@ class M365Client:
 
         filters = [f"receivedDateTime ge {since}"]
         if sender_filter:
-            filters.append(f"from/emailAddress/address eq '{sender_filter}'")
+            # OData: escapa aspa simples duplicando-a (evita injecao no $filter).
+            safe_sender = sender_filter.replace("'", "''")
+            filters.append(f"from/emailAddress/address eq '{safe_sender}'")
         filter_expr = " and ".join(filters)
 
         params = {

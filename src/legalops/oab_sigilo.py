@@ -1,8 +1,13 @@
 """OAB sigilo profissional + LGPD Art. 37 — immutable audit log.
 
-SHA-256 hash-chained audit log backed by SQLite. Each entry hashes the previous
-entry's hash plus its own serialized content, enabling tamper detection via
+Hash-chained audit log backed by SQLite. Each entry hashes the previous entry's
+hash plus its own serialized content, enabling tamper detection via
 `verify_chain()`.
+
+Tamper-evidence: pass an ``hmac_key`` (or set ``LEGALOPS_AUDIT_HMAC_KEY``) to
+chain with HMAC-SHA256 instead of plain SHA-256. With a secret key an attacker
+who rewrites the whole table cannot recompute valid hashes. Without a key the
+chain still detects accidental corruption but not a deliberate full rewrite.
 
 LGPD: raw CPF/CNPJ/RG patterns in metadata are rejected to prevent PII leakage
 into audit storage. Callers must redact identifiers (use placeholders) before
@@ -12,7 +17,9 @@ logging.
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
+import os
 import re
 import sqlite3
 from dataclasses import dataclass
@@ -23,6 +30,9 @@ from typing import Any
 __all__ = ["AuditEntry", "AuditLog", "PIIInAuditError"]
 
 ZERO_HASH = "0" * 64
+
+#: Variavel de ambiente com a chave secreta do HMAC do audit (opcional).
+AUDIT_HMAC_ENV = "LEGALOPS_AUDIT_HMAC_KEY"
 
 # LGPD: regex patterns that indicate raw PII in metadata payload.
 _CPF_RE = re.compile(r"\b\d{3}\.\d{3}\.\d{3}-\d{2}\b")
@@ -93,11 +103,11 @@ def _serialize(
     return json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
-def _compute_hash(prev_hash: str, serialized: str) -> str:
-    h = hashlib.sha256()
-    h.update(prev_hash.encode("utf-8"))
-    h.update(serialized.encode("utf-8"))
-    return h.hexdigest()
+def _compute_hash(prev_hash: str, serialized: str, key: bytes | None = None) -> str:
+    payload = prev_hash.encode("utf-8") + serialized.encode("utf-8")
+    if key is not None:
+        return hmac.new(key, payload, hashlib.sha256).hexdigest()
+    return hashlib.sha256(payload).hexdigest()
 
 
 def _parse_timestamp(raw: str) -> datetime:
@@ -110,9 +120,21 @@ def _parse_timestamp(raw: str) -> datetime:
 class AuditLog:
     """Append-only audit log with SHA-256 chain integrity."""
 
-    def __init__(self, db_path: Path) -> None:
+    def __init__(self, db_path: Path, hmac_key: str | bytes | None = None) -> None:
+        """Cria/abre o audit log.
+
+        Args:
+            db_path: caminho do SQLite.
+            hmac_key: chave secreta para tamper-evidence (HMAC-SHA256). Se None,
+                le de ``LEGALOPS_AUDIT_HMAC_KEY``; se tambem ausente, usa SHA-256
+                puro (detecta corrupcao acidental, nao rewrite deliberado).
+        """
         self._db_path = Path(db_path)
         self._db_path.parent.mkdir(parents=True, exist_ok=True)
+        resolved = hmac_key if hmac_key is not None else os.environ.get(AUDIT_HMAC_ENV)
+        if isinstance(resolved, str):
+            resolved = resolved.encode("utf-8") if resolved else None
+        self._hmac_key: bytes | None = resolved
         self._init_schema()
 
     def _connect(self) -> sqlite3.Connection:
@@ -172,7 +194,7 @@ class AuditLog:
             next_seq = int(cur.fetchone()["next_seq"])
 
             serialized = _serialize(next_seq, timestamp, actor, action, resource, meta_normalized)
-            entry_hash = _compute_hash(prev_hash, serialized)
+            entry_hash = _compute_hash(prev_hash, serialized, self._hmac_key)
 
             conn.execute(
                 """
@@ -266,8 +288,8 @@ class AuditLog:
                 row["resource"],
                 metadata,
             )
-            recomputed = _compute_hash(stored_prev, serialized)
-            if recomputed != stored_hash:
+            recomputed = _compute_hash(stored_prev, serialized, self._hmac_key)
+            if not hmac.compare_digest(recomputed, stored_hash):
                 return False
             expected_prev = stored_hash
 
