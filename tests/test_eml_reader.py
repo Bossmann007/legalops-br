@@ -225,7 +225,11 @@ class TestReadEmlEdges:
         result = read_eml(p)
         assert result.attachments_count == 1
         assert "corpo do email" in result.body_text
+        # Trava isolamento real: nem o texto decodificado nem o base64 cru
+        # podem vazar pra body_text (regressao que concatenasse raw parts
+        # passaria o teste de string decodificada mas falharia aqui).
         assert "fake-pdf-content" not in result.body_text
+        assert "ZmFrZS1wZGYtY29udGVudA==" not in result.body_text
 
     def test_empty_body_returns_empty_string(self, tmp_path: Path) -> None:
         p = tmp_path / "empty.eml"

@@ -12,12 +12,12 @@ WhatsApp. Local-first, **nenhuma chamada automatica a LLM externa**.
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](pyproject.toml)
-[![Tests](https://img.shields.io/badge/tests-763%2F763-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/tests-811%2F811-brightgreen.svg)](tests/)
 [![Coverage](https://img.shields.io/badge/PII_recall-100%25-brightgreen.svg)](metrics/)
 [![mypy](https://img.shields.io/badge/mypy-strict-blue.svg)](pyproject.toml)
 [![ruff](https://img.shields.io/badge/ruff-clean-brightgreen.svg)](pyproject.toml)
 
-- **763/763 tests** passing, `mypy --strict` clean (41 modulos), `ruff` clean
+- **811/811 tests** passing (95% cov), `mypy --strict` clean (41 modulos), `ruff` clean
 - 100% recall + 100% precision por tipo PII (corpus 500 sintetico, 0 leaks)
 - 6 tribunais: TJPR · TJSP · TJSC · TJRJ · TJDFT · TJMG (regex tribunal-specific)
 - M365 ingest real (OAuth client_credentials + Graph API, stdlib only)

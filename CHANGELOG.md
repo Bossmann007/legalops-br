@@ -55,10 +55,17 @@ Versioning: [SemVer](https://semver.org/spec/v2.0.0.html).
 
 ### Notes
 - **L4 XML (defusedxml)**: `bacen_cvm_feeds.parse_feed_xml` recebe `xml_text`
-  como argumento — nao faz fetch remoto. Sem caller passando XML hostil, XXE
-  e risco hipotetico. Decisao: ficar fora do MVP. Quando passar a aceitar feeds
-  remotos (v0.3+), adicionar `defusedxml.ElementTree` (unica dep externa
-  justificada por regra "stdlib only" — security trumps).
+  como argumento — nao faz fetch remoto. Defesa em camadas:
+  (1) XXE: `xml.etree.ElementTree.fromstring` (CPython >= 3.7.1) nao resolve
+  external entities por default.
+  (2) Billion-laughs: protegido por **expat >= 2.6** (`XML_BLAP_MAX_AMP=100`,
+  fev/2024). CPython 3.11.7+ bundle expat 2.6. `MAX_FEED_BYTES=10MB` **nao** cap
+  billion-laughs (10MB de entrada expandem para >1GB no parse) — protecao real
+  vem do expat amp limit.
+  Sem caller passando XML hostil, XXE e billion-laughs sao riscos hipoteticos.
+  Decisao: fora do MVP. Quando passar a aceitar feeds remotos (v0.3+), trocar
+  pra `defusedxml.ElementTree.fromstring` (unica dep externa justificada — `
+  security trumps regra stdlib-only) ou garantir expat >= 2.6 no packaging.
 
 ## [1.5.0] — 2026-05-29
 

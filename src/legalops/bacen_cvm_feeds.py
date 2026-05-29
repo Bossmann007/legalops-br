@@ -81,11 +81,18 @@ def parse_feed_xml(xml_text: str, source: Source) -> list[FeedItem]:
 
     try:
         # S314: este parser recebe `xml_text` como argumento — nao faz fetch
-        # remoto. CPython >= 3.7.1 desabilita external entity resolution em
-        # `xml.etree.ElementTree.fromstring` por default (sem `XMLParser`
-        # customizado), entao XXE classico nao se aplica. MAX_FEED_BYTES corta
-        # billion-laughs antes do parse. Quando passar a aceitar feeds remotos
-        # nao confiaveis (v0.3+): trocar pra `defusedxml.ElementTree.fromstring`.
+        # remoto. Defesa em camadas pra MVP:
+        # 1. XXE: CPython >= 3.7.1 desabilita external entity resolution em
+        #    `xml.etree.ElementTree.fromstring` por default (sem `XMLParser`
+        #    customizado). Entity ref nao resolvida -> ParseError.
+        # 2. Billion-laughs: protegido por **expat >= 2.6** (amplification
+        #    limit XML_BLAP_MAX_AMP=100, fev/2024). CPython 3.11.7+ ja bundle
+        #    expat 2.6. NAO confundir com `MAX_FEED_BYTES`: 10 MB de entrada
+        #    podem expandir pra >1 GB durante parse — o byte cap nao salva.
+        # 3. Quando passar a aceitar feeds remotos nao confiaveis (v0.3+):
+        #    trocar pra `defusedxml.ElementTree.fromstring` (unica dep externa
+        #    justificada — security trumps regra stdlib-only) ou validar que
+        #    o packager esta com expat >= 2.6.
         root = ET.fromstring(xml_text)  # noqa: S314
     except ET.ParseError as e:
         raise ValueError(f"Malformed XML: {e}") from e

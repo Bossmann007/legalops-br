@@ -122,7 +122,8 @@ class TestBuildMultiplexFromArgs:
         ns = self._ns(chat_id="5541999999999@s.whatsapp.net")
         cfg = LegalOpsConfig()
         mux = _build_multiplex_from_args(ns, cfg, ["whatsapp"])
-        assert mux is not None
+        # Trava o canal certo: regressao conectando "email" pra "whatsapp" passaria sem isto.
+        assert mux.channels == ["whatsapp"]
 
     def test_email_wired_when_cfg_complete(self) -> None:
         cfg = LegalOpsConfig(
@@ -131,12 +132,23 @@ class TestBuildMultiplexFromArgs:
             email_to_addr="user@test.local",
         )
         mux = _build_multiplex_from_args(self._ns(), cfg, ["email"])
-        assert mux is not None
+        assert mux.channels == ["email"]
 
     def test_slack_wired_when_webhook_present(self) -> None:
         cfg = LegalOpsConfig(slack_webhook_url="https://hooks.slack.test/abc")
         mux = _build_multiplex_from_args(self._ns(), cfg, ["slack"])
-        assert mux is not None
+        assert mux.channels == ["slack"]
+
+    def test_multi_channel_wired_in_order(self) -> None:
+        ns = self._ns(chat_id="5541999999999@s.whatsapp.net")
+        cfg = LegalOpsConfig(
+            email_smtp_host="smtp.test.local",
+            email_from_addr="bot@test.local",
+            email_to_addr="user@test.local",
+            slack_webhook_url="https://hooks.slack.test/abc",
+        )
+        mux = _build_multiplex_from_args(ns, cfg, ["whatsapp", "email", "slack"])
+        assert mux.channels == ["whatsapp", "email", "slack"]
 
     def test_quiet_hours_from_args_take_precedence(self) -> None:
         ns = self._ns(
@@ -147,7 +159,9 @@ class TestBuildMultiplexFromArgs:
         )
         cfg = LegalOpsConfig()
         mux = _build_multiplex_from_args(ns, cfg, ["whatsapp"])
-        assert mux is not None
+        assert mux.quiet_hours_start == time(23, 0)
+        assert mux.quiet_hours_end == time(7, 0)
+        assert mux.min_prazo_dias == 5
 
 
 class TestCmdAuditVerify:

@@ -258,8 +258,9 @@ class TestEdgeBranches:
         assert r.intimacoes[0].tipo_ato == "desconhecido"
 
     def test_tjsc_invalid_yyyymmdd_falls_through(self) -> None:
-        # YYYYMMDD com mes=13 — regex casa, date() lanca ValueError, cai pra
-        # DDMMYYYY ou retorna None.
+        # YYYYMMDD com mes=13 — regex casa, date() lanca ValueError, fallthrough
+        # para None (sem outra data candidata no texto). Trava o contrato pra
+        # evitar regressao silenciosa que retorne date.today() ou similar.
         txt = (
             "e-Proc TJSC\n"
             "Data: 2026-13-45\n"
@@ -268,12 +269,10 @@ class TestEdgeBranches:
         )
         r = parse_tjsc(txt)
         assert r.total == 1
-        # data_publicacao deveria ser None (regex casou mas date() falhou)
-        # ou cair em DDMMYYYY parsing diferente
-        # nao asseguramos o valor — so que nao crashou
+        assert r.intimacoes[0].data_publicacao is None
 
     def test_tjsc_invalid_ddmmyyyy(self) -> None:
-        # DDMMYYYY com mes=13 — regex casa, date() lanca ValueError
+        # DDMMYYYY com mes=13 — regex casa, date() lanca ValueError, fallthrough.
         txt = (
             "e-Proc TJSC\n"
             "Data: 45/13/2026\n"
@@ -282,6 +281,7 @@ class TestEdgeBranches:
         )
         r = parse_tjsc(txt)
         assert r.total == 1
+        assert r.intimacoes[0].data_publicacao is None
 
     def test_tjrj_empty_text(self) -> None:
         r = parse_tjrj("")
@@ -308,6 +308,7 @@ class TestEdgeBranches:
         )
         r = parse_tjrj(txt)
         assert r.total == 1
+        assert r.intimacoes[0].data_publicacao is None
 
     def test_tjrj_cartorio_fallback_vara(self) -> None:
         # Fallback CARTORIO_RE quando nao tem VARA_RE match
