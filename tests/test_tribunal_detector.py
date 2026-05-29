@@ -65,6 +65,29 @@ class TestTJRJ:
         assert detect_tribunal(txt, sender="") == "tjrj"
 
 
+class TestTJDFT:
+    def test_tjdft_via_sender(self) -> None:
+        assert detect_tribunal("", sender="esaj@tjdft.jus.br") == "tjdft"
+
+    def test_tjdft_header(self) -> None:
+        assert detect_tribunal("e-SAJ TJDFT notificacao", sender="") == "tjdft"
+
+    def test_tjdft_full_name(self) -> None:
+        txt = "Tribunal de Justica do Distrito Federal e Territorios"
+        assert detect_tribunal(txt, sender="") == "tjdft"
+
+
+class TestTJMG:
+    def test_tjmg_via_sender(self) -> None:
+        assert detect_tribunal("", sender="pje@tjmg.jus.br") == "tjmg"
+
+    def test_tjmg_pje_header(self) -> None:
+        assert detect_tribunal("Notificacao PJe-MG", sender="") == "tjmg"
+
+    def test_tjmg_full_name(self) -> None:
+        assert detect_tribunal("Tribunal de Justica de Minas Gerais", sender="") == "tjmg"
+
+
 class TestUnknown:
     def test_empty(self) -> None:
         assert detect_tribunal("", sender="") == "unknown"

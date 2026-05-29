@@ -14,15 +14,21 @@ import argparse
 import json
 import sys
 from dataclasses import asdict, is_dataclass
-from datetime import date, datetime
+from datetime import date, datetime, time
 from pathlib import Path
 
-from legalops.config import load_config
+from legalops.config import LegalOpsConfig, load_config
+from legalops.cpc_prazos import calcular_prazo
+from legalops.email_notifier import EmailNotifier
 from legalops.eml_reader import read_eml_dir
+from legalops.metrics import MetricsRegistry
+from legalops.notification_multiplex import NotificationMultiplex
 from legalops.oab_sigilo import AuditLog
-from legalops.orchestrator import process_email, urgentes
+from legalops.orchestrator import ProcessedIntimacao, process_email, urgentes
 from legalops.pii_redactor import PIIRedactor
+from legalops.slack_notifier import SlackNotifier
 from legalops.tjpr_parser import parse_email
+from legalops.tribunal_detector import detect_tribunal
 from legalops.whatsapp_notifier import WhatsAppNotifier, WhatsAppNotifierError
 
 
@@ -198,8 +204,119 @@ def cmd_batch(args: argparse.Namespace) -> int:
     return 0 if emails else 1
 
 
+def _parse_channels_arg(raw: str | None) -> list[str]:
+    if not raw:
+        return []
+    out: list[str] = []
+    for part in raw.split(","):
+        p = part.strip().lower()
+        if not p:
+            continue
+        if p not in ("whatsapp", "email", "slack"):
+            raise ValueError(f"canal invalido: {p!r} (use whatsapp|email|slack)")
+        out.append(p)
+    return out
+
+
+def _parse_hhmm_arg(raw: str | None) -> time | None:
+    if not raw:
+        return None
+    try:
+        hh, mm = raw.split(":")
+        return time(int(hh), int(mm))
+    except (ValueError, IndexError) as e:
+        raise ValueError(f"formato HH:MM invalido: {raw!r}") from e
+
+
+def _build_multiplex_from_args(
+    args: argparse.Namespace,
+    cfg: LegalOpsConfig,
+    channels: list[str],
+) -> NotificationMultiplex:
+    quiet_start: time | None = (
+        _parse_hhmm_arg(getattr(args, "quiet_start", None)) or cfg.notification_quiet_start
+    )
+    quiet_end: time | None = (
+        _parse_hhmm_arg(getattr(args, "quiet_end", None)) or cfg.notification_quiet_end
+    )
+    min_prazo = getattr(args, "min_prazo_days", None)
+    if min_prazo is None:
+        min_prazo = cfg.notification_min_prazo_days
+
+    mux = NotificationMultiplex(
+        min_prazo_dias=int(min_prazo),
+        quiet_hours_start=quiet_start,
+        quiet_hours_end=quiet_end,
+    )
+
+    for ch in channels:
+        if ch == "whatsapp":
+            chat_id = getattr(args, "chat_id", None) or cfg.whatsapp_chat_id
+            if not chat_id:
+                raise ValueError("whatsapp: chat_id ausente (CLI/config)")
+            wa = WhatsAppNotifier(
+                chat_id=chat_id,
+                base_url=getattr(args, "bridge_url", None) or cfg.whatsapp_bridge_url,
+                timeout=float(getattr(args, "timeout", None) or cfg.whatsapp_timeout),
+            )
+
+            def _wa_call(
+                u: list[ProcessedIntimacao],
+                h: date | None,
+                _n: WhatsAppNotifier = wa,
+            ) -> int:
+                if not u:
+                    return 0
+                _n.notify_urgentes(u, hoje=h)
+                return len(u)
+
+            mux.add_channel("whatsapp", _wa_call)
+
+        elif ch == "email":
+            if not (cfg.email_smtp_host and cfg.email_from_addr and cfg.email_to_addr):
+                raise ValueError("email: smtp_host/from_addr/to_addr ausentes no config")
+            em = EmailNotifier(
+                smtp_host=cfg.email_smtp_host,
+                smtp_port=cfg.email_smtp_port,
+                username=cfg.email_username or "",
+                password=cfg.email_password or "",
+                from_addr=cfg.email_from_addr,
+                use_tls=cfg.email_use_tls,
+            )
+            to_addr = cfg.email_to_addr
+
+            def _em_call(
+                u: list[ProcessedIntimacao],
+                h: date | None,
+                _n: EmailNotifier = em,
+                _to: str = to_addr,
+            ) -> int:
+                return _n.notify_urgentes(u, to=_to, hoje=h)
+
+            mux.add_channel("email", _em_call)
+
+        elif ch == "slack":
+            if not cfg.slack_webhook_url:
+                raise ValueError("slack: webhook_url ausente no config")
+            sl = SlackNotifier(
+                webhook_url=cfg.slack_webhook_url,
+                channel=cfg.slack_channel,
+            )
+
+            def _sl_call(
+                u: list[ProcessedIntimacao],
+                h: date | None,
+                _n: SlackNotifier = sl,
+            ) -> int:
+                return _n.notify_urgentes(u, hoje=h)
+
+            mux.add_channel("slack", _sl_call)
+
+    return mux
+
+
 def cmd_notify(args: argparse.Namespace) -> int:
-    """Roda pipeline em email e envia lembrete WhatsApp se houver urgentes."""
+    """Pipeline + envia urgentes (multi-channel se --channels passado)."""
     text = _read_input(args.input)
     hoje = date.fromisoformat(args.hoje) if args.hoje else None
     audit_log = AuditLog(Path(args.audit_db)) if args.audit_db else None
@@ -218,6 +335,53 @@ def cmd_notify(args: argparse.Namespace) -> int:
         print(_dump({"sent": False, "reason": "no_urgentes", "checked": len(results)}))
         return 0
 
+    channels = _parse_channels_arg(getattr(args, "channels", None))
+
+    if channels:
+        cfg_path = Path(args.config) if getattr(args, "config", None) else None
+        cfg = load_config(cfg_path)
+        try:
+            mux = _build_multiplex_from_args(args, cfg, channels)
+        except ValueError as e:
+            print(_dump({"sent": False, "error": str(e), "urgent_count": len(u)}))
+            return 2
+
+        if args.dry_run:
+            print(
+                _dump(
+                    {
+                        "sent": False,
+                        "dry_run": True,
+                        "channels": channels,
+                        "urgent_count": len(u),
+                    }
+                )
+            )
+            return 0
+
+        counts = mux.notify_all(u, hoje=hoje)
+        print(
+            _dump(
+                {
+                    "sent": True,
+                    "urgent_count": len(u),
+                    "channels": counts,
+                }
+            )
+        )
+        return 0
+
+    # Backwards-compat: single WhatsApp channel.
+    if not args.chat_id:
+        print(
+            _dump(
+                {
+                    "sent": False,
+                    "error": "chat_id ausente (passe --chat-id ou configure [whatsapp])",
+                }
+            )
+        )
+        return 2
     notifier = WhatsAppNotifier(
         chat_id=args.chat_id,
         base_url=args.bridge_url,
@@ -235,7 +399,6 @@ def cmd_notify(args: argparse.Namespace) -> int:
         print(_dump({"sent": False, "error": str(e), "urgent_count": len(u)}))
         return 2
 
-    # u nao-vazio garante msg nao-None
     assert sent_msg is not None
     print(_dump({"sent": True, "urgent_count": len(u), "message": sent_msg}))
     return 0
@@ -268,6 +431,141 @@ def cmd_audit_list(args: argparse.Namespace) -> int:
             ]
         )
     )
+    return 0
+
+
+def _run_health_checks(audit_db: str | None) -> tuple[list[dict[str, object]], MetricsRegistry]:
+    import time
+
+    from legalops.cpc_prazos import PrazoInput
+
+    registry = MetricsRegistry()
+    checks: list[dict[str, object]] = []
+
+    from collections.abc import Callable as _Callable
+
+    def _run(name: str, fn: _Callable[[], None]) -> None:
+        t0 = time.perf_counter()
+        ok = False
+        err: str | None = None
+        try:
+            fn()
+            ok = True
+        except Exception as e:  # noqa: BLE001 - health check converts all to status
+            err = f"{type(e).__name__}: {e}"
+        ms = round((time.perf_counter() - t0) * 1000.0, 3)
+        entry: dict[str, object] = {"name": name, "ok": ok, "ms": ms}
+        if err is not None:
+            entry["error"] = err
+        registry.counter(
+            "legalops_healthcheck_total",
+            1,
+            labels={"check": name, "ok": "true" if ok else "false"},
+        )
+        registry.histogram(
+            "legalops_healthcheck_seconds",
+            ms / 1000.0,
+            labels={"check": name},
+        )
+        checks.append(entry)
+
+    def _pii_check() -> None:
+        r = PIIRedactor().redact("CPF 123.456.789-09 contato test@example.com")
+        if not r.has_pii:
+            raise RuntimeError("PIIRedactor.has_pii=False on synthetic input")
+
+    def _prazo_check() -> None:
+        from datetime import date as _date
+
+        calcular_prazo(
+            PrazoInput(
+                data_publicacao=_date(2025, 5, 5),
+                prazo_dias=15,
+                parte="particular",
+            ),
+            hoje=_date(2025, 5, 20),
+        )
+
+    def _tribunal_check() -> None:
+        sample = "Tribunal de Justica do Parana — Projudi notificacao processo"
+        t = detect_tribunal(sample, sender="x@tjpr.jus.br")
+        if t != "tjpr":
+            raise RuntimeError(f"tribunal_detector returned {t!r}, expected 'tjpr'")
+
+    _run("pii_redactor", _pii_check)
+    _run("cpc_prazos", _prazo_check)
+    _run("tribunal_detector", _tribunal_check)
+
+    if audit_db:
+
+        def _audit_check() -> None:
+            log = AuditLog(Path(audit_db))
+            if not log.verify_chain():
+                raise RuntimeError("audit chain verify failed")
+
+        _run("audit_chain", _audit_check)
+
+    return checks, registry
+
+
+def cmd_health(args: argparse.Namespace) -> int:
+    checks, registry = _run_health_checks(getattr(args, "audit_db", None))
+    healthy = all(bool(c["ok"]) for c in checks)
+    status = "healthy" if healthy else "unhealthy"
+    payload = {"status": status, "checks": checks}
+
+    if args.format == "json":
+        print(_dump(payload))
+    else:
+        print(f"status: {status}")
+        for c in checks:
+            mark = "OK" if c["ok"] else "FAIL"
+            line = f"  [{mark}] {c['name']} ({c['ms']} ms)"
+            if not c["ok"]:
+                line += f" — {c.get('error', '')}"
+            print(line)
+
+    if getattr(args, "metrics", False):
+        print("\n--- metrics ---")
+        print(registry.render(), end="")
+
+    return 0 if healthy else 1
+
+
+def cmd_metrics(args: argparse.Namespace) -> int:
+    """Run synthetic pipeline + render Prometheus exposition."""
+    import time
+    from datetime import date as _date
+
+    registry = MetricsRegistry()
+
+    sample = (
+        "Tribunal de Justica do Parana - Projudi\n"
+        "Data: 2025-05-05\n"
+        "Processo 0001234-56.2024.8.16.0001 - Vara Civel de Curitiba\n"
+        "Intimacao para contestar no prazo de 15 dias.\n"
+    )
+
+    t0 = time.perf_counter()
+    results = process_email(
+        sample,
+        parte="particular",
+        via_dje=False,
+        hoje=_date(2025, 5, 20),
+        sender="dje@tjpr.jus.br",
+    )
+    elapsed = time.perf_counter() - t0
+
+    registry.counter("legalops_pipeline_runs_total", 1, labels={"status": "ok"})
+    registry.counter(
+        "legalops_intimacoes_processed_total",
+        float(len(results)),
+        labels={"tribunal": "tjpr"},
+    )
+    registry.gauge("legalops_last_run_results", float(len(results)))
+    registry.histogram("legalops_pipeline_duration_seconds", elapsed)
+
+    print(registry.render(), end="")
     return 0
 
 
@@ -331,8 +629,29 @@ def build_parser() -> argparse.ArgumentParser:
     p_notify.add_argument("--input", "-i", help="Email file (default stdin)")
     p_notify.add_argument(
         "--chat-id",
-        required=True,
-        help="WhatsApp chatId (ex: 5541999999999@s.whatsapp.net)",
+        default=None,
+        help="WhatsApp chatId (obrigatorio se canal whatsapp e sem config)",
+    )
+    p_notify.add_argument(
+        "--channels",
+        default=None,
+        help="Lista canais separados por virgula: whatsapp,email,slack",
+    )
+    p_notify.add_argument(
+        "--min-prazo-days",
+        type=int,
+        default=None,
+        help="Threshold: so notifica prazos <= N dias uteis (default 3)",
+    )
+    p_notify.add_argument(
+        "--quiet-start",
+        default=None,
+        help="Inicio quiet hours HH:MM (sem notificacoes na janela)",
+    )
+    p_notify.add_argument(
+        "--quiet-end",
+        default=None,
+        help="Fim quiet hours HH:MM",
     )
     p_notify.add_argument(
         "--bridge-url",
@@ -366,6 +685,18 @@ def build_parser() -> argparse.ArgumentParser:
     p_al = audit_sub.add_parser("list", help="Lista entries do audit log")
     p_al.add_argument("--db", required=True)
     p_al.set_defaults(func=cmd_audit_list)
+
+    p_health = sub.add_parser("health", help="Health checks dos componentes core")
+    p_health.add_argument("--format", choices=["json", "text"], default="text")
+    p_health.add_argument("--audit-db", help="Se dado, valida AuditLog.verify_chain()")
+    p_health.add_argument("--metrics", action="store_true", help="Render metrics apos checks")
+    p_health.set_defaults(func=cmd_health)
+
+    p_metrics = sub.add_parser(
+        "metrics",
+        help="Renderiza Prometheus exposition de um pipeline sintetico",
+    )
+    p_metrics.set_defaults(func=cmd_metrics)
 
     return p
 

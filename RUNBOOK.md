@@ -66,7 +66,44 @@ legalops batch --dir ./inbox --audit-db audit.db
 
 # 3. Notify urgentes via WhatsApp
 legalops notify --input email.txt --chat-id "$WA_CHAT_ID" --audit-db audit.db
+
+# 4. Notify multi-channel (v1.3)
+legalops notify -i email.txt --channels whatsapp,email,slack \
+  --min-prazo-days 3 --quiet-start 22:00 --quiet-end 06:00
 ```
+
+## Multi-channel notifications (v1.3)
+
+Tres canais suportados, configurados via `~/.config/legalops/config.toml`:
+
+```toml
+[email]
+smtp_host = "smtp.gmail.com"
+smtp_port = 587
+username = "ops@firma.com"
+password = "app-password"      # use Gmail App Password, nao senha real
+from_addr = "ops@firma.com"
+to_addr = "advogado@firma.com"
+use_tls = true
+
+[slack]
+webhook_url = "https://hooks.slack.com/services/T/B/X"
+channel = "#prazos"            # opcional
+
+[notification]
+channels = ["whatsapp", "email", "slack"]
+min_prazo_days = 3             # so notifica prazos <= N dias uteis
+quiet_start = "22:00"          # silencia janela (24h ok via meia-noite)
+quiet_end = "06:00"
+```
+
+Gmail: gere App Password em https://myaccount.google.com/apppasswords.
+Slack: crie incoming webhook em https://api.slack.com/messaging/webhooks.
+
+LGPD: mensagens em todos os canais contem apenas `numero_processo` + `dies_ad_quem` +
+`prazo_efetivo_dias`. Sem nomes, CPFs, conteudo de ato.
+
+Falha de um canal nao quebra outros — multiplex loga e segue.
 
 ## Monitoramento
 

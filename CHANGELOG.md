@@ -5,6 +5,54 @@ All notable changes to LegalOps BR.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versioning: [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] — 2026-05-28
+
+Multi-channel notifications: SMTP email + Slack webhook + fan-out multiplex.
+
+### Added
+- `email_notifier.py` — `EmailNotifier` via stdlib `smtplib`/`email.message`. STARTTLS opcional, plain text only (sem HTML, reduz superficie). LGPD: body so com `numero_processo` + `dies_ad_quem` + `prazo_efetivo_dias`. Raises `EmailNotifierError` em falhas SMTP.
+- `slack_notifier.py` — `SlackNotifier` via stdlib `urllib`. POST `{text, channel?}` para incoming webhook. LGPD: text so com processo + dies_ad_quem. Raises `SlackNotifierError` em falhas HTTP.
+- `notification_multiplex.py` — `NotificationMultiplex.notify_all()` faz fan-out para N canais registrados via `add_channel(name, callable)`. Threshold `min_prazo_dias` filtra urgentes; quiet hours suprime tudo na janela (suporta janelas que cruzam meia-noite). Erro por canal eh isolado: loga + zero, segue outros canais.
+- `legalops notify` ganha `--channels whatsapp,email,slack`, `--min-prazo-days`, `--quiet-start`, `--quiet-end`. Backwards-compat: sem `--channels` mantem comportamento single-WhatsApp anterior.
+- `config.py` ganha secoes `[email]`, `[slack]`, `[notification]` no TOML; `LegalOpsConfig` extendido com defaults.
+
+### Tests
+- 30+ testes novos: `test_email_notifier.py` (12) · `test_slack_notifier.py` (10) · `test_notification_multiplex.py` (8). Total: 426 → 456+.
+
+## [1.2.0] — 2026-05-28
+
+Observability v1: structured logs + Prometheus metrics + health CLI.
+
+### Added
+- `obs.py` — `JsonFormatter` + `get_logger()` com configure-once idempotente. Honra `LEGALOPS_LOG_LEVEL` / `LEGALOPS_LOG_JSON`. LGPD: filtra CPF/CNPJ/OAB/EMAIL/PIX_UUID das mensagens e extras antes de emitir.
+- `metrics.py` — `MetricsRegistry` thread-safe (counter/gauge/histogram) com render Prometheus text exposition. Buckets default `[0.001, 0.01, 0.1, 1.0, 10.0]`s. Stdlib only.
+- `legalops health` CLI — checks de pii_redactor / cpc_prazos / tribunal_detector / audit_chain (opcional `--audit-db`). Flags `--format json|text`, `--metrics`. Exit 0/1 conforme status.
+- `legalops metrics` CLI — pipeline sintetico + Prometheus exposition em stdout (smoke utility).
+- 24+ testes novos: `test_obs.py` (9) · `test_metrics.py` (11) · `test_cli_health.py` (6).
+
+## [1.1.0] — 2026-05-28
+
+Multi-tribunal expand: 6 tribunais cobertos.
+
+### Added
+- `tjdft_parser.py` — TJDFT e-SAJ (Distrito Federal, CNJ 8.07)
+- `tjmg_parser.py` — TJMG PJe (Minas Gerais, CNJ 8.13)
+- `tribunal_detector` ampliado pra `tjdft`/`tjmg` + detection priority (TJDFT antes TJSP devido e-SAJ ambiguity)
+- 26 novos tests (13 TJDFT + 13 TJMG) + TestTJDFT/TestTJMG no detector (6 tests)
+- 4 templates novos (2 TJDFT + 2 TJMG) no corpus generator
+- Corpus generator `--tribunal {all|neutro|tjpr|tjsp|tjsc|tjrj|tjdft|tjmg}` flag
+- `scripts/measure_per_tribunal.py` — routing accuracy + prazo extraction per-tribunal
+- `scripts/measure_parsers.py` — direct per-parser metrics (parse/vara/comarca/prazo/tipo)
+- 5 tests novos pra measure scripts
+
+### Changed
+- Detection order: TJDFT header avaliado antes TJSP (e-SAJ shared)
+- orchestrator `_PARSERS` dict: +tjdft +tjmg
+
+### Metrics (corpus 500)
+- Routing accuracy: 100% all 6 tribunals
+- Tests: 399/399 passing
+
 ## [1.0.0] — 2026-05-28
 
 First production-ready release. LGPD-first pipeline para intimacoes TJ

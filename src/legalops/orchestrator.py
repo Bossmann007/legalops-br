@@ -24,6 +24,8 @@ from legalops.cpc_prazos import (
 )
 from legalops.oab_sigilo import AuditLog
 from legalops.pii_redactor import PIIRedactor
+from legalops.tjdft_parser import parse_email as parse_tjdft
+from legalops.tjmg_parser import parse_email as parse_tjmg
 from legalops.tjpr_parser import Intimacao, ParseResult
 from legalops.tjpr_parser import parse_email as parse_tjpr
 from legalops.tjrj_parser import parse_email as parse_tjrj
@@ -36,6 +38,8 @@ _PARSERS: dict[str, Callable[[str], ParseResult]] = {
     "tjsc": parse_tjsc,
     "tjrj": parse_tjrj,
     "tjpr": parse_tjpr,
+    "tjdft": parse_tjdft,
+    "tjmg": parse_tjmg,
 }
 
 

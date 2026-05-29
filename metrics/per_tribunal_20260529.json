@@ -1,0 +1,46 @@
+{
+  "corpus_size": 500,
+  "per_tribunal": {
+    "tjsc": {
+      "n_docs": 11,
+      "n_intimacoes_detected": 11,
+      "parsers_routing_accuracy": 1.0,
+      "prazo_extraction_rate": 1.0,
+      "n_with_expected_prazo": 11,
+      "n_prazo_extracted": 11
+    },
+    "neutro": {
+      "n_docs": 259,
+      "n_intimacoes_detected": 0,
+      "parsers_routing_accuracy": 1.0,
+      "prazo_extraction_rate": 0.0,
+      "n_with_expected_prazo": 1,
+      "n_prazo_extracted": 0
+    },
+    "tjrj": {
+      "n_docs": 13,
+      "n_intimacoes_detected": 13,
+      "parsers_routing_accuracy": 1.0,
+      "prazo_extraction_rate": 1.0,
+      "n_with_expected_prazo": 13,
+      "n_prazo_extracted": 13
+    },
+    "tjsp": {
+      "n_docs": 133,
+      "n_intimacoes_detected": 133,
+      "parsers_routing_accuracy": 1.0,
+      "prazo_extraction_rate": 1.0,
+      "n_with_expected_prazo": 96,
+      "n_prazo_extracted": 96
+    },
+    "tjpr": {
+      "n_docs": 84,
+      "n_intimacoes_detected": 84,
+      "parsers_routing_accuracy": 1.0,
+      "prazo_extraction_rate": 1.0,
+      "n_with_expected_prazo": 84,
+      "n_prazo_extracted": 84
+    }
+  },
+  "generated_at": "2026-05-29T02:35:56.705600+00:00"
+}

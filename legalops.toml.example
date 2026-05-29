@@ -13,3 +13,22 @@ db = "~/.local/share/legalops/audit.db"
 chat_id = "5541999999999@s.whatsapp.net"
 bridge_url = "http://localhost:3000"
 timeout = 10.0
+
+[email]
+smtp_host = "smtp.gmail.com"
+smtp_port = 587
+username = "ops@firma.com"
+password = "app-password-here"
+from_addr = "ops@firma.com"
+to_addr = "advogado@firma.com"
+use_tls = true
+
+[slack]
+webhook_url = "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX"
+channel = "#prazos"   # opcional; webhook ja tem default
+
+[notification]
+channels = ["whatsapp", "email", "slack"]
+min_prazo_days = 3      # so notifica prazos <= N dias uteis
+quiet_start = "22:00"   # janela silencio: nao envia (24h ok)
+quiet_end = "06:00"
