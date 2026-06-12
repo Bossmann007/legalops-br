@@ -51,3 +51,6 @@ python_version = "3.11"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-v --cov=src/legalops --cov-report=term-missing"
+
+[tool.coverage.report]
+fail_under = 95

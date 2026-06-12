@@ -15,7 +15,7 @@ const { URL } = require('url');
 
 const cfg = require('./lib/config').load();
 const { send, sendError } = require('./lib/router');
-const { authorize } = require('./lib/auth');
+const { authorize, assertAuthHostSafe } = require('./lib/auth');
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 const PORT = cfg.server.port;
@@ -137,8 +137,16 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
+// Boot guard: if login auth is disabled, HOST must be loopback (throws otherwise).
+// The per-command approval gate (routes/command.js) is unaffected by this.
+const authMode = assertAuthHostSafe(HOST);
+const authNotice = authMode === 'basic'
+  ? `auth: basic (user=${process.env.MAFFINI_AUTH_USER})`
+  : 'auth: disabled (loopback-only)';
+
 server.listen(PORT, HOST, () => {
   console.log(`Maffini Dashboard listening on http://${HOST}:${PORT}`);
+  console.log(authNotice);
 });
 
 module.exports = { server, routes, matchRoute };

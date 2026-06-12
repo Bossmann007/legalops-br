@@ -23,6 +23,13 @@
 
 function asArray(v) { return Array.isArray(v) ? v : (v ? [v] : []); }
 
+// JSON-list inputs may arrive already-serialized (textarea string) or as a
+// parsed array/object (API client). Normalize to a JSON string for the CLI flag
+// without double-encoding an existing JSON string.
+function asJsonArg(v) {
+  return typeof v === 'string' ? v : JSON.stringify(v);
+}
+
 const COMMANDS = [
   // ─────────────── operacoes ───────────────
   {
@@ -143,12 +150,20 @@ const COMMANDS = [
     group: 'ma',
     areas: ['bancario', 'preventivo'],
     icon: '⛯',
-    blurb: 'Setup pasta Data Room + checklist due_diligence (LegalOps v1.3)',
+    blurb: 'Emite checklist padrão de due diligence BR, filtrável por área (v0.3)',
     inputs: [
-      { key: 'target', label: 'Alias da target', type: 'text', required: true, placeholder: 'TGT-001' },
-      { key: 'area_foco', label: 'Foco', type: 'select', options: ['societario','financeiro','trabalhista','tributario','lgpd'], default: 'societario' }
+      { key: 'area', label: 'Área (opcional — vazio = todas)', type: 'select',
+        options: ['', 'trabalhista','fiscal','ambiental','contratual','societario'], default: '' }
     ],
-    exec: { kind: 'internal', module: 'due_diligence', op: 'init' },
+    exec: {
+      kind: 'legalops',
+      args: ({ area }) => {
+        const a = ['due-diligence'];
+        if (area) a.push('--area', area);
+        return a;
+      },
+      outputType: 'json'
+    },
     audit: { action: 'dd_init', resource: 'data_room' },
     dangerLevel: 'medium'
   },
@@ -167,28 +182,58 @@ const COMMANDS = [
   },
   {
     id: 'disclosure_draft',
-    label: 'Gerar disclosure schedule',
+    label: 'Cross-check disclosure schedule',
     group: 'ma',
     areas: ['bancario', 'preventivo'],
     icon: '⟆',
-    blurb: 'Monta disclosure schedule a partir do data room',
+    blurb: 'Cruza representações vs disclosure schedule — gaps + inconsistências (v0.3)',
     inputs: [
-      { key: 'data_room_id', label: 'ID do data room', type: 'text', required: true }
+      { key: 'representacoes', label: 'Representações (JSON list de {id,texto,requer_schedule})', type: 'textarea',
+        required: true, placeholder: '[{"id":"R-1","texto":"rep um","requer_schedule":true}]' },
+      { key: 'schedule', label: 'Schedule (JSON list de {rep_id,conteudo}; opcional)', type: 'textarea',
+        placeholder: '[{"rep_id":"R-1","conteudo":"..."}]' }
     ],
-    exec: { kind: 'internal', module: 'disclosure', op: 'draft' },
+    exec: {
+      kind: 'legalops',
+      args: ({ representacoes, schedule }) => {
+        const a = ['disclosure', '--representacoes', asJsonArg(representacoes)];
+        if (schedule !== undefined && schedule !== null && schedule !== '') {
+          a.push('--schedule', asJsonArg(schedule));
+        }
+        return a;
+      },
+      outputType: 'json'
+    },
     audit: { action: 'disclosure_draft', resource: 'data_room' }
   },
   {
     id: 'societario_review',
-    label: 'Revisão societária (alterações estatuto)',
+    label: 'Revisão societária (participações)',
     group: 'ma',
     areas: ['bancario', 'preventivo'],
     icon: '⚖',
-    blurb: 'Revisa alterações estatutárias + compliance JUCEPAR (LegalOps v1.3)',
+    blurb: 'Valida coerência de participações societárias (CC/2002) — LegalOps v0.3',
     inputs: [
-      { key: 'text', label: 'Texto do ato', type: 'textarea', required: true, redactable: true }
+      { key: 'socios', label: 'Sócios (JSON list de {nome_alias,percentual,tipo}; alias only)', type: 'textarea',
+        required: true, placeholder: '[{"nome_alias":"SOCIO-A","percentual":60,"tipo":"quotista"}]' },
+      { key: 'tipo', label: 'Tipo societário', type: 'select',
+        options: ['ltda','sa_fechada','sa_aberta','eireli','mei','slu','desconhecido'], default: 'ltda' },
+      { key: 'cnpj', label: 'CNPJ (opcional)', type: 'text', placeholder: '00.000.000/0001-00' },
+      { key: 'capital_social', label: 'Capital social (opcional)', type: 'number' }
     ],
-    exec: { kind: 'internal', module: 'societario', op: 'review' },
+    exec: {
+      kind: 'legalops',
+      args: ({ socios, tipo, cnpj, capital_social }) => {
+        const a = ['societario', '--socios', asJsonArg(socios)];
+        if (tipo) a.push('--tipo', tipo);
+        if (cnpj) a.push('--cnpj', cnpj);
+        if (capital_social !== undefined && capital_social !== null && capital_social !== '') {
+          a.push('--capital-social', String(capital_social));
+        }
+        return a;
+      },
+      outputType: 'json'
+    },
     audit: { action: 'societario_review', resource: 'act' }
   },
 
@@ -312,12 +357,13 @@ const COMMANDS = [
     group: 'lgpd',
     areas: ['digital'],
     icon: '⊠',
-    blurb: 'Avalia fornecedor IA contra critérios LGPD + ANPD (v1.4)',
-    inputs: [
-      { key: 'vendor', label: 'Nome do fornecedor', type: 'text', required: true },
-      { key: 'finalidade', label: 'Finalidade do uso', type: 'text', required: true }
-    ],
-    exec: { kind: 'internal', module: 'vendor_ai_review', op: 'avaliar' },
+    blurb: 'Emite checklist LGPD/ANPD padrão para fornecedor de IA (v0.3)',
+    inputs: [],
+    exec: {
+      kind: 'legalops',
+      args: () => ['vendor-review', '--format', 'json'],
+      outputType: 'json'
+    },
     audit: { action: 'vendor_ai_review', resource: 'vendor' }
   },
 

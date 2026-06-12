@@ -4,8 +4,8 @@
   "description": "Dashboard advocatício LGPD-compliant — prazos, intimações, contratos, audit.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#F7F4EE",
-  "theme_color": "#0F1F3D",
+  "background_color": "#f2f2f2",
+  "theme_color": "#388da5",
   "lang": "pt-BR",
   "icons": [
     {

@@ -69,6 +69,43 @@ function rateLimitNote(ip) {
 
 function rateLimitReset(ip) { failCache.delete(ip); }
 
+// Login auth is OPTIONAL (single-user mode). It is "enabled" only when
+// MAFFINI_AUTH_USER is set to a non-empty value. When disabled, the basic-auth
+// wall is skipped entirely — but the boot guard (assertAuthHostSafe) ensures the
+// server is loopback-bound so an auth-less dashboard is never exposed on a LAN/WAN.
+function authEnabled() {
+  return !!(process.env.MAFFINI_AUTH_USER && process.env.MAFFINI_AUTH_USER.trim());
+}
+
+const LOOPBACK_HOSTS = new Set(['127.0.0.1', '::1', 'localhost', '0:0:0:0:0:0:0:1']);
+
+function isLoopbackHost(host) {
+  if (!host) return false;
+  let h = String(host).trim().toLowerCase();
+  // strip ipv6 brackets and zone id
+  if (h.startsWith('[') && h.endsWith(']')) h = h.slice(1, -1);
+  h = h.split('%')[0];
+  if (LOOPBACK_HOSTS.has(h)) return true;
+  // entire 127.0.0.0/8 range is loopback
+  if (/^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(h)) return true;
+  return false;
+}
+
+// Boot guard: when login auth is DISABLED, the server MUST be loopback-bound.
+// Throws on a non-loopback host so an auth-less dashboard never listens on a
+// LAN/WAN interface. No-op when auth is enabled. Returns the chosen mode.
+function assertAuthHostSafe(host) {
+  if (authEnabled()) return 'basic';
+  if (!isLoopbackHost(host)) {
+    throw new Error(
+      `Refusing to start: login auth is disabled (MAFFINI_AUTH_USER unset) but ` +
+      `host "${host}" is not loopback. Either bind to 127.0.0.1/::1/localhost, ` +
+      `or set MAFFINI_AUTH_USER + MAFFINI_AUTH_PASS to enable basic auth.`
+    );
+  }
+  return 'disabled';
+}
+
 function parseBasicAuth(header) {
   if (!header || !header.toLowerCase().startsWith('basic ')) return null;
   const decoded = Buffer.from(header.slice(6).trim(), 'base64').toString('utf8');
@@ -81,6 +118,12 @@ function parseBasicAuth(header) {
 function authorize(req, res, { realm = 'Maffini Dashboard', publicPaths = [] } = {}) {
   const url = req.url || '';
   if (publicPaths.some(p => url === p || url.startsWith(p + '?'))) return true;
+
+  // Login auth disabled (single-user loopback mode) → no basic-auth wall.
+  // Safe because the boot guard refuses to start on a non-loopback host here.
+  // NOTE: this only bypasses LOGIN auth — the per-command approval gate in
+  // routes/command.js is independent and stays enforced regardless.
+  if (!authEnabled()) return true;
 
   const ip = (req.socket && req.socket.remoteAddress) || 'unknown';
   if (!rateLimitCheck(ip)) {
@@ -114,6 +157,7 @@ function authorize(req, res, { realm = 'Maffini Dashboard', publicPaths = [] } =
 
 module.exports = {
   authorize, hashPassword, verifyPassword, parseBasicAuth,
+  authEnabled, isLoopbackHost, assertAuthHostSafe,
   // exposed for tests
   rateLimitCheck, rateLimitNote, rateLimitReset
 };

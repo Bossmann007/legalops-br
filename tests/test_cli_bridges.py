@@ -210,3 +210,171 @@ class TestDocExtract:
         assert code == 0
         assert out["kind"] == "contrato_honorarios"
         assert "confianca" in out["campos"]
+
+
+# ── v0.3 bridges ──────────────────────────────────────────────────────────
+
+# CNPJ sintetico valido (digito verificador OK) — nao corresponde a empresa real.
+_CNPJ_SINTETICO = "26715907000120"
+
+
+class TestSocietario:
+    def test_estrutura_coerente(self, capsys: pytest.CaptureFixture[str]) -> None:
+        socios = json.dumps(
+            [
+                {"nome_alias": "SOCIO-A", "percentual": 60, "tipo": "quotista"},
+                {"nome_alias": "SOCIO-B", "percentual": 40, "tipo": "administrador"},
+            ]
+        )
+        code = main(["societario", "--socios", socios, "--tipo", "ltda"])
+        out = json.loads(capsys.readouterr().out)
+        assert code == 0
+        assert out["coerente"] is True
+        assert out["problemas"] == []
+        assert out["soma_participacoes"] == 100
+
+    def test_cnpj_valido_aceito(self, capsys: pytest.CaptureFixture[str]) -> None:
+        socios = json.dumps([{"nome_alias": "X", "percentual": 100}])
+        code = main(["societario", "--socios", socios, "--tipo", "slu", "--cnpj", _CNPJ_SINTETICO])
+        out = json.loads(capsys.readouterr().out)
+        assert code == 0
+        assert "CNPJ invalido (digito verificador)" not in out["problemas"]
+
+    def test_soma_diferente_de_100_falha(self, capsys: pytest.CaptureFixture[str]) -> None:
+        socios = json.dumps([{"nome_alias": "X", "percentual": 50}])
+        code = main(["societario", "--socios", socios])
+        out = json.loads(capsys.readouterr().out)
+        assert code == 1
+        assert out["coerente"] is False
+        assert any("Soma" in p for p in out["problemas"])
+
+    def test_json_invalido(self, capsys: pytest.CaptureFixture[str]) -> None:
+        code = main(["societario", "--socios", "{nao json"])
+        out = json.loads(capsys.readouterr().out)
+        assert code == 2
+        assert "JSON invalido" in out["error"]
+
+    def test_socios_nao_lista(self, capsys: pytest.CaptureFixture[str]) -> None:
+        code = main(["societario", "--socios", '{"a": 1}'])
+        out = json.loads(capsys.readouterr().out)
+        assert code == 2
+        assert "lista JSON" in out["error"]
+
+    def test_socio_nao_objeto(self, capsys: pytest.CaptureFixture[str]) -> None:
+        code = main(["societario", "--socios", "[1, 2]"])
+        out = json.loads(capsys.readouterr().out)
+        assert code == 2
+        assert "objeto JSON" in out["error"]
+
+    def test_tipo_socio_invalido(self, capsys: pytest.CaptureFixture[str]) -> None:
+        socios = json.dumps([{"nome_alias": "X", "percentual": 100, "tipo": "fantasma"}])
+        code = main(["societario", "--socios", socios])
+        out = json.loads(capsys.readouterr().out)
+        assert code == 2
+        assert "tipo invalido" in out["error"]
+
+    def test_percentual_ausente(self, capsys: pytest.CaptureFixture[str]) -> None:
+        socios = json.dumps([{"nome_alias": "X"}])
+        code = main(["societario", "--socios", socios])
+        out = json.loads(capsys.readouterr().out)
+        assert code == 2
+        assert "percentual" in out["error"]
+
+
+class TestVendorReview:
+    def test_json_default(self, capsys: pytest.CaptureFixture[str]) -> None:
+        code = main(["vendor-review"])
+        out = json.loads(capsys.readouterr().out)
+        assert code == 0
+        assert out["checklist"] == "vendor_ai_review_padrao"
+        assert len(out["itens"]) == 10
+        assert all({"chave", "artigo", "status"} <= set(it) for it in out["itens"])
+
+    def test_text_format(self, capsys: pytest.CaptureFixture[str]) -> None:
+        code = main(["vendor-review", "--format", "text"])
+        out = capsys.readouterr().out
+        assert code == 0
+        assert "vendor_ai_review_padrao" in out
+        assert "transferencia_internacional" in out
+
+
+class TestDisclosure:
+    def test_gap_detectado(self, capsys: pytest.CaptureFixture[str]) -> None:
+        reps = json.dumps([{"id": "R-1", "texto": "rep um", "requer_schedule": True}])
+        code = main(["disclosure", "--representacoes", reps])
+        out = json.loads(capsys.readouterr().out)
+        assert code == 1
+        assert [g["id"] for g in out["gaps"]] == ["R-1"]
+
+    def test_sem_gaps_nem_inconsistencias(self, capsys: pytest.CaptureFixture[str]) -> None:
+        reps = json.dumps([{"id": "R-1", "requer_schedule": True}])
+        sched = json.dumps([{"rep_id": "R-1", "conteudo": "divulgado"}])
+        code = main(["disclosure", "--representacoes", reps, "--schedule", sched])
+        out = json.loads(capsys.readouterr().out)
+        assert code == 0
+        assert out["gaps"] == []
+        assert out["inconsistencias"] == []
+
+    def test_inconsistencia_detectada(self, capsys: pytest.CaptureFixture[str]) -> None:
+        reps = json.dumps([{"id": "R-1", "requer_schedule": False}])
+        sched = json.dumps([{"rep_id": "R-99", "conteudo": "orfa"}])
+        code = main(["disclosure", "--representacoes", reps, "--schedule", sched])
+        out = json.loads(capsys.readouterr().out)
+        assert code == 1
+        assert [i["rep_id"] for i in out["inconsistencias"]] == ["R-99"]
+
+    def test_reps_json_invalido(self, capsys: pytest.CaptureFixture[str]) -> None:
+        code = main(["disclosure", "--representacoes", "{nao"])
+        out = json.loads(capsys.readouterr().out)
+        assert code == 2
+        assert "representacoes JSON invalido" in out["error"]
+
+    def test_reps_nao_lista(self, capsys: pytest.CaptureFixture[str]) -> None:
+        code = main(["disclosure", "--representacoes", '{"id": 1}'])
+        out = json.loads(capsys.readouterr().out)
+        assert code == 2
+        assert "lista JSON" in out["error"]
+
+    def test_rep_sem_id(self, capsys: pytest.CaptureFixture[str]) -> None:
+        code = main(["disclosure", "--representacoes", '[{"texto": "x"}]'])
+        out = json.loads(capsys.readouterr().out)
+        assert code == 2
+        assert "'id'" in out["error"]
+
+    def test_schedule_json_invalido(self, capsys: pytest.CaptureFixture[str]) -> None:
+        reps = json.dumps([{"id": "R-1", "requer_schedule": False}])
+        code = main(["disclosure", "--representacoes", reps, "--schedule", "{nao"])
+        out = json.loads(capsys.readouterr().out)
+        assert code == 2
+        assert "schedule JSON invalido" in out["error"]
+
+    def test_schedule_nao_lista(self, capsys: pytest.CaptureFixture[str]) -> None:
+        reps = json.dumps([{"id": "R-1", "requer_schedule": False}])
+        code = main(["disclosure", "--representacoes", reps, "--schedule", '{"rep_id": 1}'])
+        out = json.loads(capsys.readouterr().out)
+        assert code == 2
+        assert "lista JSON" in out["error"]
+
+    def test_schedule_item_sem_rep_id(self, capsys: pytest.CaptureFixture[str]) -> None:
+        reps = json.dumps([{"id": "R-1", "requer_schedule": False}])
+        code = main(["disclosure", "--representacoes", reps, "--schedule", '[{"conteudo": "x"}]'])
+        out = json.loads(capsys.readouterr().out)
+        assert code == 2
+        assert "'rep_id'" in out["error"]
+
+
+class TestDueDiligence:
+    def test_checklist_completo(self, capsys: pytest.CaptureFixture[str]) -> None:
+        code = main(["due-diligence"])
+        out = json.loads(capsys.readouterr().out)
+        assert code == 0
+        assert out["area_filtro"] is None
+        assert out["n_itens"] == 13
+
+    def test_filtro_por_area(self, capsys: pytest.CaptureFixture[str]) -> None:
+        code = main(["due-diligence", "--area", "fiscal"])
+        out = json.loads(capsys.readouterr().out)
+        assert code == 0
+        assert out["area_filtro"] == "fiscal"
+        assert all(it["area"] == "fiscal" for it in out["itens"])
+        assert out["n_itens"] == 3

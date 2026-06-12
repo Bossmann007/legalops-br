@@ -21,6 +21,13 @@ from legalops.anpd_playbook import Incidente, gerar_plano
 from legalops.config import LegalOpsConfig, load_config
 from legalops.contract_analyzer import analisar_contrato
 from legalops.cpc_prazos import calcular_prazo
+from legalops.disclosure import (
+    DisclosureItem,
+    DisclosureSchedule,
+    Representacao,
+    find_gaps,
+    inconsistencias,
+)
 from legalops.doc_extractor import (
     ContratoHonorariosCampos,
     ProcuracaoCampos,
@@ -30,6 +37,7 @@ from legalops.doc_extractor import (
 from legalops.doc_templates import render_contrato_honorarios, render_procuracao
 from legalops.dpa_templates import DPAParams, render_dpa
 from legalops.dsar import DSARError, DSARRequest, classify_request, processar_dsar
+from legalops.due_diligence import checklist_padrao
 from legalops.email_notifier import EmailNotifier
 from legalops.eml_reader import read_eml_dir
 from legalops.lgpd_specifics import (
@@ -46,8 +54,14 @@ from legalops.pia import avaliar_ripd
 from legalops.pii_redactor import MissingSaltError, PIIRedactor
 from legalops.red_flags import scan_acquisition_contract
 from legalops.slack_notifier import SlackNotifier
+from legalops.societario import (
+    EstruturaSocietaria,
+    Socio,
+    validar_participacoes,
+)
 from legalops.tjpr_parser import parse_email
 from legalops.tribunal_detector import detect_tribunal
+from legalops.vendor_ai_review import checklist_vendor_padrao
 from legalops.whatsapp_notifier import WhatsAppNotifier, WhatsAppNotifierError
 
 
@@ -864,6 +878,215 @@ def cmd_doc_extract(args: argparse.Namespace) -> int:
     return 0
 
 
+_SOCIO_TIPOS = ("administrador", "quotista", "acionista")
+_SOC_TIPOS = (
+    "ltda",
+    "sa_fechada",
+    "sa_aberta",
+    "eireli",
+    "mei",
+    "slu",
+    "desconhecido",
+)
+
+
+def cmd_societario(args: argparse.Namespace) -> int:
+    """Valida coerencia de participacoes societarias (CC/2002).
+
+    Constroi ``EstruturaSocietaria`` a partir de ``--socios`` (JSON: lista de
+    objetos {nome_alias, percentual, tipo}) e chama ``validar_participacoes``.
+    """
+    try:
+        raw = json.loads(args.socios)
+    except json.JSONDecodeError as e:
+        print(_dump({"error": f"socios JSON invalido: {e}"}))
+        return 2
+    if not isinstance(raw, list):
+        print(_dump({"error": "socios deve ser uma lista JSON"}))
+        return 2
+
+    socios: list[Socio] = []
+    for idx, entry in enumerate(raw):
+        if not isinstance(entry, dict):
+            print(_dump({"error": f"socio[{idx}] deve ser objeto JSON"}))
+            return 2
+        tipo = entry.get("tipo", "quotista")
+        if tipo not in _SOCIO_TIPOS:
+            print(
+                _dump(
+                    {
+                        "error": f"socio[{idx}].tipo invalido: {tipo!r}",
+                        "tipos": list(_SOCIO_TIPOS),
+                    }
+                )
+            )
+            return 2
+        try:
+            pct = float(entry["percentual"])
+        except (KeyError, TypeError, ValueError):
+            print(_dump({"error": f"socio[{idx}].percentual ausente ou nao numerico"}))
+            return 2
+        socios.append(
+            Socio(
+                nome=str(entry.get("nome_alias", f"socio-{idx}")),
+                participacao_pct=pct,
+                tipo=tipo,
+            )
+        )
+
+    estrutura = EstruturaSocietaria(
+        tipo=args.tipo,
+        cnpj=args.cnpj,
+        socios=tuple(socios),
+        capital_social=args.capital_social,
+    )
+    problemas = validar_participacoes(estrutura)
+    print(
+        _dump(
+            {
+                "tipo": estrutura.tipo,
+                "cnpj": estrutura.cnpj,
+                "n_socios": len(socios),
+                "soma_participacoes": sum(s.participacao_pct for s in socios),
+                "coerente": not problemas,
+                "problemas": list(problemas),
+            }
+        )
+    )
+    return 0 if not problemas else 1
+
+
+def cmd_vendor_review(args: argparse.Namespace) -> int:
+    """Emite o checklist padrao de review de fornecedor de IA (LGPD).
+
+    A API (`checklist_vendor_padrao`) nao recebe vendor/finalidade — expoe o
+    checklist padrao estruturado para preenchimento downstream.
+    """
+    review = checklist_vendor_padrao()
+    payload = {
+        "checklist": "vendor_ai_review_padrao",
+        "nota": "API nao recebe vendor/finalidade; emite checklist padrao.",
+        "score": review.score(),
+        "aprovado": review.aprovado(),
+        "itens": [
+            {
+                "chave": it.chave,
+                "pergunta": it.pergunta,
+                "artigo": it.artigo,
+                "status": it.status,
+                "obrigatorio": it.obrigatorio,
+            }
+            for it in review.itens
+        ],
+    }
+    if args.format == "json":
+        print(_dump(payload))
+    else:
+        print(f"checklist: {payload['checklist']} ({len(review.itens)} itens)")
+        for it in review.itens:
+            mark = "*" if it.obrigatorio else " "
+            print(f"  [{mark}] {it.chave} ({it.artigo}): {it.pergunta}")
+    return 0
+
+
+def cmd_disclosure(args: argparse.Namespace) -> int:
+    """Cruza representacoes x disclosure schedule (gaps + inconsistencias).
+
+    ``--representacoes`` JSON: lista de {id, texto, requer_schedule}.
+    ``--schedule`` JSON: lista de {rep_id, conteudo}.
+    """
+    try:
+        reps_raw = json.loads(args.representacoes)
+    except json.JSONDecodeError as e:
+        print(_dump({"error": f"representacoes JSON invalido: {e}"}))
+        return 2
+    if not isinstance(reps_raw, list):
+        print(_dump({"error": "representacoes deve ser uma lista JSON"}))
+        return 2
+
+    try:
+        sched_raw = json.loads(args.schedule) if args.schedule else []
+    except json.JSONDecodeError as e:
+        print(_dump({"error": f"schedule JSON invalido: {e}"}))
+        return 2
+    if not isinstance(sched_raw, list):
+        print(_dump({"error": "schedule deve ser uma lista JSON"}))
+        return 2
+
+    reps: list[Representacao] = []
+    for idx, entry in enumerate(reps_raw):
+        if not isinstance(entry, dict) or "id" not in entry:
+            print(_dump({"error": f"representacao[{idx}] precisa de objeto com 'id'"}))
+            return 2
+        reps.append(
+            Representacao(
+                id=str(entry["id"]),
+                texto=str(entry.get("texto", "")),
+                requer_schedule=bool(entry.get("requer_schedule", True)),
+            )
+        )
+
+    items: list[DisclosureItem] = []
+    for idx, entry in enumerate(sched_raw):
+        if not isinstance(entry, dict) or "rep_id" not in entry:
+            print(_dump({"error": f"schedule[{idx}] precisa de objeto com 'rep_id'"}))
+            return 2
+        items.append(
+            DisclosureItem(
+                rep_id=str(entry["rep_id"]),
+                conteudo=str(entry.get("conteudo", "")),
+            )
+        )
+
+    schedule = DisclosureSchedule(items)
+    gaps = find_gaps(tuple(reps), schedule)
+    inc = inconsistencias(tuple(reps), schedule)
+    print(
+        _dump(
+            {
+                "n_representacoes": len(reps),
+                "n_schedule_items": len(items),
+                "gaps": [{"id": r.id, "texto": r.texto} for r in gaps],
+                "inconsistencias": [{"rep_id": i.rep_id, "conteudo": i.conteudo} for i in inc],
+            }
+        )
+    )
+    return 0 if not gaps and not inc else 1
+
+
+def cmd_due_diligence(args: argparse.Namespace) -> int:
+    """Emite o checklist padrao de due diligence BR (opcional filtro por area).
+
+    A API (`checklist_padrao`) nao recebe input; ``--area`` filtra os itens
+    emitidos no adapter.
+    """
+    checklist = checklist_padrao()
+    itens = checklist.itens
+    if args.area:
+        itens = tuple(it for it in itens if it.area == args.area)
+    print(
+        _dump(
+            {
+                "checklist": "due_diligence_padrao",
+                "area_filtro": args.area,
+                "n_itens": len(itens),
+                "score": checklist.score(),
+                "itens": [
+                    {
+                        "area": it.area,
+                        "descricao": it.descricao,
+                        "obrigatorio": it.obrigatorio,
+                        "referencia": it.referencia,
+                        "status": it.status,
+                    }
+                    for it in itens
+                ],
+            }
+        )
+    )
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     from legalops import __version__
 
@@ -1094,6 +1317,55 @@ def build_parser() -> argparse.ArgumentParser:
         default="procuracao",
     )
     p_dext.set_defaults(func=cmd_doc_extract)
+
+    # ── v0.3 bridges: M&A / societario internal modules → CLI subcommands ──
+    p_soc = sub.add_parser(
+        "societario", help="Valida coerencia de participacoes societarias (CC/2002)"
+    )
+    p_soc.add_argument(
+        "--socios",
+        required=True,
+        help="JSON: lista de {nome_alias, percentual, tipo}. tipo in "
+        "administrador|quotista|acionista",
+    )
+    p_soc.add_argument("--tipo", choices=list(_SOC_TIPOS), default="ltda")
+    p_soc.add_argument("--cnpj", default=None, help="CNPJ (digitos ou formatado)")
+    p_soc.add_argument("--capital-social", type=float, default=None)
+    p_soc.set_defaults(func=cmd_societario)
+
+    p_vr = sub.add_parser(
+        "vendor-review",
+        help="Emite checklist padrao de review de fornecedor de IA (API nao recebe "
+        "vendor/finalidade)",
+    )
+    p_vr.add_argument("--format", choices=["json", "text"], default="json")
+    p_vr.set_defaults(func=cmd_vendor_review)
+
+    p_disc = sub.add_parser(
+        "disclosure", help="Cruza representacoes x disclosure schedule (gaps/inconsistencias)"
+    )
+    p_disc.add_argument(
+        "--representacoes",
+        required=True,
+        help="JSON: lista de {id, texto, requer_schedule}",
+    )
+    p_disc.add_argument(
+        "--schedule",
+        default=None,
+        help="JSON: lista de {rep_id, conteudo} (default: vazio)",
+    )
+    p_disc.set_defaults(func=cmd_disclosure)
+
+    p_dd = sub.add_parser(
+        "due-diligence", help="Emite checklist padrao de due diligence BR (filtro por --area)"
+    )
+    p_dd.add_argument(
+        "--area",
+        choices=["trabalhista", "fiscal", "ambiental", "contratual", "societario"],
+        default=None,
+        help="Filtra itens por area (default: todas)",
+    )
+    p_dd.set_defaults(func=cmd_due_diligence)
 
     return p
 

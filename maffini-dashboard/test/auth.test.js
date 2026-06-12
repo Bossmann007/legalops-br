@@ -44,7 +44,9 @@ test('parseBasicAuth returns null for malformed', () => {
   assert.equal(parseBasicAuth('Basic ' + Buffer.from('no-colon').toString('base64')), null);
 });
 
-test('authorize rejects when auth not configured', () => {
+test('authorize passes through when login auth disabled (no AUTH_USER)', () => {
+  // Login auth is OPTIONAL: with MAFFINI_AUTH_USER unset, the basic-auth wall
+  // is skipped (single-user loopback mode). The boot guard enforces loopback.
   const u = process.env.MAFFINI_AUTH_USER;
   const p = process.env.MAFFINI_AUTH_PASS;
   delete process.env.MAFFINI_AUTH_USER;
@@ -53,8 +55,8 @@ test('authorize rejects when auth not configured', () => {
   const req = mockReq();
   const res = mockRes();
   const ok = authorize(req, res);
-  assert.equal(ok, false);
-  assert.equal(res.status, 503);
+  assert.equal(ok, true);
+  assert.equal(res.status, null);
   if (u) process.env.MAFFINI_AUTH_USER = u;
   if (p) process.env.MAFFINI_AUTH_PASS = p;
 });

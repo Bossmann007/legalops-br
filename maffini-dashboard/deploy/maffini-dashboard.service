@@ -1,0 +1,32 @@
+# Maffini Dashboard — systemd unit (single-user, loopback-only).
+#
+# Install: see deploy/README.md
+# Edit WorkingDirectory + User to match the install path/account before enabling.
+
+[Unit]
+Description=Maffini Dashboard (LegalOps BR) — single-user loopback dashboard
+After=network.target
+
+[Service]
+Type=simple
+User=maylin
+WorkingDirectory=/opt/maffini-dashboard
+EnvironmentFile=/opt/maffini-dashboard/.env
+# Default single-user mode = no login + loopback bind. The server boot-guard
+# refuses to start without auth on a non-loopback host, so keep this loopback.
+Environment=MAFFINI_HOST=127.0.0.1
+ExecStart=/usr/bin/node server/index.js
+Restart=on-failure
+RestartSec=3
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+ProtectControlGroups=true
+ProtectKernelTunables=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

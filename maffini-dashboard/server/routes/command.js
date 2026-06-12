@@ -15,6 +15,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { send, sendError, readJson } = require('../lib/router');
 const legalops = require('../lib/legalops');
+const claude = require('../lib/claude');
 const { JSONStore } = require('../lib/store');
 const { GROUPS, catalog, getById } = require('../lib/commands');
 
@@ -93,14 +94,41 @@ module.exports = function commandRoutes(cfg) {
           });
         }
 
-        // claude_legal: egress LLM fica gated em v0.1.
+        // claude_legal: egress LLM SAFE, redacted, opt-in via ANTHROPIC_API_KEY.
+        // Já passou pelo approval gate acima (needsApproval/approved). O texto
+        // bruto é redigido por legalops ANTES de qualquer chamada externa.
         if (kind === 'claude_legal') {
-          if (needsApproval) recordApproval(cmd, id, inputs);
-          return send(res, 501, {
-            status: 'not_implemented',
-            skill: cmd.exec.skill,
-            note: 'Claude-for-Legal bridge pending — requires approved LLM egress path'
-          });
+          if (!claude.isEnabled()) {
+            if (needsApproval) recordApproval(cmd, id, inputs);
+            return send(res, 501, {
+              status: 'not_implemented',
+              skill: cmd.exec.skill,
+              note: 'defina ANTHROPIC_API_KEY para habilitar Claude for Legal'
+            });
+          }
+          const rawText = cmd.exec.stdinKey ? inputs[cmd.exec.stdinKey] : '';
+          try {
+            const result = await claude.runClaudeLegal({
+              skill: cmd.exec.skill,
+              text: rawText
+            });
+            const approval = needsApproval ? recordApproval(cmd, id, inputs) : null;
+            return send(res, 200, {
+              ok: true,
+              command: id,
+              approved: true,
+              audit_ref: approval ? approval.id : null,
+              result
+            });
+          } catch (e) {
+            const status = (e && e.status) || 502;
+            if (needsApproval) recordApproval(cmd, id, inputs);
+            return send(res, status, {
+              status: status === 501 ? 'not_implemented' : 'egress_error',
+              skill: cmd.exec.skill,
+              note: e.message
+            });
+          }
         }
 
         // legalops (notify commands also use kind 'legalops').

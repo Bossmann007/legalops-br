@@ -1,40 +1,40 @@
 /* Maffini Dashboard — Brand CSS
- * Palette: navy + gold + paper (sóbrio jurídico-clássico).
- * Headers: Cormorant Garamond (serif). Body: Inter. Mono: JetBrains Mono.
- * Sem CDN — fontes via @font-face local em /fonts/.
+ * Identidade real (maffiniadvocacia.com.br): teal/petrol #388da5 + cinza claro + preto.
+ * Tipografia: Manrope (site) com fallback system. Mono: JetBrains Mono / system.
+ * Sem CDN — Manrope via @font-face local woff2 em /fonts/.
  */
 
 :root {
-  /* Primary */
-  --maf-ink:        #0F1F3D;
-  --maf-ink-soft:   #1E3A5F;
-  --maf-ink-deep:   #07142A;
-  --maf-paper:      #F7F4EE;
-  --maf-paper-2:    #ECE6D6;
-  --maf-paper-3:    #FBF9F5;
+  /* Primary — teal/petrol do site (dominante: #388da5, escuro: #30788c) */
+  --maf-ink:        #388da5;
+  --maf-ink-soft:   #30788c;
+  --maf-ink-deep:   #265e6e;
+  --maf-paper:      #f2f2f2;
+  --maf-paper-2:    #e3e3e3;
+  --maf-paper-3:    #f9f9f9;
 
-  /* Accent */
-  --maf-gold:       #B8945A;
-  --maf-gold-soft:  #D4B583;
-  --maf-gold-deep:  #8C6E3F;
+  /* Accent — teal claro do site (#b5d3db) + variações */
+  --maf-gold:       #579eb3;
+  --maf-gold-soft:  #b5d3db;
+  --maf-gold-deep:  #30788c;
 
-  /* Semantic — prazo system */
-  --maf-urgent:     #B3261E;
+  /* Semantic — prazo system (ajustado p/ contraste no novo paper claro) */
+  --maf-urgent:     #C0392B;
   --maf-warning:    #B86E00;
-  --maf-ok:         #2E6B3A;
-  --maf-info:       #355A8C;
+  --maf-ok:         #2E7D46;
+  --maf-info:       #30788c;
 
   /* Text */
-  --maf-text:       #1A1A1A;
-  --maf-text-2:     #4A4A4A;
-  --maf-text-3:     #8A8A8A;
-  --maf-text-on-ink: #F7F4EE;
+  --maf-text:       #141414;
+  --maf-text-2:     #444444;
+  --maf-text-3:     #7d7d7d;
+  --maf-text-on-ink: #f7fbfc;
 
   /* Surfaces */
-  --maf-line:       #D8D2C1;
-  --maf-line-soft:  #ECE6D6;
-  --maf-shadow:     0 1px 2px rgba(15,31,61,0.04), 0 4px 12px rgba(15,31,61,0.06);
-  --maf-shadow-lg:  0 4px 20px rgba(15,31,61,0.10), 0 8px 32px rgba(15,31,61,0.06);
+  --maf-line:       #d6dcde;
+  --maf-line-soft:  #e6ebec;
+  --maf-shadow:     0 1px 2px rgba(38,94,110,0.05), 0 4px 12px rgba(38,94,110,0.08);
+  --maf-shadow-lg:  0 4px 20px rgba(38,94,110,0.12), 0 8px 32px rgba(38,94,110,0.08);
 
   /* Radius */
   --maf-r-sm: 4px;
@@ -62,26 +62,20 @@ button { font: inherit; color: inherit; background: transparent; border: 0; curs
 a { color: inherit; text-decoration: none; }
 ul, ol { margin: 0; padding: 0; list-style: none; }
 
-/* Font face (graceful fallback if fonts/ files ausentes) */
+/* Font face — Manrope (fonte do site), vendored woff2 variável. Sem CDN. */
 @font-face {
-  font-family: 'Cormorant';
+  font-family: 'Manrope';
   font-style: normal;
-  font-weight: 400 700;
+  font-weight: 200 800;
   font-display: swap;
-  src: local('Cormorant Garamond'), local('Georgia'), local('Times New Roman');
-}
-@font-face {
-  font-family: 'Inter';
-  font-style: normal;
-  font-weight: 100 900;
-  font-display: swap;
-  src: local('Inter'), local('system-ui'), local('Segoe UI');
+  src: local('Manrope'),
+       url('/fonts/manrope-latin.woff2') format('woff2');
 }
 
 /* Globals */
 html { font-size: 16px; }
 body {
-  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Manrope', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   font-size: 0.9375rem;
   line-height: 1.55;
   color: var(--maf-text);
@@ -91,9 +85,9 @@ body {
 }
 
 h1, h2, h3, h4 {
-  font-family: 'Cormorant', 'EB Garamond', Georgia, serif;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-family: 'Manrope', system-ui, 'Segoe UI', sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.015em;
   color: var(--maf-ink);
   margin: 0 0 var(--maf-s-3);
 }
@@ -116,8 +110,8 @@ body {
   position: absolute;
   left: -9999px;
   top: 0;
-  background: var(--maf-gold);
-  color: var(--maf-ink-deep);
+  background: var(--maf-ink);
+  color: #ffffff;
   padding: 8px 12px;
   z-index: 100;
 }
@@ -145,18 +139,16 @@ body {
   border-bottom: 1px solid rgba(247,244,238,0.12);
 }
 .sidebar__mark {
-  width: 40px;
-  height: 40px;
-  border: 1px solid var(--maf-gold);
-  color: var(--maf-gold);
-  display: grid;
-  place-items: center;
-  font-family: 'Cormorant', Georgia, serif;
-  font-size: 0.9rem;
-  letter-spacing: 0.05em;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  background: #ffffff url('/img/icon-192.svg') center / 78% no-repeat;
   border-radius: var(--maf-r-sm);
+  /* fallback se a img falhar: caixa branca neutra */
+  text-indent: -9999px;
+  overflow: hidden;
 }
-.sidebar__name { display: block; font-family: 'Cormorant', Georgia, serif; font-size: 1.1rem; color: var(--maf-paper); }
+.sidebar__name { display: block; font-family: 'Manrope', system-ui, sans-serif; font-weight: 700; font-size: 1.05rem; letter-spacing: -0.01em; color: var(--maf-paper); }
 .sidebar__sub  { display: block; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--maf-gold-soft); }
 .sidebar__footer {
   margin-top: auto;
@@ -272,10 +264,10 @@ body {
 .btn--primary:hover { background: var(--maf-ink-soft); }
 .btn--gold {
   background: var(--maf-gold);
-  color: var(--maf-ink-deep);
+  color: #ffffff;
   border-color: var(--maf-gold);
 }
-.btn--gold:hover { background: var(--maf-gold-soft); }
+.btn--gold:hover { background: var(--maf-ink-soft); }
 .btn--ghost { background: transparent; border-color: transparent; color: var(--maf-text-2); }
 .btn--ghost:hover { background: var(--maf-paper-2); color: var(--maf-ink); border-color: var(--maf-line); }
 .btn--sm { padding: 4px 10px; font-size: 0.8rem; }
@@ -294,11 +286,11 @@ body {
   background: var(--maf-paper-2);
   color: var(--maf-text-2);
 }
-.tag--urgent  { background: rgba(179,38,30,0.10); color: var(--maf-urgent); }
+.tag--urgent  { background: rgba(192,57,43,0.10); color: var(--maf-urgent); }
 .tag--warning { background: rgba(184,110,0,0.10); color: var(--maf-warning); }
-.tag--ok      { background: rgba(46,107,58,0.10); color: var(--maf-ok); }
-.tag--info    { background: rgba(53,90,140,0.10); color: var(--maf-info); }
-.tag--gold    { background: rgba(184,148,90,0.12); color: var(--maf-gold-deep); }
+.tag--ok      { background: rgba(46,125,70,0.10); color: var(--maf-ok); }
+.tag--info    { background: rgba(48,120,140,0.12); color: var(--maf-info); }
+.tag--gold    { background: rgba(56,141,165,0.12); color: var(--maf-gold-deep); }
 
 /* Inputs */
 input, select, textarea {
