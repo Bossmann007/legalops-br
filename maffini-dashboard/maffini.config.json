@@ -1,0 +1,38 @@
+{
+  "brand": {
+    "name": "Maffini Dashboard",
+    "full": "Maffini & Rangel — Centro de Comando",
+    "tagline": "Soluções mais ágeis e menos onerosas",
+    "owner": "Dra. Maylin",
+    "site": "https://maffiniadvocacia.com.br/",
+    "whatsapp": "5541997900710"
+  },
+  "areas": [
+    { "key": "bancario", "label": "Bancário & Financeiro", "color": "#1E3A5F" },
+    { "key": "digital", "label": "Direito Digital (LGPD)", "color": "#355A8C" },
+    { "key": "medico", "label": "Direito Médico", "color": "#2E6B3A" },
+    { "key": "saude", "label": "Saúde Hospitalar", "color": "#5A4A7A" },
+    { "key": "preventivo", "label": "Ações Preventivas", "color": "#B8945A" }
+  ],
+  "prazoThresholds": {
+    "urgentDays": 3,
+    "warningDays": 7
+  },
+  "server": {
+    "port": 4318,
+    "host": "127.0.0.1"
+  },
+  "paths": {
+    "legalopsBin": "",
+    "auditDb": "data/audit.db",
+    "clientsStore": "data/clients.json",
+    "prazosStore": "data/prazos.json",
+    "settingsStore": "data/settings.json"
+  },
+  "notification": {
+    "channels": [],
+    "minPrazoDays": 3,
+    "quietStart": "22:00",
+    "quietEnd": "06:00"
+  }
+}

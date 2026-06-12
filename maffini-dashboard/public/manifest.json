@@ -1,0 +1,17 @@
+{
+  "name": "Maffini & Rangel — Centro de Comando",
+  "short_name": "Maffini",
+  "description": "Dashboard advocatício LGPD-compliant — prazos, intimações, contratos, audit.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F7F4EE",
+  "theme_color": "#0F1F3D",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/img/icon-192.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192"
+    }
+  ]
+}

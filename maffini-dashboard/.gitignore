@@ -1,0 +1,35 @@
+node_modules/
+.env
+.env.local
+*.log
+
+# Runtime data — contém PII redigida + audit chain
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Build output
+public/bundle.js
+
+# Editor
+.vscode/
+.idea/
+.DS_Store
+
+# Backups
+*.bak
+*.backup
+
+# OS
+Thumbs.db
+
+# Secrets / certs
+*.pem
+*.key
+secrets/
+
+# Métricas / logs locais
+metrics/
+logs/

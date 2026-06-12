@@ -17,18 +17,34 @@ from dataclasses import asdict, is_dataclass
 from datetime import date, datetime, time
 from pathlib import Path
 
+from legalops.anpd_playbook import Incidente, gerar_plano
 from legalops.config import LegalOpsConfig, load_config
 from legalops.contract_analyzer import analisar_contrato
 from legalops.cpc_prazos import calcular_prazo
+from legalops.doc_extractor import (
+    ContratoHonorariosCampos,
+    ProcuracaoCampos,
+    extract_contrato_honorarios,
+    extract_procuracao,
+)
+from legalops.doc_templates import render_contrato_honorarios, render_procuracao
+from legalops.dpa_templates import DPAParams, render_dpa
 from legalops.dsar import DSARError, DSARRequest, classify_request, processar_dsar
 from legalops.email_notifier import EmailNotifier
 from legalops.eml_reader import read_eml_dir
-from legalops.lgpd_specifics import DIREITOS_TITULAR
+from legalops.lgpd_specifics import (
+    DIREITOS_TITULAR,
+    BaseLegal,
+    OperacaoTratamento,
+    TipoDado,
+)
 from legalops.metrics import MetricsRegistry
 from legalops.notification_multiplex import NotificationMultiplex
 from legalops.oab_sigilo import AuditLog
 from legalops.orchestrator import ProcessedIntimacao, process_email, urgentes
+from legalops.pia import avaliar_ripd
 from legalops.pii_redactor import MissingSaltError, PIIRedactor
+from legalops.red_flags import scan_acquisition_contract
 from legalops.slack_notifier import SlackNotifier
 from legalops.tjpr_parser import parse_email
 from legalops.tribunal_detector import detect_tribunal
@@ -663,6 +679,191 @@ def cmd_dsar(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_tribunal_detect(args: argparse.Namespace) -> int:
+    """Detecta tribunal por sender + assinatura no corpo (deterministico)."""
+    text = _read_input(args.input)
+    # Redige PII antes de qualquer processamento de texto livre (LGPD).
+    text = _make_redactor().redact(text).redacted_text
+    tribunal = detect_tribunal(text, sender=getattr(args, "sender", "") or "")
+    print(_dump({"tribunal": tribunal, "sender": getattr(args, "sender", "") or ""}))
+    return 0
+
+
+def cmd_red_flags(args: argparse.Namespace) -> int:
+    """Scan de red flags em contrato de aquisicao (deterministico)."""
+    text = _read_input(args.input)
+    if not args.skip_redact:
+        text = _make_redactor().redact(text).redacted_text
+    flags = scan_acquisition_contract(text)
+    print(
+        _dump(
+            {
+                "count": len(flags),
+                "flags": [
+                    {
+                        "tipo": f.tipo,
+                        "severidade": f.severidade,
+                        "trecho": f.trecho,
+                        "nota": f.nota,
+                    }
+                    for f in flags
+                ],
+            }
+        )
+    )
+    return 0
+
+
+def cmd_pia(args: argparse.Namespace) -> int:
+    """Avalia RIPD/PIA de uma operacao de tratamento (Art. 38 LGPD)."""
+    tipos = [TipoDado(t) for t in (args.tipos_dados or [])]
+    op = OperacaoTratamento(
+        tipo_operacao=args.tipo_operacao,
+        tipos_dados=tipos,
+        base_legal=BaseLegal(args.base_legal),
+        finalidade=args.finalidade,
+        necessario=not args.nao_necessario,
+    )
+    ripd = avaliar_ripd(op)
+    print(
+        _dump(
+            {
+                "operacao": ripd.operacao,
+                "score": ripd.score,
+                "nivel": ripd.nivel,
+                "conforme": ripd.conforme,
+                "riscos": [
+                    {
+                        "descricao": r.descricao,
+                        "severidade": r.severidade,
+                        "recomendacao": r.recomendacao,
+                        "artigo": r.artigo,
+                    }
+                    for r in ripd.riscos
+                ],
+            }
+        )
+    )
+    return 0
+
+
+def cmd_dpa(args: argparse.Namespace) -> int:
+    """Renderiza um DPA (Acordo de Tratamento de Dados — Art. 39)."""
+    cats = tuple(c.strip() for c in (args.categorias or "").split(",") if c.strip())
+    params = DPAParams(
+        controlador=args.controlador,
+        operador=args.operador,
+        objeto=args.objeto or "",
+        finalidade=args.finalidade,
+        categorias_dados=cats,
+        prazo_retencao=args.prazo_retencao or "",
+        suboperadores_permitidos=args.suboperadores,
+        transferencia_internacional=args.transferencia_internacional,
+    )
+    print(_dump({"dpa": render_dpa(params)}))
+    return 0
+
+
+def cmd_anpd(args: argparse.Namespace) -> int:
+    """Gera plano de resposta a incidente (ANPD — Art. 48 LGPD)."""
+    dados = tuple(TipoDado(t) for t in (args.dados_afetados or []))
+    descricao = _make_redactor().redact(args.descricao).redacted_text
+    data_desc = date.fromisoformat(args.data_descoberta) if args.data_descoberta else date.today()
+    hoje = date.fromisoformat(args.hoje) if args.hoje else None
+    inc = Incidente(
+        incidente_id=args.incidente_id,
+        descricao=descricao,
+        data_descoberta=data_desc,
+        dados_afetados=dados,
+        num_titulares=args.num_titulares,
+        vazamento_confirmado=args.vazamento_confirmado,
+    )
+    plano = gerar_plano(inc, hoje=hoje)
+    print(
+        _dump(
+            {
+                "incidente_id": plano.incidente_id,
+                "severidade": plano.severidade,
+                "comunicar_anpd": plano.comunicar_anpd,
+                "comunicar_titulares": plano.comunicar_titulares,
+                "prazo_anpd": plano.prazo_anpd.isoformat() if plano.prazo_anpd else None,
+                "dias_restantes": plano.dias_restantes,
+                "passos": list(plano.passos),
+            }
+        )
+    )
+    return 0
+
+
+def cmd_doc_template(args: argparse.Namespace) -> int:
+    """Renderiza um template juridico (procuracao | contrato_honorarios)."""
+    vars_raw = args.vars or "{}"
+    try:
+        data = json.loads(vars_raw)
+    except json.JSONDecodeError as e:
+        print(_dump({"error": f"vars JSON invalido: {e}"}))
+        return 2
+    if not isinstance(data, dict):
+        print(_dump({"error": "vars deve ser um objeto JSON"}))
+        return 2
+
+    if args.template == "procuracao":
+        campos = ProcuracaoCampos(
+            outorgante=data.get("outorgante"),
+            outorgado=data.get("outorgado"),
+            oab=data.get("oab"),
+            poderes=data.get("poderes", "desconhecido"),
+            comarca=data.get("comarca"),
+            data=date.fromisoformat(data["data"]) if data.get("data") else None,
+        )
+        texto = render_procuracao(campos)
+    else:
+        chon = ContratoHonorariosCampos(
+            contratante=data.get("contratante"),
+            contratado=data.get("contratado"),
+            objeto=data.get("objeto"),
+            valor=data.get("valor"),
+            percentual=data.get("percentual"),
+            forma_pagamento=data.get("forma_pagamento", "desconhecido"),
+            foro_eleicao=data.get("foro_eleicao"),
+        )
+        texto = render_contrato_honorarios(chon)
+    print(_dump({"template": args.template, "texto": texto}))
+    return 0
+
+
+def cmd_doc_extract(args: argparse.Namespace) -> int:
+    """Extrai campos estruturados de procuracao ou contrato de honorarios."""
+    text = _read_input(args.input)
+    if args.kind == "procuracao":
+        c = extract_procuracao(text)
+        out = {
+            "outorgante": c.outorgante,
+            "outorgado": c.outorgado,
+            "oab": c.oab,
+            "poderes": c.poderes,
+            "comarca": c.comarca,
+            "data": c.data.isoformat() if c.data else None,
+            "campos_ausentes": list(c.campos_ausentes),
+            "confianca": c.confianca,
+        }
+    else:
+        ch = extract_contrato_honorarios(text)
+        out = {
+            "contratante": ch.contratante,
+            "contratado": ch.contratado,
+            "objeto": ch.objeto,
+            "valor": ch.valor,
+            "percentual": ch.percentual,
+            "forma_pagamento": ch.forma_pagamento,
+            "foro_eleicao": ch.foro_eleicao,
+            "campos_ausentes": list(ch.campos_ausentes),
+            "confianca": ch.confianca,
+        }
+    print(_dump({"kind": args.kind, "campos": out}))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     from legalops import __version__
 
@@ -826,6 +1027,73 @@ def build_parser() -> argparse.ArgumentParser:
         help="Renderiza Prometheus exposition de um pipeline sintetico",
     )
     p_metrics.set_defaults(func=cmd_metrics)
+
+    # ── v0.2 bridges: deterministic internal modules → CLI subcommands ──
+    _tipos = [t.value for t in TipoDado]
+    _bases = [b.value for b in BaseLegal]
+
+    p_trib = sub.add_parser("tribunal-detect", help="Detecta tribunal por sender + corpo")
+    p_trib.add_argument("--input", "-i", help="Texto (default: stdin)")
+    p_trib.add_argument("--sender", default="", help="From: header (ex: x@tjpr.jus.br)")
+    p_trib.set_defaults(func=cmd_tribunal_detect)
+
+    p_rf = sub.add_parser("red-flags", help="Scan red flags em contrato de aquisicao")
+    p_rf.add_argument("--input", "-i", help="Texto (default: stdin)")
+    p_rf.add_argument("--skip-redact", action="store_true", help="Pula redacao (ja redigido)")
+    p_rf.set_defaults(func=cmd_red_flags)
+
+    p_pia = sub.add_parser("pia", help="Avalia RIPD/PIA de uma operacao de tratamento")
+    p_pia.add_argument("--tipo-operacao", required=True, help="Ex: coleta, compartilhamento")
+    p_pia.add_argument("--finalidade", required=True, help="Finalidade do tratamento")
+    p_pia.add_argument("--base-legal", choices=_bases, default="legitimo_interesse")
+    p_pia.add_argument(
+        "--tipos-dados",
+        nargs="*",
+        choices=_tipos,
+        default=[],
+        help="Categorias de dados (comum/sensivel/crianca)",
+    )
+    p_pia.add_argument("--nao-necessario", action="store_true", help="Marca necessario=False")
+    p_pia.set_defaults(func=cmd_pia)
+
+    p_dpa = sub.add_parser("dpa", help="Renderiza DPA (Art. 39)")
+    p_dpa.add_argument("--controlador", required=True)
+    p_dpa.add_argument("--operador", required=True)
+    p_dpa.add_argument("--finalidade", required=True)
+    p_dpa.add_argument("--objeto", default="")
+    p_dpa.add_argument("--categorias", default="", help="Lista separada por virgula")
+    p_dpa.add_argument("--prazo-retencao", default="")
+    p_dpa.add_argument("--suboperadores", action="store_true")
+    p_dpa.add_argument("--transferencia-internacional", action="store_true")
+    p_dpa.set_defaults(func=cmd_dpa)
+
+    p_anpd = sub.add_parser("anpd", help="Gera plano de resposta a incidente (Art. 48)")
+    p_anpd.add_argument("--incidente-id", default="inc-1")
+    p_anpd.add_argument("--descricao", required=True, help="Descricao (sera redigida)")
+    p_anpd.add_argument("--data-descoberta", help="ISO (default: hoje)")
+    p_anpd.add_argument("--dados-afetados", nargs="*", choices=_tipos, default=[])
+    p_anpd.add_argument("--num-titulares", type=int, default=0)
+    p_anpd.add_argument("--vazamento-confirmado", action="store_true")
+    p_anpd.add_argument("--hoje", help="Data atual ISO")
+    p_anpd.set_defaults(func=cmd_anpd)
+
+    p_doctpl = sub.add_parser("doc-template", help="Renderiza template juridico")
+    p_doctpl.add_argument(
+        "--template",
+        choices=["procuracao", "contrato_honorarios"],
+        required=True,
+    )
+    p_doctpl.add_argument("--vars", default="{}", help="Variaveis JSON")
+    p_doctpl.set_defaults(func=cmd_doc_template)
+
+    p_dext = sub.add_parser("doc-extract", help="Extrai campos de procuracao/contrato")
+    p_dext.add_argument("--input", "-i", help="Texto (default: stdin)")
+    p_dext.add_argument(
+        "--kind",
+        choices=["procuracao", "contrato_honorarios"],
+        default="procuracao",
+    )
+    p_dext.set_defaults(func=cmd_doc_extract)
 
     return p
 

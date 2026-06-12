@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <rect width="192" height="192" fill="#0F1F3D"/>
+  <rect x="16" y="16" width="160" height="160" fill="none" stroke="#B8945A" stroke-width="2"/>
+  <text x="96" y="116" text-anchor="middle"
+        font-family="Georgia, 'Cormorant Garamond', serif"
+        font-size="58"
+        fill="#B8945A"
+        letter-spacing="3">M&amp;R</text>
+</svg>

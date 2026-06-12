@@ -51,7 +51,9 @@ repos:
         entry: |
           bash -c '
           PAT="$(printf "maf""fini|may""lin")"
-          if git diff --cached | grep -E "^\+[^+]" | grep -iE "$PAT" > /dev/null; then
+          # maffini-dashboard/ usa o nome de marca real do cliente (legitimo).
+          # .gitignore e este config referenciam o path da marca por necessidade.
+          if git diff --cached -- ":(exclude)maffini-dashboard/" ":(exclude).gitignore" ":(exclude).pre-commit-config.yaml" | grep -E "^\+[^+]" | grep -iE "$PAT" > /dev/null; then
             echo "ERRO: nomes reais detectados no diff staged. Use placeholders."
             exit 1
           fi
@@ -64,9 +66,10 @@ repos:
         entry: |
           bash -c '
           PAT="$(printf "maf""fini|may""lin")"
-          if git grep -iIE "$PAT" -- ":(exclude).pre-commit-config.yaml" > /dev/null; then
+          # maffini-dashboard/ legitimamente usa o nome de marca real do cliente.
+          if git grep -iIE "$PAT" -- ":(exclude).pre-commit-config.yaml" ":(exclude).gitignore" ":(exclude)maffini-dashboard/" > /dev/null; then
             echo "ERRO: nomes reais presentes em arquivos rastreados:"
-            git grep -inIE "$PAT" -- ":(exclude).pre-commit-config.yaml"
+            git grep -inIE "$PAT" -- ":(exclude).pre-commit-config.yaml" ":(exclude).gitignore" ":(exclude)maffini-dashboard/"
             echo "Limpe-os antes do push (e considere reescrever historico)."
             exit 1
           fi

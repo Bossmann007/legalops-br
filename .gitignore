@@ -65,3 +65,9 @@ slide/node_modules/
 slide/package-lock.json
 slide/yarn.lock
 slide/dist/
+
+# maffini-dashboard (nested project has own .gitignore; belt-and-suspenders here)
+maffini-dashboard/.env
+maffini-dashboard/data/
+maffini-dashboard/public/bundle.js
+maffini-dashboard/node_modules/
