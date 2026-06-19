@@ -16,6 +16,15 @@ from datetime import date, datetime
 from email.utils import parsedate_to_datetime
 from typing import Literal
 from xml.etree import ElementTree as ET
+from xml.parsers import expat as _expat
+
+# L4 audit close: assert expat >= 2.6 (billion-laughs amplification limit).
+# CPython 3.11.7+ bundles expat 2.6; older versions are unprotected.
+if _expat.version_info < (2, 6, 0):
+    raise RuntimeError(
+        f"expat {_expat.version_info} < 2.6.0 — billion-laughs amplification "
+        "not bounded. Upgrade to Python 3.11.7+ (bundles expat 2.6)."
+    )
 
 Source = Literal["BACEN", "CVM"]
 
@@ -80,19 +89,8 @@ def parse_feed_xml(xml_text: str, source: Source) -> list[FeedItem]:
         raise ValueError(f"Feed exceeds {MAX_FEED_BYTES} bytes (defensive limit)")
 
     try:
-        # S314: este parser recebe `xml_text` como argumento — nao faz fetch
-        # remoto. Defesa em camadas pra MVP:
-        # 1. XXE: CPython >= 3.7.1 desabilita external entity resolution em
-        #    `xml.etree.ElementTree.fromstring` por default (sem `XMLParser`
-        #    customizado). Entity ref nao resolvida -> ParseError.
-        # 2. Billion-laughs: protegido por **expat >= 2.6** (amplification
-        #    limit XML_BLAP_MAX_AMP=100, fev/2024). CPython 3.11.7+ ja bundle
-        #    expat 2.6. NAO confundir com `MAX_FEED_BYTES`: 10 MB de entrada
-        #    podem expandir pra >1 GB durante parse — o byte cap nao salva.
-        # 3. Quando passar a aceitar feeds remotos nao confiaveis (v0.3+):
-        #    trocar pra `defusedxml.ElementTree.fromstring` (unica dep externa
-        #    justificada — security trumps regra stdlib-only) ou validar que
-        #    o packager esta com expat >= 2.6.
+        # S314: XXE desabilitado por default no CPython >= 3.7.1.
+        # Billion-laughs: bloqueado pelo expat >= 2.6 (assertado no import).
         root = ET.fromstring(xml_text)  # noqa: S314
     except ET.ParseError as e:
         raise ValueError(f"Malformed XML: {e}") from e
