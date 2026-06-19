@@ -154,7 +154,7 @@ maffini.local {
 ## Roadmap
 
 - [x] v0.1 — scaffold + home/prazos/intimações/audit/dsar/contratos/clientes/config
-- [ ] v0.2 — templates engine (.docx) · notificações WA/email/Slack · PWA offline · calendário .ics
+- [x] v0.2 — templates .docx (bridge `doc-template`) · notificações WA/email/Slack (bridge `notify`) · PWA offline (sw.js) · calendário .ics (export route)
 - [ ] v0.3 — piloto Tia May: deploy + logo real + paleta confirmada + training
 - [ ] v1.0 — M365 ingest automático · WhatsApp prod · backup off-site
 

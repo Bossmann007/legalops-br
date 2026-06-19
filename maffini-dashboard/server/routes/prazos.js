@@ -26,6 +26,37 @@ function workingDaysBetween(from, to) {
   return count;
 }
 
+function icsStamp(d) {
+  return d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+}
+function icsDateOnly(iso) {
+  return iso.slice(0, 10).replace(/-/g, '');
+}
+function icsNextDay(iso) {
+  const d = new Date(iso + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + 1);
+  return icsDateOnly(d.toISOString());
+}
+function icsEscape(s) {
+  return String(s || '').replace(/\\/g, '\\\\').replace(/,/g, '\\,').replace(/;/g, '\\;').replace(/\n/g, '\\n');
+}
+function icsFold(line) {
+  // RFC 5545: fold at 75 octets; don't split multi-byte UTF-8 sequences.
+  const buf = Buffer.from(line, 'utf8');
+  if (buf.length <= 75) return line;
+  const parts = [];
+  let pos = 0;
+  let first = true;
+  while (pos < buf.length) {
+    let end = pos + (first ? 75 : 74); // continuation lines: 1 byte for leading SP
+    while (end < buf.length && (buf[end] & 0xC0) === 0x80) end--;
+    parts.push(buf.slice(pos, end).toString('utf8'));
+    pos = end;
+    first = false;
+  }
+  return parts.join('\r\n ');
+}
+
 function decoratePrazo(p, today, thresholds) {
   const ad_quem = p.dies_ad_quem ? new Date(p.dies_ad_quem) : null;
   const dias = ad_quem ? workingDaysBetween(today, ad_quem) : null;
@@ -94,6 +125,41 @@ module.exports = function prazosRoutes(cfg) {
       const ok = store.remove(params.id);
       if (!ok) return sendError(res, 404, 'not found');
       send(res, 204, '');
+    },
+
+    'GET /api/prazos/export.ics': (req, res) => {
+      try {
+        const dtstamp = icsStamp(new Date());
+        const lines = [
+          'BEGIN:VCALENDAR',
+          'VERSION:2.0',
+          'PRODID:-//Maffini & Rangel//LegalOps BR//PT',
+          'CALSCALE:GREGORIAN',
+          'METHOD:PUBLISH'
+        ];
+        for (const p of store.list()) {
+          if (!p.dies_ad_quem || p.status === 'concluido') continue;
+          const summary = 'Prazo: ' + (p.numero_processo || p.tipo_ato || '—');
+          const desc = [p.tipo_ato, p.cliente_alias, p.area, p.nota].filter(Boolean).join(' · ');
+          lines.push('BEGIN:VEVENT');
+          lines.push('UID:' + p.id + '@maffini-dashboard');
+          lines.push('DTSTAMP:' + dtstamp);
+          lines.push('DTSTART;VALUE=DATE:' + icsDateOnly(p.dies_ad_quem));
+          lines.push('DTEND;VALUE=DATE:' + icsNextDay(p.dies_ad_quem));
+          lines.push(icsFold('SUMMARY:' + icsEscape(summary)));
+          if (desc) lines.push(icsFold('DESCRIPTION:' + icsEscape(desc)));
+          lines.push('END:VEVENT');
+        }
+        lines.push('END:VCALENDAR');
+        const body = lines.join('\r\n') + '\r\n';
+        res.writeHead(200, {
+          'Content-Type': 'text/calendar; charset=utf-8',
+          'Content-Disposition': 'attachment; filename="prazos.ics"'
+        });
+        res.end(body);
+      } catch (e) {
+        sendError(res, 500, e.message);
+      }
     }
   };
 };

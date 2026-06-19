@@ -13,6 +13,7 @@ MAF.register('prazos', async function renderPrazos() {
   ]}));
   head.appendChild(MAF.el('div', { class: 'view-head__actions', children: [
     MAF.el('button', { class: 'btn', text: '+ Manual', onClick: () => MAF.openView('intimacoes') }),
+    MAF.el('a', { class: 'btn btn--ghost btn--sm', attrs: { href: '/api/prazos/export.ics', download: 'prazos.ics' }, text: '⬇ .ics' }),
     MAF.el('button', { class: 'btn btn--ghost btn--sm', text: 'Atualizar', onClick: () => MAF.openView('prazos') })
   ]}));
   wrap.appendChild(head);
