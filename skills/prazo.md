@@ -1,21 +1,29 @@
 ---
 name: prazo
-description: Calcula prazo processual CPC com feriados nacionais e estaduais
+description: Calcula prazo processual CPC (dias úteis, recesso e feriados nacionais) — calibrado para TJPR
 triggers: ["/prazo", "calcular prazo", "quando vence", "prazo para"]
 ---
 
 Calcule o prazo para: $ARGUMENTS
 
-## Regras CPC Obrigatórias
-1. **Art. 219**: contar apenas dias úteis (seg–sex, exceto feriados)
-2. **Art. 224**: prazo começa no dia útil seguinte à intimação
-3. **Art. 229**: intimação via sistema eletrônico → +1 dia útil
-4. **Prazo em dobro** (Art. 183/186/128): Fazenda Pública, MP, Defensoria
+## Como funciona (e o que NÃO cobre)
+O cálculo é feito pelo subcomando determinístico `legalops prazo`, que aplica: contagem em
+dias úteis, dies a quo, prazo em dobro e recesso forense. **Não recalcule à mão citando
+artigos de lei** — se o comando não cobrir o caso, diga que precisa de conferência na fonte
+primária; nunca invente a regra (RULES #3).
+
+**Limites REAIS deste cálculo — avise a advogada:**
+- Recesso/feriado calibrado para **TJPR** (foro dela). Para outro tribunal, o cálculo pode
+  estar errado — trate como estimativa e confira no tribunal.
+- **Não cobre** feriado municipal (ex.: 8/set em Curitiba), suspensão de expediente por
+  portaria/decreto, nem prazo material (prescrição/decadência, que corre em dias corridos).
+- É rede de segurança, **não** a fonte oficial. A fonte é o PJe/Projudi.
 
 ## Fluxo
-1. Se data de intimação não fornecida: perguntar antes de calcular
-2. Identificar tipo de ato (contestação, recurso, manifestação, etc.)
-3. Executar (subcomando determinístico do engine):
+1. Se faltar dado (data de publicação, nº de dias do prazo, tribunal, tipo de parte): pergunte.
+2. Se for prazo **material** (prescrição, decadência, prazo para ajuizar): NÃO use este cálculo
+   processual — avise que corre em dias corridos e exige conferência jurídica.
+3. Executar:
 ```bash
 uv run legalops prazo \
   --data-publicacao AAAA-MM-DD \
@@ -23,26 +31,23 @@ uv run legalops prazo \
   --parte [particular|fazenda|mp|defensoria] \
   --tribunal TJPR \
   --hoje AAAA-MM-DD
-# --via-dje  → some se a intimação foi pelo Diário eletrônico (Art. 229)
+# --via-dje  → intimação pelo Diário eletrônico
 ```
-O comando retorna JSON com `data_final`, dias corridos e flags de dobro/recesso aplicados.
-Se faltar dado (data de publicação, nº de dias, tribunal), pergunte antes de calcular.
+Retorna JSON com `data_final`, dias corridos e flags de dobro/recesso aplicados.
 
 ## Formato de Resposta
 ```
-📅 Cálculo de Prazo
+DRAFT — Requer revisão e assinatura
 
-Data da intimação: DD/MM/AAAA
-Tipo: [contestação/recurso/etc]
-Prazo base: N dias úteis
-Em dobro? [Sim — Fazenda Pública / Não]
-Feriados no período: [lista ou "nenhum"]
+📅 Cálculo de Prazo (rede de segurança — não é a fonte oficial)
 
-⚖️ Data final: **DD/MM/AAAA**
+Data da publicação: DD/MM/AAAA
+Prazo base: N dias úteis · Em dobro? [Sim/Não]
+Tribunal: TJPR (recesso/feriado calibrado só p/ TJPR)
 
-⚠️ Alertas automáticos configurados: D-3 e D-1
+⚖️ Data final estimada: **DD/MM/AAAA**
+
+⚠️ CONFIRA no PJe/Projudi antes de confiar. Este cálculo não cobre feriado municipal,
+   suspensão de expediente, nem prazo material. Anote o prazo no seu controle oficial —
+   o sistema NÃO envia alerta automático.
 ```
-
-Após calcular, avise: o cálculo é rede de segurança — **confira o prazo no PJe/Projudi**, que é
-a fonte oficial. Para acompanhar prazos recorrentes, anote-os no controle oficial do tribunal;
-o engine não persiste prazos (não há registro/alerta automático nesta versão).
