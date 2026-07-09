@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cat \"$CLAUDE_PROJECT_DIR/memory/Primer.md\" 2>/dev/null",
+            "command": "cat \"$CLAUDE_PROJECT_DIR/memory.local/primer.local.md\" 2>/dev/null || cat \"$CLAUDE_PROJECT_DIR/memory/Primer.md\" 2>/dev/null",
             "statusMessage": "Loading firm state..."
           }
         ]

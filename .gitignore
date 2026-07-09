@@ -57,6 +57,13 @@ corpus/synthetic/docs/
 audit.db
 audit_*.db
 
+# Client PII / local firm state (LGPD — NUNCA versionar dados reais do escritório)
+data/
+logs/
+memory.local/
+memory/*.local.md
+clientes-aliases.json
+
 # OS
 Thumbs.db
 

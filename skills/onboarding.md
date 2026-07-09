@@ -38,7 +38,14 @@ Use na PRIMEIRA configuracao com a advogada, ou quando dados do escritorio mudar
 - Confirmar areas de atuacao do firm_context
 
 ## Ao concluir
-1. Atualizar `memory/firm_context.md` e `memory/user_tia_may.md` com as respostas.
-2. Atualizar a secao "Estado Operacional" do `memory/Primer.md` com processos/clientes estimados.
-3. Mostrar resumo para confirmacao.
-4. Sugerir proximo passo: rodar `/briefing` ou cadastrar o primeiro prazo.
+> Dados REAIS do escritorio NUNCA vao para os arquivos rastreados (`memory/*.md` sao templates).
+> Escreva sempre na pasta local gitignored `memory.local/` (nao versionada — ver `.gitignore`).
+
+1. Criar/atualizar `memory.local/firm_context.local.md` e `memory.local/user.local.md`
+   com as respostas reais (nome, OAB, endereco, email, WhatsApp, honorarios).
+2. Criar/atualizar `memory.local/primer.local.md` (copia do template `memory/Primer.md`
+   com a secao "Estado Operacional" preenchida). O SessionStart injeta o `.local` se existir.
+3. NUNCA editar `memory/firm_context.md`, `memory/user_tia_may.md` ou `memory/Primer.md`
+   com dados reais — sao templates rastreados; o guard `no-real-pii` bloqueia commit se o nome vazar.
+4. Mostrar resumo para confirmacao.
+5. Sugerir proximo passo: rodar `/briefing` ou cadastrar o primeiro prazo.
