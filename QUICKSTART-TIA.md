@@ -36,5 +36,9 @@ Você conversa em português normal. Para tarefas comuns, digite o comando com `
 2. Rode `/briefing` para ver o dia.
 3. Qualquer dúvida: escreva em português o que precisa. Não precisa saber comando.
 
+## Notificações
+Não tem app nem push. A notificação é simples: você **abre o Claude e pergunta** — rode
+`/painel` para a visão da semana ou `/briefing` para o dia. Nada te manda mensagem por fora.
+
 ## Privacidade (LGPD)
 Dados de cliente ficam **na sua máquina**, referenciados por apelido (`CLI-021`), nunca pelo nome. Não sincronize as pastas `data/`, `logs/` nem o banco para nuvem compartilhada. Você é a controladora desses dados.

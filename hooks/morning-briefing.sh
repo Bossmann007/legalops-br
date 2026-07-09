@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# DEPRECATED no piloto: notificação agora é PULL — a advogada abre o Claude e roda
+# /briefing ou /painel. Sem push WhatsApp. Script dormente (canal opcional); não wire em cron.
 # Morning briefing — envio deliberado para WhatsApp configurado.
 # --approved = decisão consciente de enviar mensagem fora do fluxo interativo.
 # Cron: 0 7 * * 1-6 cd ~/Projects/legalops-br && ./hooks/morning-briefing.sh >> logs/briefing.log 2>&1

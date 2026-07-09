@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# DEPRECATED no piloto: notificação agora é PULL — a advogada abre o Claude e roda
+# /briefing ou /painel. Sem push WhatsApp. Script dormente (canal opcional); não wire em cron.
 # Alertas de prazo D-3/D-1 — envio deliberado para WhatsApp configurado.
 # --approved = decisão consciente de enviar mensagem fora do fluxo interativo.
 # Cron: 0 9 * * 1-6 cd ~/Projects/legalops-br && ./hooks/prazo-alerta.sh >> logs/prazos.log 2>&1
