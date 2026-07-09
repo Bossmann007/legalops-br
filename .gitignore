@@ -78,3 +78,6 @@ maffini-dashboard/.env
 maffini-dashboard/data/
 maffini-dashboard/public/bundle.js
 maffini-dashboard/node_modules/
+
+# codebase-memory-mcp — machine-local, absolute binary path (do not ship to handoff)
+.mcp.json
