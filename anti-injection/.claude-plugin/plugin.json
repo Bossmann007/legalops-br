@@ -1,0 +1,9 @@
+{
+  "name": "anti-injection",
+  "version": "1.0.0",
+  "description": "Camada de detecção contra prompt injection em conteúdo de terceiros. Sinaliza injeção conhecida/de baixo esforço (padrões EN/PT, tags fake, unicode oculto) em saídas de fontes externas (web, MCP) e rotula o conteúdo como dado. NÃO é uma parede: o controle primário é o envelope in-band dos conectores; esta é a 2ª camada (detecção), e a skill quarentena-doc é a 3ª (revisão humana de docs colados). Adversário motivado passa da camada regex — upgrade path é um juiz-LLM.",
+  "author": {
+    "name": "Enzo Bossmann"
+  },
+  "hooks": "./hooks/hooks.json"
+}

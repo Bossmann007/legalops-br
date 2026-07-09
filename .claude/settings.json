@@ -1,5 +1,37 @@
 {
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cat \"$CLAUDE_PROJECT_DIR/memory/Primer.md\" 2>/dev/null",
+            "statusMessage": "Loading firm state..."
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/anti-injection/hooks/flag-llm-paste.mjs\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Read|WebFetch|WebSearch|mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/anti-injection/hooks/scan-injection.mjs\""
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [

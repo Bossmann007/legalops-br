@@ -6,19 +6,22 @@ metadata:
 ---
 
 **Escritório:** [preencher no onboarding]
-**Endereço:** Curitiba, PR — [endereço completo]
+**Local:** [preencher no onboarding — ex: Curitiba/PR]
+**Endereço completo:** [preencher no onboarding]
 **OAB:** [número da OAB]
-**WhatsApp do escritório:** [número]
+**WhatsApp do escritório:** [preencher no onboarding]
 **Email:** [email profissional]
 
 **Áreas de Atuação:**
-- [preencher — ex: Direito do Trabalho]
-- [preencher — ex: Direito Civil]
+- Direito Bancário e Financeiro (perdas com investimentos, contratos bancários, fraudes bancárias, combate à fraude no mercado de capitais)
+- Direito Digital (implementação de LGPD em PMEs, blockchain/ativos digitais, regulatório)
+- Direito Médico e Consultoria em Direito da Saúde (gestão de risco médico-hospitalar)
+- Ações preventivas (jurídica + financeira)
 
 **Honorários médios (preencher com ela):**
 - Consulta: R$ [X]
 - Acompanhamento processual: R$ [X]/mês
-- Êxito (trabalhista): [%]
+- Êxito (bancário/investimentos): [%]
 
 **TJs mais utilizados:**
 - TJPR (principal)
@@ -29,7 +32,7 @@ metadata:
 **Sistema atual:** [Astrea / planilha / nada]
 **Integrar futuramente:** [Astrea adapter se usar]
 
-**Clientes ativos estimados:** [N]
-**Processos ativos estimados:** [N]
+**Clientes ativos estimados:** [preencher no onboarding]
+**Processos ativos estimados:** [preencher no onboarding]
 
 **Aliases de clientes:** mapeamento em `data/clientes-aliases.json` (gitignored — LGPD)
