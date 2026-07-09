@@ -101,6 +101,161 @@ class TestCmdDsar:
         assert "direitos" in out
 
 
+class TestCmdPrazo:
+    def test_prazo_simples_deterministico(self, capsys: pytest.CaptureFixture[str]) -> None:
+        code = main(
+            [
+                "prazo",
+                "--data-publicacao",
+                "2026-05-21",
+                "--prazo-dias",
+                "5",
+                "--hoje",
+                "2026-05-22",
+            ]
+        )
+        out = json.loads(capsys.readouterr().out)
+        assert code == 0
+        assert out["data_final"] == "2026-05-28"
+        assert out["dias_corridos"] == 7
+        assert out["flags"]["dobro_aplicado"] is False
+
+    def test_prazo_dobro_mp_via_dje(self, capsys: pytest.CaptureFixture[str]) -> None:
+        code = main(
+            [
+                "prazo",
+                "--data-publicacao",
+                "2026-05-21",
+                "--prazo-dias",
+                "5",
+                "--parte",
+                "mp",
+                "--via-dje",
+                "--hoje",
+                "2026-05-22",
+            ]
+        )
+        out = json.loads(capsys.readouterr().out)
+        assert code == 0
+        assert out["prazo_efetivo_dias"] == 10
+        assert out["flags"]["dobro_aplicado"] is True
+        assert out["data_intimacao_considerada"] == "2026-05-22"
+
+    def test_prazo_recesso_forense(self, capsys: pytest.CaptureFixture[str]) -> None:
+        code = main(
+            [
+                "prazo",
+                "--data-publicacao",
+                "2026-12-10",
+                "--prazo-dias",
+                "15",
+                "--hoje",
+                "2026-12-11",
+            ]
+        )
+        out = json.loads(capsys.readouterr().out)
+        assert code == 0
+        assert out["data_final"] > "2027-01-20"
+        assert out["flags"]["recesso_aplicado"] is True
+
+    def test_prazo_feriado_movel_corpus_christi(self, capsys: pytest.CaptureFixture[str]) -> None:
+        code = main(
+            [
+                "prazo",
+                "--data-publicacao",
+                "2026-05-21",
+                "--prazo-dias",
+                "15",
+                "--hoje",
+                "2026-05-22",
+            ]
+        )
+        out = json.loads(capsys.readouterr().out)
+        assert code == 0
+        assert out["data_final"] == "2026-06-12"
+
+
+class TestCmdRenovacao:
+    def test_renovacao_sem_arquivo_retorna_lista_vazia(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        monkeypatch.chdir(tmp_path)
+        code = main(["renovacao", "--hoje", "2026-05-20"])
+        out = json.loads(capsys.readouterr().out)
+        assert code == 0
+        assert out["alertas"] == []
+        assert "data/contratos.json ausente" in out["avisos"][0]
+
+    def test_renovacao_alertas_com_alias_sintetico(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        monkeypatch.chdir(tmp_path)
+        data_dir = tmp_path / "data"
+        data_dir.mkdir()
+        (data_dir / "contratos.json").write_text(
+            json.dumps(
+                {
+                    "contratos": [
+                        {
+                            "contrato_id": "CTR-001",
+                            "alias": "CLI-001",
+                            "data_inicio": "2026-01-01",
+                            "data_fim": "2026-06-01",
+                            "aviso_previo_dias": 15,
+                            "renovacao_automatica": True,
+                        },
+                        {
+                            "contrato_id": "CTR-002",
+                            "alias": "CLI-002",
+                            "data_inicio": "2026-01-01",
+                            "data_fim": "2026-12-31",
+                        },
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+        code = main(["renovacao", "--hoje", "2026-05-20"])
+        out = json.loads(capsys.readouterr().out)
+        assert code == 0
+        assert [a["contrato_id"] for a in out["alertas"]] == ["CTR-001"]
+        assert out["alertas"][0]["alias"] == "CLI-001"
+        assert out["alertas"][0]["urgencia"] == "vencido"
+
+    def test_renovacao_incluir_ok(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        monkeypatch.chdir(tmp_path)
+        data_dir = tmp_path / "data"
+        data_dir.mkdir()
+        (data_dir / "contratos.json").write_text(
+            json.dumps(
+                [
+                    {
+                        "contrato_id": "CTR-010",
+                        "alias": "CLI-010",
+                        "data_inicio": "2026-01-01",
+                        "data_fim": "2026-12-31",
+                    }
+                ]
+            ),
+            encoding="utf-8",
+        )
+        code = main(["renovacao", "--hoje", "2026-05-20", "--incluir-ok"])
+        out = json.loads(capsys.readouterr().out)
+        assert code == 0
+        assert out["alertas"][0]["urgencia"] == "ok"
+
+
 class TestCmdRedact:
     def test_redact_strips_cpf(self, email_file: Path, capsys: pytest.CaptureFixture[str]) -> None:
         code = main(["redact", "--input", str(email_file)])

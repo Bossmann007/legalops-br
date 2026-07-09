@@ -20,7 +20,7 @@ from pathlib import Path
 from legalops.anpd_playbook import Incidente, gerar_plano
 from legalops.config import LegalOpsConfig, load_config
 from legalops.contract_analyzer import analisar_contrato
-from legalops.cpc_prazos import calcular_prazo
+from legalops.cpc_prazos import PrazoInput, PrazoResult, calcular_prazo, is_recesso_forense
 from legalops.disclosure import (
     DisclosureItem,
     DisclosureSchedule,
@@ -53,6 +53,7 @@ from legalops.orchestrator import ProcessedIntimacao, process_email, urgentes
 from legalops.pia import avaliar_ripd
 from legalops.pii_redactor import MissingSaltError, PIIRedactor
 from legalops.red_flags import scan_acquisition_contract
+from legalops.renewal_watcher import Contrato, RenewalWatcher
 from legalops.slack_notifier import SlackNotifier
 from legalops.societario import (
     EstruturaSocietaria,
@@ -85,6 +86,67 @@ def _json_default(obj: object) -> object:
 
 def _dump(obj: object) -> str:
     return json.dumps(obj, default=_json_default, ensure_ascii=False, indent=2)
+
+
+def _prazo_to_json(inp: PrazoInput, result: PrazoResult) -> dict[str, object]:
+    data = asdict(result)
+    data["fundamentos_aplicados"] = list(data["fundamentos_aplicados"])
+    data["data_final"] = data["dies_ad_quem"]
+    data["dias_corridos"] = (data["dies_ad_quem"] - data["data_publicacao"]).days
+    fundamentos = " ".join(data["fundamentos_aplicados"])
+    data["dobro_aplicado"] = data["prazo_efetivo_dias"] != inp.prazo_dias
+    cur = result.data_publicacao
+    recesso_aplicado = False
+    while cur <= result.dies_ad_quem:
+        if is_recesso_forense(cur, inp.tribunal):
+            recesso_aplicado = True
+            break
+        cur = date.fromordinal(cur.toordinal() + 1)
+    data["recesso_aplicado"] = recesso_aplicado
+    data["flags"] = {
+        "dobro_aplicado": "em dobro" in fundamentos,
+        "recesso_aplicado": recesso_aplicado,
+    }
+    return data
+
+
+def _contrato_from_json(raw: object) -> Contrato:
+    if not isinstance(raw, dict):
+        raise ValueError("cada contrato deve ser um objeto JSON")
+    contrato_id = raw.get("contrato_id") or raw.get("id") or raw.get("alias")
+    if not isinstance(contrato_id, str) or not contrato_id:
+        raise ValueError("contrato sem contrato_id/id/alias")
+    alias = raw.get("alias") or contrato_id
+    if not isinstance(alias, str) or not alias:
+        raise ValueError(f"contrato {contrato_id} sem alias valido")
+    data_inicio_raw = raw.get("data_inicio", "1970-01-01")
+    data_fim_raw = raw.get("data_fim")
+    if not isinstance(data_inicio_raw, str) or not isinstance(data_fim_raw, str):
+        raise ValueError(f"contrato {contrato_id} exige data_inicio/data_fim ISO")
+    aviso_raw = raw.get("aviso_previo_dias", 0)
+    if not isinstance(aviso_raw, int):
+        raise ValueError(f"contrato {contrato_id} exige aviso_previo_dias inteiro")
+    auto_raw = raw.get("renovacao_automatica", False)
+    if not isinstance(auto_raw, bool):
+        raise ValueError(f"contrato {contrato_id} exige renovacao_automatica boolean")
+    return Contrato(
+        contrato_id=contrato_id,
+        descricao=alias,
+        data_inicio=date.fromisoformat(data_inicio_raw),
+        data_fim=date.fromisoformat(data_fim_raw),
+        aviso_previo_dias=aviso_raw,
+        renovacao_automatica=auto_raw,
+    )
+
+
+def _load_contratos(path: Path) -> tuple[list[Contrato], list[str]]:
+    if not path.exists():
+        return [], [f"{path} ausente; nenhum contrato monitorado"]
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    items = raw.get("contratos", raw) if isinstance(raw, dict) else raw
+    if not isinstance(items, list):
+        raise ValueError("contratos.json deve ser uma lista ou conter chave 'contratos'")
+    return [_contrato_from_json(item) for item in items], []
 
 
 def _make_redactor() -> PIIRedactor:
@@ -693,6 +755,65 @@ def cmd_dsar(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_prazo(args: argparse.Namespace) -> int:
+    """Calcula prazo CPC diretamente a partir de parametros estruturados."""
+    hoje = date.fromisoformat(args.hoje) if args.hoje else date.today()
+    inp = PrazoInput(
+        data_publicacao=date.fromisoformat(args.data_publicacao),
+        prazo_dias=args.prazo_dias,
+        parte=args.parte,
+        via_dje=args.via_dje,
+        tribunal=args.tribunal,
+    )
+    result = calcular_prazo(inp, hoje=hoje)
+    print(_dump(_prazo_to_json(inp, result)))
+    return 0
+
+
+def cmd_renovacao(args: argparse.Namespace) -> int:
+    """Lista alertas de renovacao a partir de data/contratos.json."""
+    hoje = date.fromisoformat(args.hoje) if args.hoje else date.today()
+    path = Path("data/contratos.json")
+    try:
+        contratos, avisos = _load_contratos(path)
+    except (OSError, ValueError, json.JSONDecodeError) as e:
+        print(_dump({"error": str(e), "path": str(path)}))
+        return 2
+
+    watcher = RenewalWatcher()
+    for contrato in contratos:
+        watcher.add(contrato)
+
+    alertas = watcher.check(hoje=hoje, incluir_ok=args.incluir_ok)
+    print(
+        _dump(
+            {
+                "avisos": avisos,
+                "alertas": [
+                    {
+                        "contrato_id": alerta.contrato_id,
+                        "alias": alerta.descricao,
+                        "dias_ate_evento": min(
+                            d
+                            for d in (
+                                alerta.dias_para_vencimento,
+                                alerta.dias_para_aviso,
+                            )
+                            if d is not None
+                        ),
+                        "dias_para_vencimento": alerta.dias_para_vencimento,
+                        "dias_para_aviso": alerta.dias_para_aviso,
+                        "urgencia": alerta.urgencia,
+                        "renovacao_automatica": alerta.renovacao_automatica,
+                    }
+                    for alerta in alertas
+                ],
+            }
+        )
+    )
+    return 0
+
+
 def cmd_tribunal_detect(args: argparse.Namespace) -> int:
     """Detecta tribunal por sender + assinatura no corpo (deterministico)."""
     text = _read_input(args.input)
@@ -1238,6 +1359,25 @@ def build_parser() -> argparse.ArgumentParser:
         help="Pula redacao de PII (use so se texto ja redigido)",
     )
     p_dsar.set_defaults(func=cmd_dsar)
+
+    p_prazo = sub.add_parser("prazo", help="Calcula prazo CPC deterministico")
+    p_prazo.add_argument("--data-publicacao", required=True, help="Data publicacao/intimacao ISO")
+    p_prazo.add_argument("--prazo-dias", type=int, required=True, help="Prazo base em dias")
+    p_prazo.add_argument(
+        "--parte",
+        choices=["particular", "fazenda", "mp", "defensoria"],
+        default="particular",
+        help="Tipo de parte para eventual prazo em dobro",
+    )
+    p_prazo.add_argument("--via-dje", action="store_true", help="Intimacao via DJE")
+    p_prazo.add_argument("--tribunal", default="TJPR", help="Tribunal (default TJPR)")
+    p_prazo.add_argument("--hoje", help="Data atual ISO (default: hoje)")
+    p_prazo.set_defaults(func=cmd_prazo)
+
+    p_ren = sub.add_parser("renovacao", help="Lista alertas de renovacao de contratos")
+    p_ren.add_argument("--hoje", help="Data atual ISO (default: hoje)")
+    p_ren.add_argument("--incluir-ok", action="store_true", help="Inclui contratos com status ok")
+    p_ren.set_defaults(func=cmd_renovacao)
 
     p_health = sub.add_parser("health", help="Health checks dos componentes core")
     p_health.add_argument("--format", choices=["json", "text"], default="text")

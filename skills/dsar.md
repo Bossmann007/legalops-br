@@ -21,12 +21,15 @@ Usar **15 dias** como SLA interno inicial do harness, salvo orientação da advo
    - Identidade: verificada / pendente / não verificada
    - Escopo entendido: uma frase sobre o que a pessoa está pedindo
 
-3. Registrar:
+3. Rodar o engine para classificar/calcular prazo e gerar base de resposta. Use aliases opacos:
 ```bash
-uv run legalops dsar --registrar \
-  --tipo [acesso|correcao|exclusao|portabilidade|oposicao] \
-  --titular CLI-XXX \
-  --data-recebimento AAAA-MM-DD
+uv run legalops dsar \
+  --input "[arquivo-solicitacao-redigida]" \
+  --direito [acesso|correcao|eliminacao|portabilidade|oposicao] \
+  --request-id DSAR-XXX \
+  --titular-ref TIT-XXX \
+  --recebimento AAAA-MM-DD \
+  --hoje AAAA-MM-DD
 ```
 
 4. Enviar ou preparar confirmação de recebimento (DRAFT):
@@ -41,12 +44,7 @@ uv run legalops dsar --registrar \
    - Pedido de exclusão/portabilidade ou dados sensíveis: usar verificação reforçada.
    - Se não verificar, preparar resposta pedindo validação sem expor dados.
 
-6. Processar (buscar dados do titular no sistema):
-```bash
-uv run legalops dsar --processar --id [DSAR-ID]
-```
-
-7. Caminhar sistema a sistema:
+6. Caminhar sistema a sistema por leitura/raciocínio do Claude com supervisão humana:
    - Banco principal / CRM / planilha
    - Email e WhatsApp corporativo
    - Contratos e documentos
@@ -54,15 +52,23 @@ uv run legalops dsar --processar --id [DSAR-ID]
    - Backups
    - Fornecedores/operadores
 
-8. Avaliar retenções e exceções:
+7. Avaliar retenções e exceções:
    - Nunca afirmar exceção legal sem revisão da advogada e fonte primária.
    - Separar dado do titular de dado de terceiros.
    - Registrar o que será entregue, corrigido, excluído, retido ou negado.
 
-9. Gerar resposta substantiva:
+8. Gerar resposta substantiva como segunda peça usando o JSON do engine + achados manuais. Se o texto já foi redigido antes, pode usar:
 ```bash
-uv run legalops dsar --gerar-resposta --id [DSAR-ID]
+uv run legalops dsar \
+  --input "[arquivo-solicitacao-redigida]" \
+  --direito [acesso|correcao|eliminacao|portabilidade|oposicao] \
+  --request-id DSAR-XXX \
+  --titular-ref TIT-XXX \
+  --recebimento AAAA-MM-DD \
+  --hoje AAAA-MM-DD \
+  --skip-redact
 ```
+O Claude deve então redigir duas peças quando cabível: confirmação de recebimento e resposta substantiva. O subcomando calcula/classifica; ele não registra, busca dados em sistemas nem envia resposta.
 
 ## Output Esperado
 ```

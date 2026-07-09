@@ -10,15 +10,17 @@ Analise o contrato: $ARGUMENTS
 1. Se contrato não foi colado: pedir o texto ou caminho do arquivo
 2. Redactar PII antes de processar:
 ```bash
-echo "[texto]" | uv run legalops redact --output texto_redacted.txt
+uv run legalops redact --input "[arquivo-original]" > texto_redacted.txt
 ```
 3. Analisar:
 ```bash
-uv run legalops contrato --analisar --input texto_redacted.txt
+uv run legalops contract --input texto_redacted.txt --skip-redact
 ```
 
 ## Output Obrigatório
 ```
+DRAFT — Requer revisão e assinatura
+
 📄 Análise de Contrato
 [Tipo de contrato identificado]
 [Partes: pseudônimos]
@@ -46,4 +48,4 @@ DRAFT — Esta análise requer validação do advogado responsável.
 
 ## Após análise
 Perguntar: "Deseja registrar data de renovação para alertas automáticos?"
-Se sim: `uv run legalops renovacao --registrar --contrato "[id]" --data-renovacao "[data]"`
+Se sim: orientar a advogada a adicionar alias opaco em `data/contratos.json` (gitignored) e validar com `uv run legalops renovacao --hoje AAAA-MM-DD`.
