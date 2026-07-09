@@ -60,4 +60,6 @@ DRAFT — Requer revisão e assinatura
   • [N] processos ativos · [honorarios/clientes: subcomando pendente — segunda onda] · Próxima audiência: [data]
 ```
 
-Se API offline: "Engine offline — verifique se o servidor está rodando."
+Se algum comando `legalops` falhar (não há servidor — é um programa local): diga em linguagem
+simples que aquele cálculo não rodou, mostre o resto do briefing, e lembre de conferir prazos
+no PJe. Nunca peça para ela "verificar servidor" — não existe.

@@ -18,12 +18,14 @@ uv run legalops prazo --data-publicacao AAAA-MM-DD --prazo-dias N --parte partic
 Para honorarios/clientes, fazer resumo por leitura/raciocínio do Claude e marcar: `[honorarios/clientes: subcomando pendente — segunda onda]`.
 Para DSARs, usar arquivos/registro manual existente e, quando houver solicitação individual, `legalops dsar --input ... --request-id ... --titular-ref ... --recebimento ... --hoje ...`.
 
-Apresente:
-- Honorários recebidos vs semana anterior
-- Prazos: cumpridos / perdidos / próximos 7 dias
-- Processos com movimentação (por tribunal)
-- DSARs: abertos / respondidos / vencendo
-- Leads no WhatsApp: respondidos / perdidos
+Apresente **SÓ o que tem fonte real** — nunca invente número. Sem store → escreva
+"[sem registro — não rastreado]", não estime:
+- Honorários: do ledger `data/honorarios.json` se existir; senão "[sem registro]"
+- Prazos próximos 7 dias: dos que ela anotou; "cumpridos/perdidos" NÃO são rastreados
+  automaticamente → "[sem registro — controle oficial é o PJe]"
+- Processos com movimentação: só dos textos que ela colou nesta semana
+- DSARs: do registro manual dela; senão "[sem registro]"
+- Contratos vencendo: de `renovacao` (fonte real)
 
 ## 2. CLIENTES EM RISCO
 Clientes sem atualização ainda não têm subcomando. Fazer resumo por leitura/raciocínio do Claude e marcar `[honorarios/clientes: subcomando pendente — segunda onda]`.
@@ -32,17 +34,19 @@ uv run legalops renovacao --hoje AAAA-MM-DD --incluir-ok
 ```
 
 Apresente:
-- Clientes sem contato há >30 dias → sugerir check-in
-- Contratos vencendo → sugerir renovação antecipada
+- Clientes sem contato há >30 dias: **não há store de último-contato** → não invente lista;
+  diga "[sem rastreamento de contato — pendente]" e, se ela quiser, ajude a montar manualmente.
+- Contratos vencendo → de `renovacao` (fonte real), sugerir renovação antecipada
 
 ## 3. MERCADO JURÍDICO
-Use WebSearch para:
-- "jurisprudência [área principal do escritório] [mês atual]"
+Use WebSearch para (áreas reais dela — bancário/financeiro, digital/LGPD, médico/saúde):
+- "jurisprudência [área do escritório] [mês atual]"
 - "LGPD multas ANPD [ano atual]"
 - "OAB novas resoluções [ano atual]"
-- "advocacia trabalhista tendências Brasil"
+- "fraude bancária / mercado de capitais tendências Brasil"
 
-Apresente: top 3 insights relevantes para o escritório
+Apresente: top 3 insights. **São notícias, NÃO fonte jurídica** — marque cada citação como
+"a confirmar na fonte primária"; nunca trate resultado de busca como direito vigente (RULES #3).
 
 ## 4. NOVIDADES DE IA E FERRAMENTAS
 Busque:

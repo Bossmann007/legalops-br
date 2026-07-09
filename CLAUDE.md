@@ -89,6 +89,7 @@ dashboard/                 — dashboard web Node.js (7 views)
 - Clientes: aliases only (`CLI-021`, hash) — nunca nome real em banco/log
 
 ## Status
-v1.5.0 · 811/811 testes (95% cov) · GitHub privado: Bossmann007/legalops-br
-Harness layer: skills ✅ · hooks ✅ · memory ✅ · agents ✅
-Próximo: deploy piloto Tia May — dashboard na máquina dela + morning briefing
+v1.6.0 · 856 testes (95% cov) · GitHub privado: Bossmann007/legalops-br
+Harness = plugin Claude Code (.claude-plugin/plugin.json + hooks/hooks.json).
+Notificação: PULL (/painel Artifact + /briefing) — WhatsApp push e dashboard Node deprecated.
+Próximo: smoke real de `claude plugin install` + 2ª onda (honorarios/clientes/ledger de prazos).

@@ -8,6 +8,10 @@ Use para estruturar conversa e rascunho de plano de privacidade em contexto de s
 
 ## Guardrails
 - Toda saida juridica deve comecar com `DRAFT — Requer revisão e assinatura`.
+- Esta skill e PRIVACIDADE/LGPD em saude — NÃO cobre responsabilidade/erro medico, defesa de
+  processo medico nem negativa de plano de saude. Se o caso for lide medica, avisar que nao ha
+  skill para isso e escalar para pesquisa juridica; nao forcar o caso dentro desta estrutura.
+- Terminar SEMPRE com "Fora do escopo desta triagem" (o que nao foi analisado).
 - Nao afirmar regra CFM/ANS/ANPD, prazo de guarda, base legal ou excecao sem `verificar na fonte primaria`.
 - Nao incluir nome de paciente, diagnostico, exame, prontuario ou imagem real em exemplos.
 - Se receber prontuario ou dado de saude, tratar como informacao altamente sensivel e redigir antes de logar.

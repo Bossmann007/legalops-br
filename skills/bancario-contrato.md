@@ -8,6 +8,9 @@ Use para leitura inicial de contrato bancario, financiamento, investimento, port
 
 ## Guardrails
 - Toda saida juridica deve comecar com `DRAFT — Requer revisão e assinatura`.
+- Terminar SEMPRE com uma secao "Fora do escopo desta triagem" listando o que NÃO foi
+  analisado (ex: teto/limite de juros, CET, prescricao da contestacao, sumulas de suitability).
+  Esta triagem organiza fatos e red flags — NAO e analise juridica completa; nao deixar parecer que e.
 - Nao afirmar abusividade, ilegalidade, nulidade, prazo ou entendimento jurisprudencial.
 - Qualquer referencia legal, sumula, regra BCB/CVM ou tese deve ir como `verificar na fonte primaria`.
 - Usar aliases de cliente (`CLI-XXX`) e mascarar conta, CPF, processo, telefone, e-mail e valores sensiveis quando possivel.

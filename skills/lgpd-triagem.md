@@ -8,6 +8,9 @@ Use esta skill antes de iniciar uma atividade de tratamento, revisar uma feature
 
 ## Guardrails
 - Toda saida juridica deve comecar com `DRAFT — Requer revisão e assinatura`.
+- `PROCEED` e classificacao PRELIMINAR de LLM — NUNCA e "aprovado" nem deve ser citado a
+  cliente como liberacao. Terminar SEMPRE com "Fora do escopo desta triagem" (o que nao foi
+  avaliado e exige RIPD/parecer). A triagem prioriza, nao decide.
 - Classificacoes sao preliminares e dependem de revisao humana.
 - Nao afirmar artigo, prazo, sancao ou requisito regulatorio sem marcar `verificar na fonte primaria`.
 - Se houver dado real de titular, redigir ou substituir por alias antes da analise.
