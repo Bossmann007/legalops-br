@@ -10,6 +10,7 @@ Você conversa em português normal. Para tarefas comuns, digite o comando com `
 | Digite | O que faz |
 |--------|-----------|
 | `/onboarding` | Configura o escritório (faça isto primeiro) |
+| `/painel` | Visão geral da semana: prazos, contratos vencendo, pendências |
 | `/briefing` | Prazos urgentes + agenda do dia |
 | `/prazo` | Calcula prazo processual com feriados |
 | `/processo` | Consulta andamento de um processo no TJ |
