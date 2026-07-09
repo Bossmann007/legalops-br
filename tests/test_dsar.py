@@ -92,12 +92,31 @@ class TestProcessarDSAR:
 
         assert resp.artigo == "Art. 18 II"
 
+    def test_acesso_cita_art_19_como_prazo(self) -> None:
+        req = DSARRequest("r1", "acesso", date(2026, 1, 1), "titular-abc")
+
+        resp = processar_dsar(req, hoje=date(2026, 1, 1))
+
+        assert "Art. 19 §3 LGPD" in resp.referencia_prazo
+        assert "Art. 19 §3 LGPD" in resp.texto_resposta
+
+    @pytest.mark.parametrize("codigo", ["eliminacao", "correcao"])
+    def test_direitos_sem_prazo_legal_fixo_nao_citam_art_19(self, codigo: str) -> None:
+        req = DSARRequest("r1", codigo, date(2026, 1, 1), "titular-abc")
+
+        resp = processar_dsar(req, hoje=date(2026, 1, 1))
+
+        assert "Art. 19" not in resp.referencia_prazo
+        assert "Art. 19" not in resp.texto_resposta
+        assert "SLA interno de 15 dias" in resp.referencia_prazo
+        assert "LGPD não fixa prazo específico" in resp.texto_resposta
+
     def test_texto_cita_descricao(self) -> None:
         req = DSARRequest("r1", "eliminacao", date(2026, 1, 1), "titular-abc")
 
         resp = processar_dsar(req, hoje=date(2026, 1, 1))
 
-        assert "Art. 19" in resp.texto_resposta
+        assert "Eliminacao dos dados pessoais" in resp.texto_resposta
 
     def test_codigo_invalido_raises(self) -> None:
         req = DSARRequest("r1", "inexistente", date(2026, 1, 1), "titular-abc")

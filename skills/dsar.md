@@ -5,7 +5,10 @@ triggers: ["/dsar", "solicitação LGPD", "titular de dados", "pedido de exclus�
 ---
 
 ## Prazo Legal
-Usar **15 dias** como SLA interno inicial do harness, salvo orientação da advogada. Antes de enviar resposta ao titular, confirmar o prazo e a regra aplicável em fonte primária.
+Usar **15 dias** como SLA interno inicial do harness, salvo orientação da advogada.
+Para acesso, o engine pode referenciar Art. 19 §3 LGPD. Para correção, eliminação,
+oposição, portabilidade e demais direitos, tratar como SLA interno — a LGPD não fixa
+prazo específico neste harness; confirmar regra aplicável em fonte primária antes de enviar.
 
 ## Fluxo
 1. Antes de colar a solicitação:

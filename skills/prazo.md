@@ -34,6 +34,20 @@ uv run legalops prazo \
 # --via-dje  → intimação pelo Diário eletrônico
 ```
 Retorna JSON com `data_final`, dias corridos e flags de dobro/recesso aplicados.
+Se a advogada pedir para acompanhar no painel, rode de novo com registro local explícito:
+```bash
+uv run legalops prazo \
+  --data-publicacao AAAA-MM-DD \
+  --prazo-dias N \
+  --parte [particular|fazenda|mp|defensoria] \
+  --tribunal TJPR \
+  --hoje AAAA-MM-DD \
+  --salvar \
+  --ref PROC-XXX \
+  --ato "[desc curta]"
+```
+Esse `--salvar` apenas anexa em `data/prazos.json` (gitignored) para o `/painel`.
+Não cria alerta automático e não é fonte oficial.
 
 ## Formato de Resposta
 ```
@@ -48,6 +62,6 @@ Tribunal: TJPR (recesso/feriado calibrado só p/ TJPR)
 ⚖️ Data final estimada: **DD/MM/AAAA**
 
 ⚠️ CONFIRA no PJe/Projudi antes de confiar. Este cálculo não cobre feriado municipal,
-   suspensão de expediente, nem prazo material. Anote o prazo no seu controle oficial —
+   suspensão de expediente, nem prazo material. O `--salvar` é só registro local —
    o sistema NÃO envia alerta automático.
 ```

@@ -1,8 +1,7 @@
-"""DSAR Responder — resposta a requisicoes de titulares (Art. 18/19 LGPD).
+"""DSAR Responder — resposta a requisicoes de titulares (Art. 18 LGPD).
 
 Classifica requisicoes em texto livre em um dos direitos do titular (Art. 18) e
-calcula prazo de resposta (Art. 19 - 15 dias), status e um texto-padrao em
-pt-BR para resposta.
+calcula prazo operacional, status e um texto-padrao em pt-BR para resposta.
 
 Deterministico, stdlib only. Roda DEPOIS do pii-redactor — assume texto sem PII
 bruto. ``titular_ref`` deve ser pseudonimo opaco, nunca PII real.
@@ -147,11 +146,12 @@ class DSARRequest:
 
 @dataclass(frozen=True)
 class DSARResponse:
-    """Resposta calculada para uma requisicao de titular (Art. 19 LGPD)."""
+    """Resposta calculada para uma requisicao de titular."""
 
     request_id: str
     codigo_direito: str
     artigo: str
+    referencia_prazo: str
     prazo_final: date
     dias_restantes: int
     status: StatusDSAR
@@ -166,18 +166,47 @@ def _classificar_status(dias_restantes: int) -> StatusDSAR:
     return "no_prazo"
 
 
-def _montar_texto(direito: DireitoTitular, prazo_final: date, status: StatusDSAR) -> str:
-    nota_status = {
-        "no_prazo": "A requisicao esta dentro do prazo legal.",
-        "vence_hoje": "ATENCAO: o prazo legal vence hoje.",
-        "em_atraso": "ATENCAO: o prazo legal foi ultrapassado.",
-    }[status]
+def _referencia_prazo(direito: DireitoTitular) -> str:
+    if direito.codigo == "acesso":
+        return f"Art. 19 §3 LGPD (até {PRAZO_RESPOSTA_TITULAR_DIAS} dias)"
     return (
+        f"SLA interno de {PRAZO_RESPOSTA_TITULAR_DIAS} dias "
+        "(LGPD não fixa prazo específico para este direito — confirmar na fonte primária)"
+    )
+
+
+def _montar_texto(
+    direito: DireitoTitular,
+    prazo_final: date,
+    status: StatusDSAR,
+    referencia_prazo: str,
+) -> str:
+    if direito.codigo == "acesso":
+        nota_status = {
+            "no_prazo": "A requisicao esta dentro do prazo legal estimado.",
+            "vence_hoje": "ATENCAO: o prazo legal estimado vence hoje.",
+            "em_atraso": "ATENCAO: o prazo legal estimado foi ultrapassado.",
+        }[status]
+        prazo_linha = (
+            f"Referencia de prazo: {referencia_prazo}. "
+            f"Resposta estimada ate {prazo_final.isoformat()}.\n"
+        )
+    else:
+        nota_status = {
+            "no_prazo": "A requisicao esta dentro do SLA interno.",
+            "vence_hoje": "ATENCAO: o SLA interno vence hoje.",
+            "em_atraso": "ATENCAO: o SLA interno foi ultrapassado.",
+        }[status]
+        prazo_linha = (
+            f"Referencia de prazo: {referencia_prazo}. "
+            f"Resposta operacional estimada ate {prazo_final.isoformat()}.\n"
+        )
+    return (
+        f"DRAFT — Requer revisão e assinatura\n\n"
         f"Prezado(a) titular,\n\n"
         f"Recebemos sua requisicao referente ao direito de '{direito.codigo}' "
         f"({direito.artigo}): {direito.descricao}\n\n"
-        f"Nos termos do Art. 19 da LGPD, sua solicitacao sera respondida ate "
-        f"{prazo_final.isoformat()} (prazo de {PRAZO_RESPOSTA_TITULAR_DIAS} dias).\n"
+        f"{prazo_linha}"
         f"{nota_status}\n\n"
         f"Atenciosamente,\nEncarregado de Protecao de Dados (DPO)."
     )
@@ -191,8 +220,7 @@ def processar_dsar(req: DSARRequest, hoje: date | None = None) -> DSARResponse:
         hoje: Data de referencia (default: ``date.today()``).
 
     Returns:
-        ``DSARResponse`` com prazo final (Art. 19), dias restantes, status e
-        texto-padrao em pt-BR.
+        ``DSARResponse`` com prazo/SLA final, dias restantes, status e texto-padrao em pt-BR.
 
     Raises:
         DSARError: Se ``req.codigo_direito`` nao corresponder a um direito
@@ -206,13 +234,15 @@ def processar_dsar(req: DSARRequest, hoje: date | None = None) -> DSARResponse:
     prazo_final = req.data_recebimento + timedelta(days=direito.prazo_resposta_dias)
     dias_restantes = (prazo_final - ref).days
     status = _classificar_status(dias_restantes)
+    referencia_prazo = _referencia_prazo(direito)
 
     return DSARResponse(
         request_id=req.request_id,
         codigo_direito=req.codigo_direito,
         artigo=direito.artigo,
+        referencia_prazo=referencia_prazo,
         prazo_final=prazo_final,
         dias_restantes=dias_restantes,
         status=status,
-        texto_resposta=_montar_texto(direito, prazo_final, status),
+        texto_resposta=_montar_texto(direito, prazo_final, status, referencia_prazo),
     )

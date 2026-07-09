@@ -11,7 +11,7 @@ Referencias:
 - Art. 11: bases legais para dados sensiveis
 - Art. 14: tratamento de dados de criancas e adolescentes
 - Art. 18: direitos do titular
-- Art. 19: prazo de resposta ao titular (15 dias)
+- Art. 19: resposta ao titular em formato de acesso completo (confirmar aplicabilidade)
 - Art. 48: comunicacao de incidente a ANPD
 """
 
@@ -51,7 +51,7 @@ class DireitoTitular:
     codigo: str
     artigo: str
     descricao: str
-    prazo_resposta_dias: int = 15  # Art. 19 - prazo padrao
+    prazo_resposta_dias: int = 15  # SLA interno; Art. 19 §3 so para acesso completo
 
 
 DIREITOS_TITULAR: list[DireitoTitular] = [
@@ -187,5 +187,5 @@ def validar_operacao(op: OperacaoTratamento) -> tuple[bool, list[str]]:
 
 
 # Constantes ANPD / prazos LGPD
-PRAZO_RESPOSTA_TITULAR_DIAS: int = 15  # Art. 19
+PRAZO_RESPOSTA_TITULAR_DIAS: int = 15  # SLA interno; Art. 19 §3 so para acesso completo
 PRAZO_INCIDENTE_ANPD_DIAS: int = 2  # Art. 48 - orientacao ANPD: 2 dias uteis

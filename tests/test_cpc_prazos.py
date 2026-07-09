@@ -67,6 +67,9 @@ class TestRecessoOutrosTribunais:
         with pytest.raises(ValueError, match="Tribunal desconhecido"):
             is_recesso_forense(date(2026, 12, 25), "TJSP")
 
+    def test_tribunal_invalido_strict_false_sem_recesso(self) -> None:
+        assert not is_recesso_forense(date(2026, 12, 25), "TJSP", strict=False)
+
     def test_recesso_por_tribunal_dict(self) -> None:
         assert "TJPR" in RECESSO_POR_TRIBUNAL
         assert "STJ" in RECESSO_POR_TRIBUNAL

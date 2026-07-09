@@ -89,6 +89,8 @@ class TestCmdDsar:
         out = json.loads(capsys.readouterr().out)
         assert code == 0
         assert out["codigo_direito"] == "eliminacao"
+        assert "Art. 19" not in out["referencia_prazo"]
+        assert "Art. 19" not in out["texto_resposta"]
 
     def test_dsar_sem_classificacao_retorna_2(
         self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
@@ -158,6 +160,28 @@ class TestCmdPrazo:
         assert out["data_final"] > "2027-01-20"
         assert out["flags"]["recesso_aplicado"] is True
 
+    def test_prazo_tjsp_sem_recesso_modelado_fail_soft(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        code = main(
+            [
+                "prazo",
+                "--data-publicacao",
+                "2026-12-10",
+                "--prazo-dias",
+                "15",
+                "--tribunal",
+                "TJSP",
+                "--hoje",
+                "2026-12-11",
+            ]
+        )
+        out = json.loads(capsys.readouterr().out)
+        assert code == 0
+        assert out["tribunal"] == "TJSP"
+        assert out["flags"]["recesso_aplicado"] is False
+        assert "não modelado para TJSP" in out["aviso_tribunal"]
+
     def test_prazo_feriado_movel_corpus_christi(self, capsys: pytest.CaptureFixture[str]) -> None:
         code = main(
             [
@@ -173,6 +197,180 @@ class TestCmdPrazo:
         out = json.loads(capsys.readouterr().out)
         assert code == 0
         assert out["data_final"] == "2026-06-12"
+
+    def test_prazo_salvar_e_prazos_listar(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        monkeypatch.chdir(tmp_path)
+        code = main(
+            [
+                "prazo",
+                "--data-publicacao",
+                "2026-05-21",
+                "--prazo-dias",
+                "5",
+                "--hoje",
+                "2026-05-22",
+                "--salvar",
+                "--ref",
+                "PROC-001",
+                "--ato",
+                "manifestacao",
+            ]
+        )
+        saved = json.loads(capsys.readouterr().out)
+        assert code == 0
+        assert saved["salvo"] is True
+        assert saved["prazo_registrado"]["ref"] == "PROC-001"
+
+        code = main(["prazos", "--ate", "7", "--hoje", "2026-05-22"])
+        out = json.loads(capsys.readouterr().out)
+        assert code == 0
+        assert out["avisos"] == []
+        assert [(p["ref"], p["data_final"], p["dias_ate"]) for p in out["prazos"]] == [
+            ("PROC-001", "2026-05-28", 6)
+        ]
+
+    def test_prazo_salvar_exige_ref_e_ato(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        monkeypatch.chdir(tmp_path)
+        code = main(
+            [
+                "prazo",
+                "--data-publicacao",
+                "2026-05-21",
+                "--prazo-dias",
+                "5",
+                "--hoje",
+                "2026-05-22",
+                "--salvar",
+            ]
+        )
+        out = json.loads(capsys.readouterr().out)
+        assert code == 2
+        assert out["error"] == "--salvar exige --ref e --ato"
+
+    def test_prazo_salvar_ledger_invalido_retorna_2(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        monkeypatch.chdir(tmp_path)
+        data_dir = tmp_path / "data"
+        data_dir.mkdir()
+        (data_dir / "prazos.json").write_text("{}", encoding="utf-8")
+        code = main(
+            [
+                "prazo",
+                "--data-publicacao",
+                "2026-05-21",
+                "--prazo-dias",
+                "5",
+                "--hoje",
+                "2026-05-22",
+                "--salvar",
+                "--ref",
+                "PROC-001",
+                "--ato",
+                "manifestacao",
+            ]
+        )
+        out = json.loads(capsys.readouterr().out)
+        assert code == 2
+        assert "prazos.json deve conter uma lista" in out["error"]
+
+    def test_prazos_sem_ledger_retorna_lista_vazia(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        monkeypatch.chdir(tmp_path)
+        code = main(["prazos", "--hoje", "2026-05-22"])
+        out = json.loads(capsys.readouterr().out)
+        assert code == 0
+        assert out["prazos"] == []
+        assert "data/prazos.json ausente" in out["avisos"][0]
+
+    def test_prazos_ledger_com_item_invalido_retorna_2(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        monkeypatch.chdir(tmp_path)
+        data_dir = tmp_path / "data"
+        data_dir.mkdir()
+        (data_dir / "prazos.json").write_text(json.dumps(["PROC-001"]), encoding="utf-8")
+        code = main(["prazos", "--hoje", "2026-05-22"])
+        out = json.loads(capsys.readouterr().out)
+        assert code == 2
+        assert "cada prazo deve ser um objeto JSON" in out["error"]
+
+    def test_prazos_filtra_janela_e_cumpridos(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        monkeypatch.chdir(tmp_path)
+        data_dir = tmp_path / "data"
+        data_dir.mkdir()
+        (data_dir / "prazos.json").write_text(
+            json.dumps(
+                [
+                    {
+                        "ref": "PROC-001",
+                        "ato": "manifestacao",
+                        "data_final": "2026-05-23",
+                        "tribunal": "TJPR",
+                        "criado_em": "2026-05-20",
+                        "status": "aberto",
+                    },
+                    {
+                        "ref": "PROC-002",
+                        "ato": "recurso",
+                        "data_final": "2026-06-10",
+                        "tribunal": "TJPR",
+                        "criado_em": "2026-05-20",
+                        "status": "aberto",
+                    },
+                    {
+                        "ref": "PROC-003",
+                        "ato": "juntada",
+                        "data_final": "2026-05-24",
+                        "tribunal": "TJPR",
+                        "criado_em": "2026-05-20",
+                        "status": "cumprido",
+                    },
+                    {
+                        "ref": "PROC-004",
+                        "ato": "sem data",
+                        "tribunal": "TJPR",
+                        "criado_em": "2026-05-20",
+                        "status": "aberto",
+                    },
+                ]
+            ),
+            encoding="utf-8",
+        )
+        code = main(["prazos", "--ate", "7", "--hoje", "2026-05-22"])
+        out = json.loads(capsys.readouterr().out)
+        assert code == 0
+        assert [p["ref"] for p in out["prazos"]] == ["PROC-001"]
+
+        code = main(["prazos", "--ate", "7", "--hoje", "2026-05-22", "--incluir-cumpridos"])
+        out = json.loads(capsys.readouterr().out)
+        assert code == 0
+        assert [p["ref"] for p in out["prazos"]] == ["PROC-001", "PROC-003"]
 
 
 class TestCmdRenovacao:

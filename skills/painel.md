@@ -16,6 +16,8 @@ na sessao. Substitui o antigo dashboard web (deprecated no piloto).
 ## Coletar estado (local)
 Rode e junte o que existir; se um comando nao tiver dado, mostre a secao vazia, nao invente:
 ```bash
+# Prazos locais registrados (rede de seguranca; nao e fonte oficial)
+uv run legalops prazos --ate 7 --hoje AAAA-MM-DD
 # Contratos vencendo / renovacao
 uv run legalops renovacao --hoje AAAA-MM-DD
 # Estado corrente do escritorio (prazos abertos, threads, DSARs)
@@ -23,6 +25,9 @@ cat memory.local/primer.local.md 2>/dev/null || cat memory/Primer.md
 ```
 Para prazos individuais que a advogada acompanha, calcule cada um com
 `uv run legalops prazo --data-publicacao ... --prazo-dias N --parte ... --hoje AAAA-MM-DD`.
+Se ela quiser que apareça no painel, salvar explicitamente com
+`--salvar --ref PROC-XXX --ato "[desc]"`. Isso e registro local em `data/prazos.json`,
+nao alerta automatico e nunca substitui PJe/Projudi.
 
 ## Renderizar (Artifact HTML self-contained)
 Produza UM Artifact HTML com estes cards, em portugues, responsivo, tema claro/escuro:

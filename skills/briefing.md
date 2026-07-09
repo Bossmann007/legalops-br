@@ -7,11 +7,18 @@ triggers: ["/briefing", "prazos do dia", "o que tenho hoje", "agenda hoje"]
 Execute em sequência:
 
 ## 1. Prazos Urgentes
-Para cada intimação/texto disponível, extraia com `parse` e calcule com `prazo`:
+Primeiro leia os prazos locais registrados (rede de segurança; não é fonte oficial):
+```bash
+uv run legalops prazos --ate 7 --hoje AAAA-MM-DD
+```
+Para cada intimação/texto novo disponível, extraia com `parse` e calcule com `prazo`:
 ```bash
 uv run legalops parse --input "[arquivo-texto]"
 uv run legalops prazo --data-publicacao AAAA-MM-DD --prazo-dias N --parte particular --tribunal TJPR --hoje AAAA-MM-DD
 ```
+Se a advogada quiser acompanhar esse cálculo no painel, salvar explicitamente com
+`--salvar --ref PROC-XXX --ato "[desc]"`. Isso grava apenas em `data/prazos.json`;
+não agenda alerta automático e não substitui conferência no PJe/Projudi.
 Apresente em semáforo:
 - 🔴 **URGENTE** — vence hoje ou amanhã
 - 🟡 **ATENÇÃO** — vence em 2–3 dias
@@ -32,7 +39,7 @@ Não há subcomando de status/listagem de DSAR ainda. Se houver arquivo de solic
 ```bash
 uv run legalops dsar --input "[arquivo-solicitacao-redigida]" --request-id DSAR-XXX --titular-ref TIT-XXX --recebimento AAAA-MM-DD --hoje AAAA-MM-DD
 ```
-Se houver: listar com data de recebimento (prazo LGPD = 15 dias).
+Se houver: listar com data de recebimento, SLA interno e nota para confirmar prazo aplicável em fonte primária.
 
 ## 4. Contratos em Renovação
 ```bash

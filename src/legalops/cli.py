@@ -20,7 +20,13 @@ from pathlib import Path
 from legalops.anpd_playbook import Incidente, gerar_plano
 from legalops.config import LegalOpsConfig, load_config
 from legalops.contract_analyzer import analisar_contrato
-from legalops.cpc_prazos import PrazoInput, PrazoResult, calcular_prazo, is_recesso_forense
+from legalops.cpc_prazos import (
+    RECESSO_POR_TRIBUNAL,
+    PrazoInput,
+    PrazoResult,
+    calcular_prazo,
+    is_recesso_forense,
+)
 from legalops.disclosure import (
     DisclosureItem,
     DisclosureSchedule,
@@ -88,9 +94,18 @@ def _dump(obj: object) -> str:
     return json.dumps(obj, default=_json_default, ensure_ascii=False, indent=2)
 
 
-def _prazo_to_json(inp: PrazoInput, result: PrazoResult) -> dict[str, object]:
+PRAZOS_LEDGER_PATH = Path("data/prazos.json")
+
+
+def _prazo_to_json(
+    inp: PrazoInput,
+    result: PrazoResult,
+    *,
+    aviso_tribunal: str | None = None,
+) -> dict[str, object]:
     data = asdict(result)
     data["fundamentos_aplicados"] = list(data["fundamentos_aplicados"])
+    data["tribunal"] = inp.tribunal
     data["data_final"] = data["dies_ad_quem"]
     data["dias_corridos"] = (data["dies_ad_quem"] - data["data_publicacao"]).days
     fundamentos = " ".join(data["fundamentos_aplicados"])
@@ -98,7 +113,7 @@ def _prazo_to_json(inp: PrazoInput, result: PrazoResult) -> dict[str, object]:
     cur = result.data_publicacao
     recesso_aplicado = False
     while cur <= result.dies_ad_quem:
-        if is_recesso_forense(cur, inp.tribunal):
+        if is_recesso_forense(cur, inp.tribunal, strict=False):
             recesso_aplicado = True
             break
         cur = date.fromordinal(cur.toordinal() + 1)
@@ -107,7 +122,34 @@ def _prazo_to_json(inp: PrazoInput, result: PrazoResult) -> dict[str, object]:
         "dobro_aplicado": "em dobro" in fundamentos,
         "recesso_aplicado": recesso_aplicado,
     }
+    if aviso_tribunal:
+        data["aviso_tribunal"] = aviso_tribunal
     return data
+
+
+def _load_prazos_ledger(path: Path) -> tuple[list[dict[str, object]], list[str]]:
+    if not path.exists():
+        return [], [f"{path} ausente; nenhum prazo local registrado"]
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(raw, list):
+        raise ValueError("prazos.json deve conter uma lista")
+    items: list[dict[str, object]] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            raise ValueError("cada prazo deve ser um objeto JSON")
+        items.append(item)
+    return items, []
+
+
+def _save_prazos_ledger(path: Path, items: list[dict[str, object]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(_dump(items) + "\n", encoding="utf-8")
+
+
+def _append_prazo_ledger(path: Path, item: dict[str, object]) -> None:
+    items, _avisos = _load_prazos_ledger(path)
+    items.append(item)
+    _save_prazos_ledger(path, items)
 
 
 def _contrato_from_json(raw: object) -> Contrato:
@@ -710,10 +752,10 @@ def cmd_contract(args: argparse.Namespace) -> int:
 
 
 def cmd_dsar(args: argparse.Namespace) -> int:
-    """Processa requisicao de titular (DSAR — Art. 18/19 LGPD, fase v1.4).
+    """Processa requisicao de titular (DSAR — Art. 18 LGPD, fase v1.4).
 
     Le o texto da requisicao, redige PII por padrao, classifica o direito
-    invocado e calcula prazo de resposta (15 dias, Art. 19).
+    invocado e calcula prazo/SLA operacional de resposta.
     """
     text = _read_input(args.input)
     if not args.skip_redact:
@@ -751,6 +793,7 @@ def cmd_dsar(args: argparse.Namespace) -> int:
                 "request_id": resp.request_id,
                 "codigo_direito": resp.codigo_direito,
                 "artigo": resp.artigo,
+                "referencia_prazo": resp.referencia_prazo,
                 "prazo_final": resp.prazo_final.isoformat(),
                 "dias_restantes": resp.dias_restantes,
                 "status": resp.status,
@@ -764,15 +807,72 @@ def cmd_dsar(args: argparse.Namespace) -> int:
 def cmd_prazo(args: argparse.Namespace) -> int:
     """Calcula prazo CPC diretamente a partir de parametros estruturados."""
     hoje = date.fromisoformat(args.hoje) if args.hoje else date.today()
+    tribunal = args.tribunal.upper()
+    aviso_tribunal = None
+    strict_recesso = tribunal in RECESSO_POR_TRIBUNAL
+    if not strict_recesso:
+        aviso_tribunal = (
+            f"Recesso/feriado forense não modelado para {tribunal}. "
+            "Trate como estimativa e confira no tribunal."
+        )
     inp = PrazoInput(
         data_publicacao=date.fromisoformat(args.data_publicacao),
         prazo_dias=args.prazo_dias,
         parte=args.parte,
         via_dje=args.via_dje,
-        tribunal=args.tribunal,
+        tribunal=tribunal,
     )
-    result = calcular_prazo(inp, hoje=hoje)
-    print(_dump(_prazo_to_json(inp, result)))
+    result = calcular_prazo(inp, hoje=hoje, strict_recesso=strict_recesso)
+    payload = _prazo_to_json(inp, result, aviso_tribunal=aviso_tribunal)
+    if args.salvar:
+        if not args.ref or not args.ato:
+            print(_dump({"error": "--salvar exige --ref e --ato"}))
+            return 2
+        ledger_item: dict[str, object] = {
+            "ref": args.ref,
+            "ato": args.ato,
+            "data_final": result.dies_ad_quem.isoformat(),
+            "tribunal": tribunal,
+            "criado_em": hoje.isoformat(),
+            "status": "aberto",
+        }
+        try:
+            _append_prazo_ledger(PRAZOS_LEDGER_PATH, ledger_item)
+        except (OSError, ValueError, json.JSONDecodeError) as e:
+            print(_dump({"error": str(e), "path": str(PRAZOS_LEDGER_PATH)}))
+            return 2
+        payload["salvo"] = True
+        payload["prazo_registrado"] = ledger_item
+    print(_dump(payload))
+    return 0
+
+
+def cmd_prazos(args: argparse.Namespace) -> int:
+    """Lista prazos locais persistidos em data/prazos.json."""
+    hoje = date.fromisoformat(args.hoje) if args.hoje else date.today()
+    try:
+        items, avisos = _load_prazos_ledger(PRAZOS_LEDGER_PATH)
+    except (OSError, ValueError, json.JSONDecodeError) as e:
+        print(_dump({"error": str(e), "path": str(PRAZOS_LEDGER_PATH)}))
+        return 2
+
+    prazos: list[dict[str, object]] = []
+    for item in items:
+        status = str(item.get("status", "aberto"))
+        if status != "aberto" and not args.incluir_cumpridos:
+            continue
+        data_final_raw = item.get("data_final")
+        if not isinstance(data_final_raw, str):
+            continue
+        data_final = date.fromisoformat(data_final_raw)
+        dias_ate = (data_final - hoje).days
+        if dias_ate <= args.ate:
+            out = dict(item)
+            out["dias_ate"] = dias_ate
+            prazos.append(out)
+
+    prazos.sort(key=lambda p: (str(p.get("data_final", "")), str(p.get("ref", ""))))
+    print(_dump({"avisos": avisos, "prazos": prazos}))
     return 0
 
 
@@ -1347,9 +1447,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_contract.set_defaults(func=cmd_contract)
 
-    p_dsar = sub.add_parser(
-        "dsar", help="Processa requisicao de titular (Art. 18/19 LGPD) + prazo resposta"
-    )
+    p_dsar = sub.add_parser("dsar", help="Processa requisicao de titular (Art. 18 LGPD)")
     p_dsar.add_argument("--input", "-i", help="Texto da requisicao (default: stdin)")
     p_dsar.add_argument(
         "--direito",
@@ -1383,7 +1481,20 @@ def build_parser() -> argparse.ArgumentParser:
     p_prazo.add_argument("--via-dje", action="store_true", help="Intimacao via DJE")
     p_prazo.add_argument("--tribunal", default="TJPR", help="Tribunal (default TJPR)")
     p_prazo.add_argument("--hoje", help="Data atual ISO (default: hoje)")
+    p_prazo.add_argument("--salvar", action="store_true", help="Registra prazo em data/prazos.json")
+    p_prazo.add_argument("--ref", help="Referencia opaca do processo/caso (ex: PROC-001)")
+    p_prazo.add_argument("--ato", help="Descricao curta do ato/prazo")
     p_prazo.set_defaults(func=cmd_prazo)
+
+    p_prazos = sub.add_parser("prazos", help="Lista prazos locais registrados")
+    p_prazos.add_argument("--ate", type=int, default=7, help="Janela em dias corridos (default 7)")
+    p_prazos.add_argument(
+        "--incluir-cumpridos",
+        action="store_true",
+        help="Inclui registros com status cumprido",
+    )
+    p_prazos.add_argument("--hoje", help="Data atual ISO (default: hoje)")
+    p_prazos.set_defaults(func=cmd_prazos)
 
     p_ren = sub.add_parser("renovacao", help="Lista alertas de renovacao de contratos")
     p_ren.add_argument("--hoje", help="Data atual ISO (default: hoje)")
