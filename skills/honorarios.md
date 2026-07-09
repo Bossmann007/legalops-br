@@ -4,46 +4,31 @@ description: Controle de honorários — fechar mês, inadimplências, relatóri
 triggers: ["/honorarios", "fechar mês", "relatório financeiro", "quanto recebi", "inadimplência"]
 ---
 
-## Para Fechar o Mês
-```bash
-uv run legalops honorarios --relatorio-mensal --mes [AAAA-MM]
-```
+> Não há subcomando `legalops honorarios` no engine (recurso da 2ª onda — pendente).
+> Até lá, este controle é feito pelo Claude lendo/escrevendo um **ledger local**:
+> `data/honorarios.json` (gitignored, nunca versionado, só aliases de cliente).
+> Toda saída financeira começa com `DRAFT — Requer revisão`.
 
-Apresente:
-- Total recebido no mês
-- Por forma de pagamento (Pix / transferência / boleto / dinheiro)
-- Por área (trabalhista / civil / família / etc.)
-- Por cliente (aliases — `CLI-XXX`)
-- Pendências (status=pendente)
-- Comparação com mês anterior se disponível
+## Ledger local (data/honorarios.json)
+Lista de lançamentos, cada um:
+`{"alias": "CLI-XXX", "caso": "[desc curta]", "valor": N, "forma": "pix|transferencia|boleto|dinheiro", "data_vencimento": "AAAA-MM-DD", "status": "pago|pendente", "data_pagamento": "AAAA-MM-DD|null"}`
+Cliente **sempre** por alias — nunca nome real. Se o arquivo não existir, crie-o vazio (`[]`).
 
-## Para Registrar Honorário
-Colete:
-1. Cliente (alias `CLI-XXX` — nunca nome real)
-2. Caso (número interno ou descrição breve)
-3. Valor combinado
-4. Forma de pagamento
-5. Parcelamento? (se sim: quantas parcelas, datas)
+## Fechar o mês
+1. Leia `data/honorarios.json`.
+2. Filtre lançamentos do mês pedido e apresente (DRAFT):
+   - Total recebido (status=pago no mês) · por forma de pagamento · por área · por cliente (alias)
+   - Pendências (status=pendente) · comparação com mês anterior se houver dado
+3. Não invente números — se o ledger estiver vazio, diga e ofereça registrar o primeiro.
 
-```bash
-uv run legalops honorarios --registrar \
-  --cliente CLI-XXX \
-  --caso "[desc]" \
-  --valor [N] \
-  --forma [pix|transferencia|boleto|dinheiro] \
-  --data-vencimento AAAA-MM-DD
-```
+## Registrar honorário
+Colete: alias (`CLI-XXX`), caso (descrição breve), valor, forma, vencimento, parcelamento se houver.
+Anexe o lançamento a `data/honorarios.json`. Confirme com ela antes de salvar.
 
-## Alertas de Inadimplência
-```bash
-uv run legalops honorarios --inadimplentes --vencido-ha 7
-```
+## Inadimplência
+Filtre `status=pendente` com `data_vencimento` já passada. Para cada um, ofereça um **rascunho**
+de mensagem de cobrança (tom profissional, sem constranger) — ela revisa e envia por conta própria.
+Nada é enviado pelo sistema.
 
-Para cada inadimplente: sugerir template de cobrança via WhatsApp (sem constranger — tom profissional).
-
-## Relatório Anual
-```bash
-uv run legalops honorarios --relatorio-anual --ano [AAAA]
-```
-
-Encerre com: "Relatório salvo. Deseja exportar em PDF?"
+## Relatório anual
+Agregue o ledger do ano pedido (mesmos cortes do fechamento mensal), sempre DRAFT.

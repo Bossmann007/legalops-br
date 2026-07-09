@@ -15,13 +15,18 @@ Calcule o prazo para: $ARGUMENTS
 ## Fluxo
 1. Se data de intimação não fornecida: perguntar antes de calcular
 2. Identificar tipo de ato (contestação, recurso, manifestação, etc.)
-3. Executar:
+3. Executar (subcomando determinístico do engine):
 ```bash
-uv run legalops prazo --intimacao "[data]" --tipo "[tipo]" --partes "[partes]"
+uv run legalops prazo \
+  --data-publicacao AAAA-MM-DD \
+  --prazo-dias N \
+  --parte [particular|fazenda|mp|defensoria] \
+  --tribunal TJPR \
+  --hoje AAAA-MM-DD
+# --via-dje  → some se a intimação foi pelo Diário eletrônico (Art. 229)
 ```
-4. Se o CLI não tiver os parâmetros, calcular com as regras acima e feriados de:
-   - Nacional: `~/Projects/legalops-br/src/legalops/cpc_prazos.py` (lista interna)
-   - Estadual: perguntar o estado do tribunal
+O comando retorna JSON com `data_final`, dias corridos e flags de dobro/recesso aplicados.
+Se faltar dado (data de publicação, nº de dias, tribunal), pergunte antes de calcular.
 
 ## Formato de Resposta
 ```
@@ -38,5 +43,6 @@ Feriados no período: [lista ou "nenhum"]
 ⚠️ Alertas automáticos configurados: D-3 e D-1
 ```
 
-Após calcular, perguntar: "Deseja registrar esse prazo no sistema para alertas automáticos?"
-Se sim: `uv run legalops prazo --registrar --data-final "[data]" --descricao "[desc]"`
+Após calcular, avise: o cálculo é rede de segurança — **confira o prazo no PJe/Projudi**, que é
+a fonte oficial. Para acompanhar prazos recorrentes, anote-os no controle oficial do tribunal;
+o engine não persiste prazos (não há registro/alerta automático nesta versão).

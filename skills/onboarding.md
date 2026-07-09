@@ -4,7 +4,10 @@ description: Entrevista guiada para preencher o perfil do escritorio (firm_conte
 triggers: ["/onboarding", "configurar escritorio", "primeira configuracao", "preencher perfil"]
 ---
 
-Use na PRIMEIRA configuracao com a advogada, ou quando dados do escritorio mudarem. Conduz uma entrevista curta e preenche os placeholders `[preencher...]` em `memory/firm_context.md`, `memory/user_tia_may.md` e o estado inicial em `memory/Primer.md`.
+Use na PRIMEIRA configuracao com a advogada, ou quando dados do escritorio mudarem. Conduz uma
+entrevista curta e grava as respostas reais na pasta LOCAL gitignored `memory.local/`
+(`firm_context.local.md`, `user.local.md`, `primer.local.md`) — **nunca** nos templates rastreados
+`memory/*.md`. Ver detalhe em "Ao concluir".
 
 ## Guardrails
 - Uma pergunta por vez, tom direto — a advogada nao tem tempo para formularios longos.
