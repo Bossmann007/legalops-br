@@ -18,6 +18,8 @@ from datetime import date
 from typing import TYPE_CHECKING
 from urllib import error, parse, request
 
+from legalops.pii_redactor import MissingSaltError, PIIRedactor
+
 if TYPE_CHECKING:
     from legalops.orchestrator import ProcessedIntimacao
 
@@ -50,14 +52,26 @@ class WhatsAppNotifier:
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
 
-    def send(self, message: str) -> dict[str, object]:
+    def send(self, message: str, allow_pii: bool = False) -> dict[str, object]:
         """POST /send {chatId, message}. Retorna response JSON.
 
         Raises:
-            WhatsAppNotifierError: bridge offline, HTTP != 2xx, ou JSON invalido.
+            WhatsAppNotifierError: PII detectada, bridge offline, HTTP != 2xx, ou JSON invalido.
         """
         if not message:
             raise ValueError("message vazia")
+        if not allow_pii:
+            try:
+                redacted = PIIRedactor().redact(message)
+            except MissingSaltError as e:
+                raise WhatsAppNotifierError(
+                    "LEGALOPS_PII_SALT ausente; defina o salt antes de enviar mensagens"
+                ) from e
+            if redacted.has_pii:
+                tipos = ", ".join(sorted({m.pii_type for m in redacted.matches}))
+                raise WhatsAppNotifierError(
+                    f"mensagem contém PII: {tipos}; redija antes ou passe allow_pii=True"
+                )
 
         url = f"{self.base_url}/send"
         payload = json.dumps(

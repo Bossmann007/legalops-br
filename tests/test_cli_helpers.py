@@ -308,11 +308,35 @@ class TestCmdNotify:
                 str(path),
                 "--hoje",
                 "2026-05-22",
+                "--approved",
             ]
         )
         out = json.loads(capsys.readouterr().out)
         assert rc == 2
         assert "chat_id" in out["error"]
+
+    def test_notify_requires_approval_before_send(
+        self,
+        tmp_path: Path,
+        capsys: pytest.CaptureFixture,
+    ) -> None:
+        path = self._write(tmp_path, self.URGENT_EMAIL)
+        rc = main(
+            [
+                "notify",
+                "-i",
+                str(path),
+                "--chat-id",
+                "5541999999999@s.whatsapp.net",
+                "--hoje",
+                "2026-05-22",
+            ]
+        )
+        out = json.loads(capsys.readouterr().out)
+        assert rc == 0
+        assert out["sent"] is False
+        assert out["reason"] == "requires_approval"
+        assert "PRAZOS URGENTES" in out["message"]
 
     def test_dry_run_with_chat_id(
         self,
@@ -353,6 +377,7 @@ class TestCmdNotify:
                 "email",
                 "--hoje",
                 "2026-05-22",
+                "--approved",
             ]
         )
         out = json.loads(capsys.readouterr().out)

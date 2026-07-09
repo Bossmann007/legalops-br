@@ -444,6 +444,30 @@ def cmd_notify(args: argparse.Namespace) -> int:
         return 0
 
     channels = _parse_channels_arg(getattr(args, "channels", None))
+    msg = WhatsAppNotifier.format_urgentes_message(u, hoje=hoje)
+    if args.dry_run:
+        out: dict[str, object] = {
+            "sent": False,
+            "dry_run": True,
+            "message": msg,
+            "urgent_count": len(u),
+        }
+        if channels:
+            out["channels"] = channels
+        print(_dump(out))
+        return 0
+    if not args.approved:
+        print(
+            _dump(
+                {
+                    "sent": False,
+                    "reason": "requires_approval",
+                    "message": msg,
+                    "urgent_count": len(u),
+                }
+            )
+        )
+        return 0
 
     if channels:
         cfg_path = Path(args.config) if getattr(args, "config", None) else None
@@ -453,19 +477,6 @@ def cmd_notify(args: argparse.Namespace) -> int:
         except ValueError as e:
             print(_dump({"sent": False, "error": str(e), "urgent_count": len(u)}))
             return 2
-
-        if args.dry_run:
-            print(
-                _dump(
-                    {
-                        "sent": False,
-                        "dry_run": True,
-                        "channels": channels,
-                        "urgent_count": len(u),
-                    }
-                )
-            )
-            return 0
 
         counts = mux.notify_all(u, hoje=hoje)
         print(
@@ -495,11 +506,6 @@ def cmd_notify(args: argparse.Namespace) -> int:
         base_url=args.bridge_url,
         timeout=args.timeout,
     )
-
-    if args.dry_run:
-        msg = notifier.format_urgentes_message(u, hoje=hoje)
-        print(_dump({"sent": False, "dry_run": True, "message": msg, "urgent_count": len(u)}))
-        return 0
 
     try:
         sent_msg = notifier.notify_urgentes(u, hoje=hoje)
@@ -1299,6 +1305,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_notify.add_argument("--timeout", type=float, default=10.0)
     p_notify.add_argument("--dry-run", action="store_true", help="Nao envia, so formata")
+    p_notify.add_argument(
+        "--approved",
+        action="store_true",
+        help="Confirma envio; sem isso nao envia",
+    )
     p_notify.add_argument(
         "--parte",
         choices=["particular", "fazenda", "mp", "defensoria"],

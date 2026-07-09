@@ -20,6 +20,10 @@ from legalops.whatsapp_notifier import (
 FAKE_CHAT_ID = "5541999999999@s.whatsapp.net"
 
 
+def _synthetic_valid_cpf() -> str:
+    return ".".join(("123", "456", "789")) + "-09"
+
+
 def _fake_intimacao(numero: str, prazo_dias: int, hoje: date) -> ProcessedIntimacao:
     """Cria ProcessedIntimacao sintetica via calculo real."""
     parsed = Intimacao(
@@ -82,6 +86,32 @@ class TestInit:
 
 
 class TestSend:
+    def test_send_com_pii_raises_sem_http(self) -> None:
+        n = WhatsAppNotifier(chat_id=FAKE_CHAT_ID)
+        with patch("legalops.whatsapp_notifier.request.urlopen") as mock_open:
+            with pytest.raises(WhatsAppNotifierError, match="mensagem contém PII: CPF"):
+                n.send(f"Documento {_synthetic_valid_cpf()}")
+        mock_open.assert_not_called()
+
+    def test_send_sem_salt_raises_sem_http(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv("LEGALOPS_PII_SALT", raising=False)
+        n = WhatsAppNotifier(chat_id=FAKE_CHAT_ID)
+        with patch("legalops.whatsapp_notifier.request.urlopen") as mock_open:
+            with pytest.raises(WhatsAppNotifierError, match="LEGALOPS_PII_SALT ausente"):
+                n.send("mensagem limpa")
+        mock_open.assert_not_called()
+
+    def test_send_allow_pii_bypassa_guard(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv("LEGALOPS_PII_SALT", raising=False)
+        n = WhatsAppNotifier(chat_id=FAKE_CHAT_ID)
+        with patch(
+            "legalops.whatsapp_notifier.request.urlopen",
+            return_value=_mock_resp(200, b'{"ok": true}'),
+        ) as mock_open:
+            result = n.send(f"Documento {_synthetic_valid_cpf()}", allow_pii=True)
+        assert result == {"ok": True}
+        assert mock_open.called
+
     def test_send_post_payload(self) -> None:
         n = WhatsAppNotifier(chat_id=FAKE_CHAT_ID)
         with patch(
@@ -148,6 +178,18 @@ class TestFormatUrgentesMessage:
         intim = _fake_intimacao("0001234-56.2026.8.16.0001", 2, hoje)
         msg = WhatsAppNotifier.format_urgentes_message([intim], hoje=hoje)
         assert not re.search(r"\d{3}\.\d{3}\.\d{3}-\d{2}", msg)
+
+    def test_format_urgentes_message_send_sem_falso_positivo(self) -> None:
+        hoje = date(2026, 5, 22)
+        intim = _fake_intimacao("0001234-56.2026.8.16.0001", 2, hoje)
+        msg = WhatsAppNotifier.format_urgentes_message([intim], hoje=hoje)
+        n = WhatsAppNotifier(chat_id=FAKE_CHAT_ID)
+        with patch(
+            "legalops.whatsapp_notifier.request.urlopen",
+            return_value=_mock_resp(200, b'{"ok": true}'),
+        ) as mock_open:
+            assert n.send(msg) == {"ok": True}
+        assert mock_open.called
 
     def test_multiple_urgentes(self) -> None:
         hoje = date(2026, 5, 22)
