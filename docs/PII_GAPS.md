@@ -9,7 +9,7 @@
 
 ### 1. Numero CNJ permanece em claro
 
-**Onde:** parser, audit log, mensagens WhatsApp.
+**Onde:** parser, audit log.
 
 **Justificativa:**
 - Numero CNJ (`NNNNNNN-DD.AAAA.J.TR.OOOO`) e **publico por lei** (Res. CNJ 65/2008). Aparece em diarios oficiais, sistemas judiciais publicos (PJe, Projudi, ConsultaProcessual).
@@ -17,8 +17,7 @@
 - Removendo CNJ, o sistema perde rastreabilidade — Tia May nao consegue agir sobre alerta sem numero do processo.
 
 **Mitigacao:**
-- CNJ no WhatsApp = OK porque Tia May ja conhece os casos do escritorio.
-- Egress por proxy (Galileu) tem padrao `Numero Processo CNJ` em `galileu.yml` com `enabled: true` — pode mascarar se cliente final exigir.
+- Egress: ver `SECURITY.md`, seção "Egress / vazamento de PII — postura em camadas".
 - Audit `resource` field usa `process:NNNNNNN-...` — facilita query/correlacao sem expor PII.
 
 ### 2. Audit log permite metadata com email/OAB/telefone
@@ -79,7 +78,6 @@
 | Fix | Versao alvo | Esforco | Impacto |
 |-----|-------------|---------|---------|
 | G1 (CPF/CNPJ sem mascara + digito verif) | v0.2 | medio | alto |
-| Validar `base_url` whatsapp_notifier (http/https) | v0.2 | baixo | medio |
 | audit oab_sigilo + email/OAB/phone (opcional) | v0.3 | medio | medio |
 | Nomes proprios PT-BR (NER) | v0.4 | alto | alto |
 | Endereco completo (NER) | v0.4 | alto | medio |

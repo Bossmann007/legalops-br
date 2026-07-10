@@ -9,8 +9,6 @@
 | Python | 3.11+ | Runtime |
 | uv | 0.5+ | Build/deps |
 | systemd | qualquer | Timer/service (Linux) |
-| WhatsApp bridge.js | qualquer | Notificacoes (porta 3000) |
-| GalileuCLI | 1.0+ | Proxy MITM opcional (porta 9000) |
 
 ## Deploy local (dev/pilot)
 
@@ -47,11 +45,6 @@ tribunal = "TJPR"
 
 [audit]
 db = "~/.local/share/legalops/audit.db"
-
-[whatsapp]
-chat_id = "5541999999999@s.whatsapp.net"
-bridge_url = "http://localhost:3000"
-timeout = 10.0
 ```
 
 Override via flag CLI: `legalops pipeline --parte fazenda` ignora `defaults.parte`.
@@ -65,46 +58,7 @@ echo "..." | legalops pipeline --audit-db audit.db
 # 2. Batch directory
 legalops batch --dir ./inbox --audit-db audit.db
 
-# 3. Notify urgentes via WhatsApp
-legalops notify --input email.txt --chat-id "$WA_CHAT_ID" --audit-db audit.db
-
-# 4. Notify multi-channel (v1.3)
-legalops notify -i email.txt --channels whatsapp,email,slack \
-  --min-prazo-days 3 --quiet-start 22:00 --quiet-end 06:00
 ```
-
-## Multi-channel notifications (v1.3)
-
-Tres canais suportados, configurados via `~/.config/legalops/config.toml`:
-
-```toml
-[email]
-smtp_host = "smtp.gmail.com"
-smtp_port = 587
-username = "ops@firma.com"
-password = "app-password"      # use Gmail App Password, nao senha real
-from_addr = "ops@firma.com"
-to_addr = "advogado@firma.com"
-use_tls = true
-
-[slack]
-webhook_url = "https://hooks.slack.com/services/T/B/X"
-channel = "#prazos"            # opcional
-
-[notification]
-channels = ["whatsapp", "email", "slack"]
-min_prazo_days = 3             # so notifica prazos <= N dias uteis
-quiet_start = "22:00"          # silencia janela (24h ok via meia-noite)
-quiet_end = "06:00"
-```
-
-Gmail: gere App Password em https://myaccount.google.com/apppasswords.
-Slack: crie incoming webhook em https://api.slack.com/messaging/webhooks.
-
-LGPD: mensagens em todos os canais contem apenas `numero_processo` + `dies_ad_quem` +
-`prazo_efetivo_dias`. Sem nomes, CPFs, conteudo de ato.
-
-Falha de um canal nao quebra outros — multiplex loga e segue.
 
 ## Monitoramento
 
@@ -130,8 +84,6 @@ cat metrics/metrics_$(date +%Y%m%d).json | jq .recall_by_type
 - [ ] `uv run python scripts/validate_pipeline.py` → 8/8 OK
 - [ ] `uv run python scripts/benchmark_pipeline.py` → ms/doc baseline
 - [ ] Audit chain verifica: `legalops audit verify --db audit.db`
-- [ ] Galileu doctor OK: `~/Projects/galileu-cli/galileu doctor`
-- [ ] Bridge.js WhatsApp responde: `curl -X POST localhost:3000/send -d '{"chatId":"...","message":"test"}'`
 
 ## Incidentes
 
@@ -161,8 +113,7 @@ cat metrics/metrics_$(date +%Y%m%d).json | jq .recall_by_type
 - Toda redacao usa SHA-256 salted (NAO reversivel)
 - Audit log rejeita PII em metadata via regex pre-insert
 - Nenhuma chamada externa a LLM sem aprovacao Tia May (copy-paste manual)
-- Galileu proxy (opcional) adiciona camada network defense-in-depth
-- Bridge WhatsApp formata mensagens sem PII (apenas CNJ + dies ad quem)
+- Egress segue [SECURITY.md](SECURITY.md), seção "Egress / vazamento de PII — postura em camadas"
 
 ## Contatos
 
@@ -170,4 +121,3 @@ cat metrics/metrics_$(date +%Y%m%d).json | jq .recall_by_type
 |-------|-------------|-------|
 | Bug parser/CPC | Enzo | GitHub Issues `Bossmann007/legalops-br` |
 | LGPD review | Tia May | Email |
-| Infra (bridge/Galileu) | Enzo | Local |

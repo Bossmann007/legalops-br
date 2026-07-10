@@ -3,8 +3,8 @@
 Extensoes brasileiras sobre o **Claude for Legal** (Anthropic, Apache 2.0).
 
 Sistema de processamento de intimacoes TJPR com gates LGPD: redacao PII →
-parse → calculo CPC determinstico → audit chain SHA-256 → notificacao
-WhatsApp. Local-first, **nenhuma chamada automatica a LLM externa**.
+parse → calculo CPC determinstico → audit chain SHA-256.
+Local-first, **nenhuma chamada automatica a LLM externa**.
 
 ---
 
@@ -22,12 +22,11 @@ WhatsApp. Local-first, **nenhuma chamada automatica a LLM externa**.
 - 6 tribunais: TJPR · TJSP · TJSC · TJRJ · TJDFT · TJMG (regex tribunal-specific)
 - M365 ingest real (OAuth client_credentials + Graph API, stdlib only)
 - Observability: structured logs + Prometheus metrics + `health`/`metrics` CLI
-- Multi-channel notify: WhatsApp + SMTP + Slack (threshold + quiet hours)
 - **Contract AI**: clausulas abusivas (CDC Art. 51), financiamento, NDA, renewal watcher
 - **M&A + Due Diligence**: societario, DD checklist BR, data room, disclosure, red flags
 - **Docs estruturados**: extractor/templates procuracao + contrato honorarios + approval gate
 - **LGPD assistant**: DSAR (Art. 18/19), PIA/RIPD (Art. 38), DPA, playbook ANPD, vendor AI review
-- CLI: `redact`, `parse`, `pipeline`, `batch`, `notify`, `contract`, `dsar`, `health`, `metrics`, `audit`
+- CLI: `redact`, `parse`, `pipeline`, `batch`, `contract`, `dsar`, `health`, `metrics`, `audit`
 - Benchmark: 12.9k docs/sec full pipeline (corpus 500)
 
 > **Versionamento:** SemVer do repo (`1.5.0`) ≠ fases do roadmap de produto (v1.1→v1.4).
@@ -56,7 +55,6 @@ WhatsApp. Local-first, **nenhuma chamada automatica a LLM externa**.
 | `lgpd_specifics` | Constantes LGPD — `BaseLegal`, `TipoDado`, `DIREITOS_TITULAR`, `validar_operacao` |
 | `bacen_cvm_feeds` | Parser RSS BACEN/CVM (stdlib xml.etree, XXE-safe) |
 | `practice_profile` | Profile estruturado escritorio (sem PII, placeholders apenas) |
-| `whatsapp_notifier` | Cliente HTTP stdlib pra bridge.js :3000, filtra alerta URGENTE |
 | `doc_extractor` | Extrai campos de procuracao + contrato honorarios (fase v1.1) |
 | `doc_templates` | Render procuracao + contrato honorarios; placeholders `[A PREENCHER]` (v1.1) |
 | `approval_gate` | Gate write/rollback sobre AuditLog — sem escrita sem aprovacao (v1.1) |
@@ -72,7 +70,7 @@ WhatsApp. Local-first, **nenhuma chamada automatica a LLM externa**.
 | `dpa_templates` | Render DPA + 8 clausulas obrigatorias (objeto/seguranca/incidente/auditoria) (v1.4) |
 | `anpd_playbook` | Incidente de seguranca: severidade + prazo comunicacao ANPD em dias uteis (Art. 48) (v1.4) |
 | `vendor_ai_review` | Checklist 10 itens LGPD pra fornecedor de IA (Art. 33/39/7/16/46/20/37/48/41) (v1.4) |
-| `cli` | argparse — `redact`, `parse`, `pipeline`, `batch`, `notify`, `contract`, `dsar`, `health`, `metrics`, `audit` |
+| `cli` | argparse — `redact`, `parse`, `pipeline`, `batch`, `contract`, `dsar`, `health`, `metrics`, `audit` |
 
 ---
 
@@ -81,7 +79,6 @@ WhatsApp. Local-first, **nenhuma chamada automatica a LLM externa**.
 - Python 3.11+
 - uv (gestor)
 - pytest + ruff + mypy strict
-- GalileuCLI (Go, https://github.com/eubrunocase/GalileuCLI) — proxy MITM defesa em profundidade
 
 ---
 
@@ -114,11 +111,9 @@ export LEGALOPS_PII_SALT="$(openssl rand -hex 24)"   # guarde em secret manager
 | Env var | Default | Quando usar |
 |---------|---------|-------------|
 | `LEGALOPS_AUDIT_HMAC_KEY` | unset → SHA-256 puro | Audit log com tamper-evidence (HMAC-SHA256). Sem chave, detecta corrupção acidental mas não rewrite deliberado da tabela. |
-| `LEGALOPS_SMTP_PASSWORD` | TOML `[email].password` | Mantém a senha SMTP fora do disco. Tem precedência sobre o TOML. Recomendado em produção. |
 
 ```bash
 export LEGALOPS_AUDIT_HMAC_KEY="$(openssl rand -hex 32)"
-export LEGALOPS_SMTP_PASSWORD="$(pass show legalops/smtp)"
 ```
 
 ### Gerar corpus sintetico (necessario para tests/test_egress.py)
@@ -144,11 +139,6 @@ legalops pipeline --input email.txt --audit-db audit.db --hoje 2026-05-23
 # Batch — processa diretorio de .eml
 legalops batch --dir ~/inbox-tjpr/ --audit-db ~/audit.db --hoje 2026-05-23
 
-# Notify — pipeline + envia urgentes via WhatsApp bridge
-legalops notify --input email.txt \
-  --chat-id "5541999999999@s.whatsapp.net" \
-  --dry-run
-
 # Audit
 legalops audit verify --db audit.db
 legalops audit list --db audit.db
@@ -162,32 +152,14 @@ legalops audit list --db audit.db
 Outlook .eml → eml_reader → pii_redactor → tjpr_parser → cpc_prazos
                                                               ↓
                                                        oab_sigilo (audit chain)
-                                                              ↓
-                                                  whatsapp_notifier → bridge :3000
 ```
 
 Defesa em profundidade:
 
 1. **Aplicacional** — `pii_redactor` bloqueia PII bruto
-2. **Network** — `GalileuCLI` proxy MITM intercepta egress
-3. **Audit** — `oab_sigilo` SHA-256 chain rejeita PII em metadata
-4. **Humano** — Tia May aprova item-a-item antes do envio WhatsApp
-
----
-
-## Galileu proxy (opcional, defesa em profundidade)
-
-```bash
-cd proxy/galileu
-/home/bossmann/Projects/galileu-cli/galileu --dry-run
-
-# Instalar CA cert (Arch Linux)
-sudo cp galileu-ca.pem /etc/ca-certificates/trust-source/anchors/galileu.crt
-sudo trust extract-compat
-
-# Configurar Claude Code / Cursor
-HTTPS_PROXY=http://localhost:9000 claude
-```
+2. **Audit** — `oab_sigilo` SHA-256 chain rejeita PII em metadata
+3. **Egress** — ver [SECURITY.md](SECURITY.md), seção "Egress / vazamento de PII — postura em camadas"
+4. **Humano** — revisão manual antes de uso externo
 
 ---
 

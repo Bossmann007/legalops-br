@@ -35,7 +35,7 @@ def test_first_append_uses_zero_prev_hash(log: AuditLog) -> None:
 
 def test_second_append_chains_to_first(log: AuditLog) -> None:
     first = log.append("agent:a", "calc_prazo", "process:PH-1", {"step": 1})
-    second = log.append("agent:b", "send_whatsapp", "msg:PH-2", {"step": 2})
+    second = log.append("agent:b", "send_message", "msg:PH-2", {"step": 2})
     assert second.seq == 2
     assert second.prev_hash == first.entry_hash
     assert second.entry_hash != first.entry_hash

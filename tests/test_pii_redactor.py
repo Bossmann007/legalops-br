@@ -117,7 +117,7 @@ class TestPhoneBR:
         assert any(m.pii_type == "PHONE_BR" for m in result.matches)
 
     def test_phone_with_country_code_redacted(self, redactor: PIIRedactor) -> None:
-        text = "WhatsApp +55 41 99999-9999"
+        text = "Contato +55 41 99999-9999"
         result = redactor.redact(text)
         assert "99999-9999" not in result.redacted_text
         assert any(m.pii_type == "PHONE_BR" for m in result.matches)
@@ -177,6 +177,45 @@ class TestCNPJNumeric:
         text = "Codigo 11222333000180 dv errado"
         result = redactor.redact(text)
         assert "11222333000180" in result.redacted_text
+
+
+class TestNomeJuridico:
+    def test_redacts_nome_apos_rotulo_preservando_rotulo(self, redactor: PIIRedactor) -> None:
+        text = "AUTOR: Maria Fernanda de Souza ajuizou acao"
+        result = redactor.redact(text)
+        assert "AUTOR:" in result.redacted_text
+        assert "Maria Fernanda de Souza" not in result.redacted_text
+        assert "[NOME_" in result.redacted_text
+        assert any(m.pii_type == "NOME" for m in result.matches)
+
+    def test_redacts_nome_apos_titulo_dr(self, redactor: PIIRedactor) -> None:
+        text = "Dr. Joao Silva requereu vista"
+        result = redactor.redact(text)
+        assert "Dr. " in result.redacted_text
+        assert "Joao Silva" not in result.redacted_text
+        assert "[NOME_" in result.redacted_text
+
+    def test_texto_sem_rotulo_nao_redige_nome_solto(self, redactor: PIIRedactor) -> None:
+        text = "Maria Fernanda revisou minuta sem rotulo juridico."
+        result = redactor.redact(text)
+        assert result.redacted_text == text
+
+    def test_nome_seguido_de_pii_estruturada_nao_vaza(self, redactor: PIIRedactor) -> None:
+        # Regressao: o span do nome nao pode invadir o OAB/CPF adjacente e ser
+        # descartado no overlap-dedup (vazando o nome). Ambos devem ser redigidos.
+        text = "Dr. Joao Silva OAB/PR 12345 intimou AUTOR: MARIA SOUZA CPF 111.444.777-35"
+        result = redactor.redact(text)
+        assert "Joao Silva" not in result.redacted_text
+        assert "MARIA SOUZA" not in result.redacted_text
+        assert result.redacted_text.count("[NOME_") == 2
+        assert "[OAB_" in result.redacted_text
+        assert "[CPF_" in result.redacted_text
+
+    def test_alias_cli_nao_e_tocado_como_nome(self, redactor: PIIRedactor) -> None:
+        text = "AUTOR: CLI-1 ajuizou acao"
+        result = redactor.redact(text)
+        assert result.redacted_text == text
+        assert not any(m.pii_type == "NOME" for m in result.matches)
 
 
 class TestStructure:

@@ -470,6 +470,27 @@ class TestCmdRedact:
         assert "matches" in data
         assert data["matches"] >= 2
 
+    def test_redact_strict_limpo_exit_0(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        f = tmp_path / "pii.txt"
+        f.write_text("CPF 123.456.789-00", encoding="utf-8")
+        code = main(["redact", "--input", str(f), "--strict"])
+        out = capsys.readouterr().out
+        assert code == 0
+        assert "123.456.789-00" not in out
+
+    def test_redact_strict_residual_exit_3_sem_valor_cru(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        f = tmp_path / "residual.txt"
+        f.write_text("ID interno 12345678900 referencia X", encoding="utf-8")
+        code = main(["redact", "--input", str(f), "--strict"])
+        out = json.loads(capsys.readouterr().out)
+        assert code == 3
+        assert out["residual_pii"] == [{"tipo": "CPF_NUMERIC", "span": [11, 22]}]
+        assert "12345678900" not in json.dumps(out)
+
 
 class TestCmdParse:
     def test_parse_finds_processo(

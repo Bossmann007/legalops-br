@@ -46,8 +46,7 @@ uv run python scripts/measure_redactor.py
 
 1. **NUNCA** commite dados reais (CPF, CNPJ, RG, OAB, nomes de clientes,
    numeros de processo reais que possam identificar pessoa).
-2. **SEMPRE** use placeholders sinteticos: `123.456.789-00`, `[OAB_REDACTED]`,
-   `5541999999999@s.whatsapp.net`, etc.
+2. **SEMPRE** use placeholders sinteticos: `123.456.789-00`, `[OAB_REDACTED]`, etc.
 3. **Audit log (`oab_sigilo`)** rejeita PII bruto em metadata — testes devem
    exercitar esse comportamento se mexerem no audit.
 4. **Egress tests** (`tests/test_egress.py`) precisam passar com 0 leaks.
@@ -61,11 +60,9 @@ uv run python scripts/measure_redactor.py
 1. Adicionar regex em `src/legalops/pii_redactor.py` (`PATTERNS` dict)
    ordenado por especificidade (longer/more-specific first).
 2. Atualizar `tests/test_pii_redactor.py` com caso positivo + negativo.
-3. Atualizar `proxy/galileu/galileu.yml` com padrao equivalente (defesa
-   em profundidade).
-4. Atualizar `corpus/synthetic/generate.py` se for util pra metricas.
-5. Atualizar `docs/PII_GAPS.md` documentando decisao.
-6. Rodar `uv run python scripts/measure_redactor.py` — recall deve subir
+3. Atualizar `corpus/synthetic/generate.py` se for util pra metricas.
+4. Atualizar `docs/PII_GAPS.md` documentando decisao.
+5. Rodar `uv run python scripts/measure_redactor.py` — recall deve subir
    ou manter, leak rate manter 0%.
 
 ---
@@ -94,8 +91,6 @@ test: orchestrator cobre fazenda via DJE
 
 NAO commitar:
 - `audit.db` / `audit_*.db`
-- `proxy/galileu/galileu-ca-key.pem` (private key)
-- `proxy/galileu/galileu_audit.log`
 - `corpus/synthetic/docs/` (regeneravel)
 - Qualquer `.eml` com dados reais
 

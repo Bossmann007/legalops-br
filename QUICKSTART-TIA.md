@@ -12,6 +12,8 @@ Você conversa em português normal. Para tarefas comuns, digite o comando com `
 | `/onboarding` | Configura o escritório (faça isto primeiro) |
 | `/painel` | Visão geral da semana: prazos, contratos vencendo, pendências |
 | `/briefing` | Prazos urgentes + agenda do dia |
+| `/varrer` | Checa sua caixa de email por intimações novas (se o Outlook estiver conectado) |
+| `/intimacao` | Cola uma intimação e ele calcula o prazo (com dupla checagem antes de confiar) |
 | `/prazo` | Calcula prazo processual com feriados |
 | `/processo` | Consulta andamento de um processo no TJ |
 | `/bancario-contrato` | Triagem de contrato bancário / caso de fraude / investimento |

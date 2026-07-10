@@ -12,13 +12,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from dataclasses import asdict, is_dataclass
-from datetime import date, datetime, time
+from datetime import date, datetime
 from pathlib import Path
 
 from legalops.anpd_playbook import Incidente, gerar_plano
-from legalops.config import LegalOpsConfig, load_config
+from legalops.config import load_config
 from legalops.contract_analyzer import analisar_contrato
 from legalops.cpc_prazos import (
     RECESSO_POR_TRIBUNAL,
@@ -44,7 +45,6 @@ from legalops.doc_templates import render_contrato_honorarios, render_procuracao
 from legalops.dpa_templates import DPAParams, render_dpa
 from legalops.dsar import DSARError, DSARRequest, classify_request, processar_dsar
 from legalops.due_diligence import checklist_padrao
-from legalops.email_notifier import EmailNotifier
 from legalops.eml_reader import read_eml_dir
 from legalops.lgpd_specifics import (
     DIREITOS_TITULAR,
@@ -53,14 +53,12 @@ from legalops.lgpd_specifics import (
     TipoDado,
 )
 from legalops.metrics import MetricsRegistry
-from legalops.notification_multiplex import NotificationMultiplex
 from legalops.oab_sigilo import AuditLog
-from legalops.orchestrator import ProcessedIntimacao, process_email, urgentes
+from legalops.orchestrator import process_email
 from legalops.pia import avaliar_ripd
 from legalops.pii_redactor import MissingSaltError, PIIRedactor
 from legalops.red_flags import scan_acquisition_contract
 from legalops.renewal_watcher import Contrato, RenewalWatcher
-from legalops.slack_notifier import SlackNotifier
 from legalops.societario import (
     EstruturaSocietaria,
     Socio,
@@ -69,7 +67,6 @@ from legalops.societario import (
 from legalops.tjpr_parser import parse_email
 from legalops.tribunal_detector import detect_tribunal
 from legalops.vendor_ai_review import checklist_vendor_padrao
-from legalops.whatsapp_notifier import WhatsAppNotifier, WhatsAppNotifierError
 
 
 def _read_input(arg_input: str | None) -> str:
@@ -94,7 +91,36 @@ def _dump(obj: object) -> str:
     return json.dumps(obj, default=_json_default, ensure_ascii=False, indent=2)
 
 
+_STRICT_RESIDUAL_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("CNPJ", re.compile(r"\b\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}\b")),
+    ("CPF", re.compile(r"\b\d{3}\.\d{3}\.\d{3}-\d{2}\b")),
+    ("OAB", re.compile(r"\bOAB[/-]?[A-Z]{2}\s?\d{1,6}\b")),
+    ("EMAIL", re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")),
+    ("PHONE_BR", re.compile(r"(?:\+?55\s?)?\(?\d{2}\)?\s?9?\d{4}-\d{4}\b")),
+    ("CNPJ_NUMERIC", re.compile(r"\b\d{14}\b")),
+    ("CPF_NUMERIC", re.compile(r"\b\d{11}\b")),
+)
+
+
+def _scan_residual_pii(text: str) -> list[dict[str, object]]:
+    residual: list[dict[str, object]] = []
+    hits: list[tuple[int, int, str]] = []
+    seen_spans: set[tuple[int, int]] = set()
+    for pii_type, pattern in _STRICT_RESIDUAL_PATTERNS:
+        for match in pattern.finditer(text):
+            start, end = match.span()
+            if any(start < e and s < end for s, e in seen_spans):
+                continue
+            seen_spans.add((start, end))
+            hits.append((start, end, pii_type))
+    for start, end, pii_type in sorted(hits):
+        residual.append({"tipo": pii_type, "span": (start, end)})
+    return residual
+
+
 PRAZOS_LEDGER_PATH = Path("data/prazos.json")
+HONORARIOS_LEDGER_PATH = Path("data/honorarios.json")
+CLIENTES_LEDGER_PATH = Path("data/clientes.json")
 
 
 def _prazo_to_json(
@@ -152,6 +178,56 @@ def _append_prazo_ledger(path: Path, item: dict[str, object]) -> None:
     _save_prazos_ledger(path, items)
 
 
+def _load_honorarios_ledger(path: Path) -> list[dict[str, object]]:
+    if not path.exists():
+        return []
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(raw, list):
+        raise ValueError("honorarios.json deve conter uma lista")
+    items: list[dict[str, object]] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            raise ValueError("cada honorario deve ser um objeto JSON")
+        items.append(item)
+    return items
+
+
+def _save_honorarios_ledger(path: Path, items: list[dict[str, object]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(_dump(items) + "\n", encoding="utf-8")
+
+
+def _append_honorarios_ledger(path: Path, item: dict[str, object]) -> None:
+    items = _load_honorarios_ledger(path)
+    items.append(item)
+    _save_honorarios_ledger(path, items)
+
+
+def _load_clientes_ledger(path: Path) -> list[dict[str, object]]:
+    if not path.exists():
+        return []
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(raw, list):
+        raise ValueError("clientes.json deve conter uma lista")
+    items: list[dict[str, object]] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            raise ValueError("cada cliente deve ser um objeto JSON")
+        items.append(item)
+    return items
+
+
+def _save_clientes_ledger(path: Path, items: list[dict[str, object]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(_dump(items) + "\n", encoding="utf-8")
+
+
+def _append_clientes_ledger(path: Path, item: dict[str, object]) -> None:
+    items = _load_clientes_ledger(path)
+    items.append(item)
+    _save_clientes_ledger(path, items)
+
+
 def _contrato_from_json(raw: object) -> Contrato:
     if not isinstance(raw, dict):
         raise ValueError("cada contrato deve ser um objeto JSON")
@@ -207,6 +283,11 @@ def _make_redactor() -> PIIRedactor:
 def cmd_redact(args: argparse.Namespace) -> int:
     text = _read_input(args.input)
     result = _make_redactor().redact(text)
+    if args.strict:
+        residual = _scan_residual_pii(result.redacted_text)
+        if residual:
+            print(_dump({"ok": False, "residual_pii": residual}))
+            return 3
     if args.json:
         print(
             _dump(
@@ -352,212 +433,6 @@ def cmd_batch(args: argparse.Namespace) -> int:
         )
     )
     return 0 if emails else 1
-
-
-def _parse_channels_arg(raw: str | None) -> list[str]:
-    if not raw:
-        return []
-    out: list[str] = []
-    for part in raw.split(","):
-        p = part.strip().lower()
-        if not p:
-            continue
-        if p not in ("whatsapp", "email", "slack"):
-            raise ValueError(f"canal invalido: {p!r} (use whatsapp|email|slack)")
-        out.append(p)
-    return out
-
-
-def _parse_hhmm_arg(raw: str | None) -> time | None:
-    if not raw:
-        return None
-    try:
-        hh, mm = raw.split(":")
-        return time(int(hh), int(mm))
-    except (ValueError, IndexError) as e:
-        raise ValueError(f"formato HH:MM invalido: {raw!r}") from e
-
-
-def _build_multiplex_from_args(
-    args: argparse.Namespace,
-    cfg: LegalOpsConfig,
-    channels: list[str],
-) -> NotificationMultiplex:
-    quiet_start: time | None = (
-        _parse_hhmm_arg(getattr(args, "quiet_start", None)) or cfg.notification_quiet_start
-    )
-    quiet_end: time | None = (
-        _parse_hhmm_arg(getattr(args, "quiet_end", None)) or cfg.notification_quiet_end
-    )
-    min_prazo = getattr(args, "min_prazo_days", None)
-    if min_prazo is None:
-        min_prazo = cfg.notification_min_prazo_days
-
-    mux = NotificationMultiplex(
-        min_prazo_dias=int(min_prazo),
-        quiet_hours_start=quiet_start,
-        quiet_hours_end=quiet_end,
-    )
-
-    for ch in channels:
-        if ch == "whatsapp":
-            chat_id = getattr(args, "chat_id", None) or cfg.whatsapp_chat_id
-            if not chat_id:
-                raise ValueError("whatsapp: chat_id ausente (CLI/config)")
-            wa = WhatsAppNotifier(
-                chat_id=chat_id,
-                base_url=getattr(args, "bridge_url", None) or cfg.whatsapp_bridge_url,
-                timeout=float(getattr(args, "timeout", None) or cfg.whatsapp_timeout),
-            )
-
-            def _wa_call(
-                u: list[ProcessedIntimacao],
-                h: date | None,
-                _n: WhatsAppNotifier = wa,
-            ) -> int:
-                if not u:
-                    return 0
-                _n.notify_urgentes(u, hoje=h)
-                return len(u)
-
-            mux.add_channel("whatsapp", _wa_call)
-
-        elif ch == "email":
-            if not (cfg.email_smtp_host and cfg.email_from_addr and cfg.email_to_addr):
-                raise ValueError("email: smtp_host/from_addr/to_addr ausentes no config")
-            em = EmailNotifier(
-                smtp_host=cfg.email_smtp_host,
-                smtp_port=cfg.email_smtp_port,
-                username=cfg.email_username or "",
-                password=cfg.email_password or "",
-                from_addr=cfg.email_from_addr,
-                use_tls=cfg.email_use_tls,
-            )
-            to_addr = cfg.email_to_addr
-
-            def _em_call(
-                u: list[ProcessedIntimacao],
-                h: date | None,
-                _n: EmailNotifier = em,
-                _to: str = to_addr,
-            ) -> int:
-                return _n.notify_urgentes(u, to=_to, hoje=h)
-
-            mux.add_channel("email", _em_call)
-
-        elif ch == "slack":
-            if not cfg.slack_webhook_url:
-                raise ValueError("slack: webhook_url ausente no config")
-            sl = SlackNotifier(
-                webhook_url=cfg.slack_webhook_url,
-                channel=cfg.slack_channel,
-            )
-
-            def _sl_call(
-                u: list[ProcessedIntimacao],
-                h: date | None,
-                _n: SlackNotifier = sl,
-            ) -> int:
-                return _n.notify_urgentes(u, hoje=h)
-
-            mux.add_channel("slack", _sl_call)
-
-    return mux
-
-
-def cmd_notify(args: argparse.Namespace) -> int:
-    """Pipeline + envia urgentes (multi-channel se --channels passado)."""
-    text = _read_input(args.input)
-    hoje = date.fromisoformat(args.hoje) if args.hoje else None
-    audit_log = AuditLog(Path(args.audit_db)) if args.audit_db else None
-
-    results = process_email(
-        text,
-        parte=args.parte,
-        via_dje=args.via_dje,
-        hoje=hoje,
-        audit_log=audit_log,
-        sender=getattr(args, "sender", "") or "",
-    )
-
-    u = urgentes(results)
-    if not u:
-        print(_dump({"sent": False, "reason": "no_urgentes", "checked": len(results)}))
-        return 0
-
-    channels = _parse_channels_arg(getattr(args, "channels", None))
-    msg = WhatsAppNotifier.format_urgentes_message(u, hoje=hoje)
-    if args.dry_run:
-        out: dict[str, object] = {
-            "sent": False,
-            "dry_run": True,
-            "message": msg,
-            "urgent_count": len(u),
-        }
-        if channels:
-            out["channels"] = channels
-        print(_dump(out))
-        return 0
-    if not args.approved:
-        print(
-            _dump(
-                {
-                    "sent": False,
-                    "reason": "requires_approval",
-                    "message": msg,
-                    "urgent_count": len(u),
-                }
-            )
-        )
-        return 0
-
-    if channels:
-        cfg_path = Path(args.config) if getattr(args, "config", None) else None
-        cfg = load_config(cfg_path)
-        try:
-            mux = _build_multiplex_from_args(args, cfg, channels)
-        except ValueError as e:
-            print(_dump({"sent": False, "error": str(e), "urgent_count": len(u)}))
-            return 2
-
-        counts = mux.notify_all(u, hoje=hoje)
-        print(
-            _dump(
-                {
-                    "sent": True,
-                    "urgent_count": len(u),
-                    "channels": counts,
-                }
-            )
-        )
-        return 0
-
-    # Backwards-compat: single WhatsApp channel.
-    if not args.chat_id:
-        print(
-            _dump(
-                {
-                    "sent": False,
-                    "error": "chat_id ausente (passe --chat-id ou configure [whatsapp])",
-                }
-            )
-        )
-        return 2
-    notifier = WhatsAppNotifier(
-        chat_id=args.chat_id,
-        base_url=args.bridge_url,
-        timeout=args.timeout,
-    )
-
-    try:
-        sent_msg = notifier.notify_urgentes(u, hoje=hoje)
-    except WhatsAppNotifierError as e:
-        print(_dump({"sent": False, "error": str(e), "urgent_count": len(u)}))
-        return 2
-
-    assert sent_msg is not None
-    print(_dump({"sent": True, "urgent_count": len(u), "message": sent_msg}))
-    return 0
 
 
 def cmd_audit_verify(args: argparse.Namespace) -> int:
@@ -976,6 +851,61 @@ def cmd_prazos(args: argparse.Namespace) -> int:
 
     prazos.sort(key=lambda p: (str(p.get("data_final", "")), str(p.get("ref", ""))))
     print(_dump({"avisos": avisos, "prazos": prazos}))
+    return 0
+
+
+def cmd_honorarios(args: argparse.Namespace) -> int:
+    """Append/list do ledger local de honorarios em data/honorarios.json."""
+    try:
+        if args.add:
+            item: dict[str, object] = {
+                "ref": args.ref,
+                "descricao": args.descricao,
+                "valor": float(args.valor),
+                "data": date.fromisoformat(args.data).isoformat(),
+                "status": args.status,
+            }
+            _append_honorarios_ledger(HONORARIOS_LEDGER_PATH, item)
+            print(_dump(item))
+            return 0
+
+        items = _load_honorarios_ledger(HONORARIOS_LEDGER_PATH)
+    except (OSError, ValueError, json.JSONDecodeError) as e:
+        print(_dump({"error": str(e), "path": str(HONORARIOS_LEDGER_PATH)}))
+        return 2
+
+    if args.status:
+        items = [item for item in items if item.get("status") == args.status]
+    total = 0.0
+    for item in items:
+        valor = item.get("valor", 0.0)
+        if isinstance(valor, (int, float, str)):
+            total += float(valor)
+    print(_dump({"honorarios": items, "total": total}))
+    return 0
+
+
+def cmd_clientes(args: argparse.Namespace) -> int:
+    """Append/list do registro alias-only em data/clientes.json."""
+    try:
+        if args.add:
+            item: dict[str, object] = {
+                "alias": args.alias,
+                "area": args.area,
+                "tribunal": args.tribunal,
+                "obs": args.obs or "",
+                "criado_em": date.today().isoformat(),
+            }
+            _append_clientes_ledger(CLIENTES_LEDGER_PATH, item)
+            print(_dump(item))
+            return 0
+
+        items = _load_clientes_ledger(CLIENTES_LEDGER_PATH)
+    except (OSError, ValueError, json.JSONDecodeError) as e:
+        print(_dump({"error": str(e), "path": str(CLIENTES_LEDGER_PATH)}))
+        return 2
+
+    print(_dump({"clientes": items}))
     return 0
 
 
@@ -1438,6 +1368,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_redact = sub.add_parser("redact", help="Redact PII de um texto")
     p_redact.add_argument("--input", "-i", help="Arquivo (default: stdin)")
     p_redact.add_argument("--json", action="store_true", help="Output JSON com stats")
+    p_redact.add_argument(
+        "--strict",
+        action="store_true",
+        help="Falha com exit 3 se sobrar PII estruturada apos redacao",
+    )
     p_redact.set_defaults(func=cmd_redact)
 
     p_parse = sub.add_parser("parse", help="Parse intimacoes TJPR de um email")
@@ -1472,61 +1407,6 @@ def build_parser() -> argparse.ArgumentParser:
     p_batch.add_argument("--hoje", help="Data atual ISO")
     p_batch.add_argument("--audit-db", help="Caminho SQLite audit log")
     p_batch.set_defaults(func=cmd_batch)
-
-    p_notify = sub.add_parser("notify", help="Pipeline + envia urgentes via WhatsApp bridge :3000")
-    p_notify.add_argument("--input", "-i", help="Email file (default stdin)")
-    p_notify.add_argument(
-        "--chat-id",
-        default=None,
-        help="WhatsApp chatId (obrigatorio se canal whatsapp e sem config)",
-    )
-    p_notify.add_argument(
-        "--channels",
-        default=None,
-        help="Lista canais separados por virgula: whatsapp,email,slack",
-    )
-    p_notify.add_argument(
-        "--min-prazo-days",
-        type=int,
-        default=None,
-        help="Threshold: so notifica prazos <= N dias uteis (default 3)",
-    )
-    p_notify.add_argument(
-        "--quiet-start",
-        default=None,
-        help="Inicio quiet hours HH:MM (sem notificacoes na janela)",
-    )
-    p_notify.add_argument(
-        "--quiet-end",
-        default=None,
-        help="Fim quiet hours HH:MM",
-    )
-    p_notify.add_argument(
-        "--bridge-url",
-        default="http://localhost:3000",
-        help="URL bridge.js (default: http://localhost:3000)",
-    )
-    p_notify.add_argument("--timeout", type=float, default=10.0)
-    p_notify.add_argument("--dry-run", action="store_true", help="Nao envia, so formata")
-    p_notify.add_argument(
-        "--approved",
-        action="store_true",
-        help="Confirma envio; sem isso nao envia",
-    )
-    p_notify.add_argument(
-        "--parte",
-        choices=["particular", "fazenda", "mp", "defensoria"],
-        default="particular",
-    )
-    p_notify.add_argument("--via-dje", action="store_true")
-    p_notify.add_argument("--hoje", help="Data atual ISO")
-    p_notify.add_argument("--audit-db", help="SQLite audit log")
-    p_notify.add_argument(
-        "--sender",
-        default="",
-        help="Email From: header (forca deteccao tribunal)",
-    )
-    p_notify.set_defaults(func=cmd_notify)
 
     p_audit = sub.add_parser("audit", help="Operacoes sobre audit log")
     audit_sub = p_audit.add_subparsers(dest="audit_cmd", required=True)
@@ -1635,6 +1515,32 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_prazos.add_argument("--hoje", help="Data atual ISO (default: hoje)")
     p_prazos.set_defaults(func=cmd_prazos)
+
+    p_hon = sub.add_parser("honorarios", help="Registra/lista honorarios locais por alias")
+    hon_mode = p_hon.add_mutually_exclusive_group(required=True)
+    hon_mode.add_argument("--add", action="store_true", help="Adiciona item ao ledger")
+    hon_mode.add_argument("--list", action="store_true", help="Lista itens do ledger")
+    p_hon.add_argument("--ref", help="Referencia alias-only (ex: CLI-001)")
+    p_hon.add_argument("--descricao", help="Descricao curta sem nome real")
+    p_hon.add_argument("--valor", type=float, help="Valor em reais")
+    p_hon.add_argument("--data", help="Data ISO AAAA-MM-DD")
+    p_hon.add_argument(
+        "--status",
+        choices=["pendente", "pago"],
+        default="pendente",
+        help="Status do item (default pendente)",
+    )
+    p_hon.set_defaults(func=cmd_honorarios)
+
+    p_cli = sub.add_parser("clientes", help="Registra/lista metadados alias-only de clientes")
+    cli_mode = p_cli.add_mutually_exclusive_group(required=True)
+    cli_mode.add_argument("--add", action="store_true", help="Adiciona alias ao registro")
+    cli_mode.add_argument("--list", action="store_true", help="Lista aliases registrados")
+    p_cli.add_argument("--alias", help="Alias sem nome real (ex: CLI-001)")
+    p_cli.add_argument("--area", help="Area de pratica/metadado do alias")
+    p_cli.add_argument("--tribunal", help="Tribunal principal/metadado do alias")
+    p_cli.add_argument("--obs", default="", help="Observacao sem PII/nome real")
+    p_cli.set_defaults(func=cmd_clientes)
 
     p_ren = sub.add_parser("renovacao", help="Lista alertas de renovacao de contratos")
     p_ren.add_argument("--hoje", help="Data atual ISO (default: hoje)")
@@ -1783,10 +1689,6 @@ def _apply_config_defaults(args: argparse.Namespace) -> None:
         args.via_dje = cfg.via_dje
     if hasattr(args, "audit_db") and not args.audit_db and cfg.audit_db:
         args.audit_db = cfg.audit_db
-    if hasattr(args, "bridge_url") and args.bridge_url == "http://localhost:3000":
-        args.bridge_url = cfg.whatsapp_bridge_url
-    if hasattr(args, "chat_id") and not args.chat_id and cfg.whatsapp_chat_id:
-        args.chat_id = cfg.whatsapp_chat_id
 
 
 def main(argv: list[str] | None = None) -> int:
