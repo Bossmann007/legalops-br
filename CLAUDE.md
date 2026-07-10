@@ -66,7 +66,7 @@ tests/                     — 844 testes, AAA pattern
 ├── workflows/             — intimacoes-batch
 └── memory-manifest.json   — fonte de verdade dos stores locais
 ```
-Instalação = abrir a pasta no Claude Code (projeto nativo, sem `plugin install`).
+Instalação = abrir a pasta no Claude Code (projeto Claude Code nativo).
 
 ## Harness Skills
 - `/briefing` — prazos urgentes + agenda do dia
@@ -94,7 +94,7 @@ Instalação = abrir a pasta no Claude Code (projeto nativo, sem `plugin install
 
 ## Status
 v1.6.0 · 844 testes (95% cov) · GitHub privado: Bossmann007/legalops-br
-Harness = projeto Claude Code nativo (tudo em `.claude/`; hooks em `.claude/settings.json`). Sem plugin install — ela abre a pasta.
+Harness = projeto Claude Code nativo (tudo em `.claude/`; hooks em `.claude/settings.json`). Ela só abre a pasta.
 Notificação: PULL (/painel Artifact + /briefing); push e dashboard Node deprecated.
 Fase A ✅ (prazos + oracle anti-alucinação: /intimacao, dual-extract, validar-extracao, calc-disponivel).
 Fase B ✅ (contratos/operação → subagents: contrato-analista, operacao-ledger).

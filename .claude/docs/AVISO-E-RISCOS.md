@@ -88,7 +88,7 @@ Um movimento processual é metadado; **não conclua procedência, resultado ou e
 
 ### 5.6 🟡 Conteúdo de terceiros / prompt-injection
 
-O texto de intimações, movimentos e contratos é escrito por terceiros (inclusive a parte adversária). Documentos colados podem conter instruções maliciosas embutidas. O plugin `anti-injection` trata esse texto como **dado, não instrução** e sinaliza padrões suspeitos. Essa é uma **camada de detecção**, não uma parede — não confie cegamente em nenhum texto colado ou capturado.
+O texto de intimações, movimentos e contratos é escrito por terceiros (inclusive a parte adversária). Documentos colados podem conter instruções maliciosas embutidas. A camada `anti-injection` trata esse texto como **dado, não instrução** e sinaliza padrões suspeitos. Essa é uma **camada de detecção**, não uma parede — não confie cegamente em nenhum texto colado ou capturado.
 
 ### 5.7 🟡 Exatidão e vigência das citações
 

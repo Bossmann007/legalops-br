@@ -7,7 +7,7 @@ Este arquivo tem duas partes:
 - **Parte A — Instalação** (uma vez, por quem monta o computador).
 - **Parte B — Uso do dia a dia** (sem tecnês).
 
-> ⚠️ **Leia uma vez:** [AVISO-E-RISCOS.md](docs/AVISO-E-RISCOS.md). Resumo: nada aqui substitui
+> ⚠️ **Leia uma vez:** [AVISO-E-RISCOS.md](.claude/docs/AVISO-E-RISCOS.md). Resumo: nada aqui substitui
 > o PJe/Projudi nem o seu julgamento. Todo texto sai como **rascunho (DRAFT)**.
 
 ---
@@ -47,7 +47,7 @@ O que ele faz sozinho:
 Deu certo quando aparecer: `✅ LegalOps instalado.`
 
 ## 3. Abrir a pasta no Claude Code
-Não precisa instalar plugin. O harness é um projeto Claude Code nativo — tudo mora em
+O harness é um projeto Claude Code nativo — tudo mora em
 `.claude/`. Basta abrir a pasta:
 ```bash
 cd ~/legalops

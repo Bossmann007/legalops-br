@@ -84,7 +84,7 @@ const makeShadow = () => ({ type: "outer", blur: 8, offset: 2, angle: 135, color
   s.addText("✅  O que É", { x: 0.35, y: 1.0, w: 4.3, h: 0.4, fontSize: 13, bold: true, color: C.white, fontFace: "Calibri", valign: "middle", margin: [0, 0, 0, 8] });
 
   const isItems = [
-    "Plugin de IA integrado ao Claude Code (Anthropic)",
+    "Harness de IA integrado ao Claude Code (Anthropic)",
     "Assistente especializado em direito brasileiro",
     "Funciona no desktop existente — sem hardware novo",
     "Event-driven: age quando há novidade (prazo, peça)",
@@ -410,7 +410,7 @@ const makeShadow = () => ({ type: "outer", blur: 8, offset: 2, angle: 135, color
 
   const steps = [
     { n: "1", title: "Responder §11", desc: "Tia May responde às perguntas técnicas pendentes: acesso remoto, desktop, conta Anthropic, Outlook TJPR, templates.", color: C.accent },
-    { n: "2", title: "Formalização", desc: "Assinar: Contrato de prestação técnica · DPA (acordo de processamento de dados) · Termo de licença do plugin.", color: "7C3AED" },
+    { n: "2", title: "Formalização", desc: "Assinar: Contrato de prestação técnica · DPA (acordo de processamento de dados) · Termo de licença do software.", color: "7C3AED" },
     { n: "3", title: "v0.1 — PoC", desc: "Instalar ambiente local. Testar pipeline com dados fictícios. Validar cálculo de prazos e redação de peças sem dado real.", color: C.green },
     { n: "4", title: "v1.0 — Shadow", desc: "Conectar ao Diário TJPR. Rodar em shadow por 2 semanas. Tia May avalia alertas antes de qualquer ação automática.", color: C.navy },
   ];

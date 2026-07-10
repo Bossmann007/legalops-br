@@ -23,8 +23,8 @@ avise. Nunca chame um comando `legalops` que você não confirmou que existe.
 
 ## 5. LGPD — dado de cliente é sagrado
 - Cliente sempre por **alias** (`CLI-021`), nunca nome real em arquivo, log ou mensagem.
-- Dados reais do escritório só em `memory.local/` e `data/` (gitignored) — **nunca** em
-  arquivo rastreado (`memory/*.md`, skills, código).
+- Dados reais do escritório só em `.claude/memory.local/` e `data/` (gitignored) — **nunca** em
+  arquivo rastreado (`.claude/memory/*.md`, `.claude/commands`, código).
 
 ### 5.1 Redact-first ou recusa (gate duro, não sugestão)
 Antes de qualquer texto de cliente cruzar uma fronteira (mandar pra um modelo/subagent,

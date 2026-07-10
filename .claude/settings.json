@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "{ cat \"$CLAUDE_PROJECT_DIR/.claude/memory.local/primer.local.md\" 2>/dev/null || cat \"$CLAUDE_PROJECT_DIR/.claude/memory/Primer.md\" 2>/dev/null; echo; cat \"$CLAUDE_PROJECT_DIR/RULES.md\" 2>/dev/null; }",
+            "command": "{ cat \"$CLAUDE_PROJECT_DIR/.claude/memory.local/primer.local.md\" 2>/dev/null || cat \"$CLAUDE_PROJECT_DIR/.claude/memory/Primer.md\" 2>/dev/null; echo; cat \"$CLAUDE_PROJECT_DIR/.claude/RULES.md\" 2>/dev/null; }",
             "statusMessage": "Carregando estado e regras do escritório..."
           },
           {
