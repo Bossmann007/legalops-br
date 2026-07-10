@@ -525,6 +525,44 @@ def test_triagem_input_invalido_exit_2(tmp_path):
     assert r.returncode == 2
 
 
+def test_scan_state_in_process_set_get(
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+):
+    monkeypatch.chdir(tmp_path)
+    code_set = main(
+        [
+            "scan-state",
+            "--set",
+            "--resultado",
+            "vazio",
+            "--quando",
+            "2026-07-10T09:15:00",
+        ]
+    )
+    out_set = json.loads(capsys.readouterr().out)
+    assert code_set == 0
+    assert out_set["salvo"] is True
+
+    code_get = main(["scan-state", "--get", "--hoje", "2026-07-10"])
+    out_get = json.loads(capsys.readouterr().out)
+    assert code_get == 0
+    assert out_get["estado"] == "vazio"
+
+
+def test_triagem_in_process_input_nao_lista(
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+):
+    f = tmp_path / "obj.json"
+    f.write_text(json.dumps({"sender": "intimacao@tjpr.jus.br"}), encoding="utf-8")
+    code = main(["triagem", "--input", str(f), "--janela", "7", "--hoje", "2026-07-10"])
+    out = json.loads(capsys.readouterr().out)
+    assert code == 2
+    assert "entrada inválida" in out["error"]
+
+
 def test_validar_extracao_ok_in_process(capsys: pytest.CaptureFixture[str], tmp_path: Path):
     extr = {
         "data_publicacao": "2026-07-01",
