@@ -74,3 +74,22 @@ def is_duplicate(ref: str, ato: str, ledger: list[dict[str, object]]) -> bool:
         ):
             return True
     return False
+
+
+# Campos que determinam o cálculo. Confiança NÃO está aqui de propósito:
+# concordância mede consistência estrutural, não auto-avaliação do modelo.
+CAMPOS_CHAVE: tuple[str, ...] = (
+    "data_publicacao",
+    "prazo_dias",
+    "parte",
+    "tribunal",
+    "via_dje",
+)
+
+
+def extractions_agree(a: dict[str, object], b: dict[str, object]) -> bool:
+    """True se as duas extrações batem em todos os campos-chave."""
+    for campo in CAMPOS_CHAVE:
+        if a.get(campo) != b.get(campo):
+            return False
+    return True

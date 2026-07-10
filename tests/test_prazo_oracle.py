@@ -1,7 +1,9 @@
 from datetime import date
 
 from legalops.prazo_oracle import (
+    CAMPOS_CHAVE,
     LEGAL_PRAZO_SET,
+    extractions_agree,
     is_duplicate,
     validate_cnj_tribunal,
     validate_data_publicacao,
@@ -94,3 +96,37 @@ def test_dedup_ledger_vazio():
 def test_dedup_case_insensitive_no_ato():
     ledger = [{"ref": "PROC-1", "ato": "Contestacao", "status": "aberto"}]
     assert is_duplicate("PROC-1", "contestacao", ledger) is True
+
+
+def _extr(**kw):
+    base = {
+        "data_publicacao": "2026-07-01",
+        "prazo_dias": 15,
+        "parte": "particular",
+        "tribunal": "TJPR",
+        "via_dje": True,
+        "confianca": 0.9,
+    }
+    base.update(kw)
+    return base
+
+
+def test_extractions_iguais_concordam():
+    assert extractions_agree(_extr(), _extr()) is True
+
+
+def test_divergencia_em_prazo_dias_nao_concorda():
+    assert extractions_agree(_extr(prazo_dias=15), _extr(prazo_dias=30)) is False
+
+
+def test_divergencia_em_via_dje_nao_concorda():
+    assert extractions_agree(_extr(via_dje=True), _extr(via_dje=False)) is False
+
+
+def test_confianca_diferente_ainda_concorda():
+    # confiança não é campo-chave; diferença nela não quebra concordância
+    assert extractions_agree(_extr(confianca=0.5), _extr(confianca=0.99)) is True
+
+
+def test_campos_chave_nao_incluem_confianca():
+    assert "confianca" not in CAMPOS_CHAVE
