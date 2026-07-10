@@ -56,5 +56,18 @@ else
   echo "  SKIP: node ausente"
 fi
 
+echo "[5] Sem path pessoal absoluto em arquivos versionados"
+# path /home/<user> hardcoded vaza path pessoal e quebra no clone da advogada.
+# Hooks/comandos/scripts devem usar \$CLAUDE_PROJECT_DIR ou ~/legalops.
+# Needle montado por partes p/ este arquivo nao casar a si mesmo.
+NEEDLE="$(printf '/home/%s' bossmann)"
+if git grep -nI "$NEEDLE" -- . >/dev/null 2>&1; then
+  echo "  FAIL: path pessoal hardcoded (use \$CLAUDE_PROJECT_DIR ou ~/legalops):"
+  git grep -nI "$NEEDLE" -- .
+  fail=1
+else
+  echo "  ok: nenhum path pessoal versionado"
+fi
+
 if [ "$fail" -ne 0 ]; then echo "HARNESS SMOKE: FALHOU"; exit 1; fi
 echo "HARNESS SMOKE: OK"

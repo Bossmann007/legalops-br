@@ -89,7 +89,7 @@
 Rodar mensalmente:
 
 ```bash
-cd /home/bossmann/Projects/legalops-br
+cd ~/legalops
 uv run python scripts/measure_redactor.py
 uv run python scripts/validate_pipeline.py
 ```

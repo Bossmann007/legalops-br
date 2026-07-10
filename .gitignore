@@ -70,3 +70,6 @@ slide/dist/
 
 # codebase-memory-mcp — machine-local, absolute binary path (do not ship to handoff)
 .mcp.json
+
+# Config dev local do Claude Code (o produto e o plugin: .claude-plugin + hooks/hooks.json)
+.claude/settings.json

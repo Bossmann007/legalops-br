@@ -5,7 +5,7 @@ description: "Roda testes com cobertura e aponta gaps críticos"
 Execute e analise cobertura:
 
 ```bash
-cd /home/bossmann/Projects/legalops-br && uv run pytest --cov=src --cov-report=term-missing -q
+cd "$CLAUDE_PROJECT_DIR" && uv run pytest --cov=src --cov-report=term-missing -q
 ```
 
 Após resultado:

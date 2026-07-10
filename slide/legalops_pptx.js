@@ -694,6 +694,6 @@ const makeShadow = () => ({ type: "outer", blur: 8, offset: 2, angle: 135, color
   s.addText("LegalOps BR  ·  Confidencial  ·  Maio 2026", { x: 0.7, y: 5.1, w: 8.5, h: 0.35, fontSize: 11, color: "6677AA", fontFace: "Calibri" });
 }
 
-pres.writeFile({ fileName: "/home/bossmann/OneDrive/Mafioso/10 - Projetos/LegalOps/LegalOps_BR_Tia_May.pptx" })
+pres.writeFile({ fileName: "./LegalOps_BR_Tia_May.pptx" })
   .then(() => console.log("DONE: LegalOps_BR_Tia_May.pptx"))
   .catch((e) => { console.error("ERROR:", e); process.exit(1); });

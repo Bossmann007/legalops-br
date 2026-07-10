@@ -122,7 +122,7 @@ Arquivo: `slide/legalops_pptx.js` — revisão feita em sessão anterior; usuár
 ## Comandos úteis para revalidar
 
 ```bash
-cd /home/bossmann/Projects/legalops-br
+cd ~/legalops
 uv run pytest
 uv run ruff check src tests scripts corpus
 uv run mypy src
