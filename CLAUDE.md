@@ -15,7 +15,7 @@ Design spec completo: `~/docs/superpowers/specs/2026-06-27-legalos-harness-desig
 ## Commands
 ```bash
 export LEGALOPS_PII_SALT="$(openssl rand -hex 24)"  # obrigatorio — scripts/CLI falham sem
-uv run pytest              # 811 expected
+uv run pytest              # 844 expected
 uv run pytest --cov        # with coverage (>=95% gate)
 uv run ruff check .        # lint
 uv run mypy src/           # type check
@@ -50,7 +50,7 @@ src/legalops/
 ├── due_diligence.py      — M&A due diligence
 ├── societario.py         — documentos societários
 └── cli.py                — entry point
-tests/                     — 811 testes, AAA pattern
+tests/                     — 844 testes, AAA pattern
 ```
 
 ### Harness (camada cliente — skills + hooks + agents + memory)
@@ -87,10 +87,11 @@ dashboard/                 — dashboard web Node.js (7 views)
 - Clientes: aliases only (`CLI-021`, hash) — nunca nome real em banco/log
 
 ## Status
-v1.6.0 · 924 testes (95% cov) · GitHub privado: Bossmann007/legalops-br
+v1.6.0 · 844 testes (95% cov) · GitHub privado: Bossmann007/legalops-br
 Harness = plugin Claude Code (.claude-plugin/plugin.json + hooks/hooks.json).
 Notificação: PULL (/painel Artifact + /briefing); push e dashboard Node deprecated.
 Fase A ✅ (prazos + oracle anti-alucinação: /intimacao, dual-extract, validar-extracao, calc-disponivel).
 Fase B ✅ (contratos/operação → subagents: contrato-analista, operacao-ledger).
+Subagents de fork (isolam contexto): peticao-drafter (opus, /peticao), varredura-triagem (sonnet, triage do /varrer).
 Fase B1 ✅ (ingestão email: /varrer, triagem, scan-state "não-olhei ≠ nada-novo", guia de comandos).
 Próximo (fechamento técnico): verificar conector MCP M365 no plano dela · smoke `claude plugin install` · shadow-run humano ~2 sem (critério de pronto real). Adiado: B2 re-auth guiado.

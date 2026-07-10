@@ -46,6 +46,13 @@ repos:
         pass_filenames: false
         stages: [pre-push]
 
+      - id: harness-smoke
+        name: harness smoke (hooks/agents/manifest + anti-injection)
+        entry: ./scripts/harness_smoke.sh
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+
       - id: no-real-pii
         name: bloqueia nomes reais em diff
         entry: |

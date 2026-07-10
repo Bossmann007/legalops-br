@@ -43,6 +43,9 @@ jobs:
       - name: Pytest
         run: uv run pytest --no-cov -v
 
+      - name: Harness smoke (hooks/agents/manifest + anti-injection)
+        run: ./scripts/harness_smoke.sh
+
       - name: Validate pipeline E2E
         run: uv run python scripts/validate_pipeline.py
 

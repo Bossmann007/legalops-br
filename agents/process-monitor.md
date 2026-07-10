@@ -25,12 +25,10 @@ Salvar em `data/monitor/[data].json` com:
 - Prazos extraídos: N
 - Erros de conexão: [lista de TJs offline se houver]
 
-## Notificação
-Se encontrou movimentações relevantes:
-```python
-from legalops.notification_multiplex import notify
-notify(channel="whatsapp", message="📋 Monitor: N processo(s) com novidade. Use /briefing para ver.")
-```
+## Notificação (modelo PULL)
+Não há push. O resultado salvo em `data/monitor/[data].json` é lido sob demanda
+por `/briefing` e `/painel`. A advogada vê no próximo briefing matinal —
+nenhum canal externo é acionado.
 
 ## TJs cobertos
 TJPR · TJSP · TJMG · TJSC · TJRJ · TJDFT
