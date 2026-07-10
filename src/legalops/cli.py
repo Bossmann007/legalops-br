@@ -847,6 +847,64 @@ def cmd_prazo(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_validar_extracao(args: argparse.Namespace) -> int:
+    """Roda o oracle sobre duas extrações e imprime o veredito JSON.
+
+    Exit 0 = ok · Exit 3 = revisao_manual_obrigatoria · Exit 2 = erro de entrada.
+    O skill ramifica pelo exit code — nunca por parse de texto.
+    """
+    from legalops.prazo_oracle import STATUS_OK, evaluate_extraction
+
+    hoje = date.fromisoformat(args.hoje) if args.hoje else date.today()
+    try:
+        a = json.loads(Path(args.file_a).read_text(encoding="utf-8"))
+        b = json.loads(Path(args.file_b).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as e:
+        print(_dump({"error": f"entrada inválida: {e}"}))
+        return 2
+
+    ledger, _avisos = _load_prazos_ledger(PRAZOS_LEDGER_PATH)
+    v = evaluate_extraction(a, b, hoje=hoje, ledger=ledger)
+    print(_dump({"status": v.status, "reasons": v.reasons, "campos": v.campos}))
+    return 0 if v.status == STATUS_OK else 3
+
+
+def cmd_calc_disponivel(args: argparse.Namespace) -> int:
+    """Canário determinístico: prova que o motor de cálculo está são.
+
+    Exit 0 + {"disponivel": true} se o cálculo-canário bate o esperado.
+    Exit 1 caso contrário — o skill trata como fail-closed (RECUSA calcular).
+    """
+    from legalops.cpc_prazos import PrazoInput, calcular_prazo
+
+    try:
+        inp = PrazoInput(
+            data_publicacao=date(2026, 3, 2),
+            prazo_dias=15,
+            parte="particular",
+            via_dje=False,
+            tribunal="TJPR",
+        )
+        res = calcular_prazo(inp, hoje=date(2026, 3, 2))
+        esperado = date(2026, 3, 23)
+        ok = res.dies_ad_quem == esperado
+    except Exception as e:  # noqa: BLE001 — preflight precisa capturar qualquer falha
+        print(_dump({"disponivel": False, "erro": str(e)}))
+        return 1
+    if not ok:
+        print(
+            _dump(
+                {
+                    "disponivel": False,
+                    "erro": f"canário divergiu: obtido {res.dies_ad_quem}, esperado {esperado}",
+                }
+            )
+        )
+        return 1
+    print(_dump({"disponivel": True}))
+    return 0
+
+
 def cmd_prazos(args: argparse.Namespace) -> int:
     """Lista prazos locais persistidos em data/prazos.json."""
     hoje = date.fromisoformat(args.hoje) if args.hoje else date.today()
@@ -1485,6 +1543,21 @@ def build_parser() -> argparse.ArgumentParser:
     p_prazo.add_argument("--ref", help="Referencia opaca do processo/caso (ex: PROC-001)")
     p_prazo.add_argument("--ato", help="Descricao curta do ato/prazo")
     p_prazo.set_defaults(func=cmd_prazo)
+
+    p_val = sub.add_parser(
+        "validar-extracao",
+        help="Oracle: valida duas extrações de intimação (dual-model) antes do cálculo",
+    )
+    p_val.add_argument("--file-a", required=True, help="JSON da extração do modelo A")
+    p_val.add_argument("--file-b", required=True, help="JSON da extração do modelo B")
+    p_val.add_argument("--hoje", help="Data atual ISO (default: hoje)")
+    p_val.set_defaults(func=cmd_validar_extracao)
+
+    p_calc = sub.add_parser(
+        "calc-disponivel",
+        help="Preflight fail-closed: prova que o motor de cálculo está são",
+    )
+    p_calc.set_defaults(func=cmd_calc_disponivel)
 
     p_prazos = sub.add_parser("prazos", help="Lista prazos locais registrados")
     p_prazos.add_argument("--ate", type=int, default=7, help="Janela em dias corridos (default 7)")

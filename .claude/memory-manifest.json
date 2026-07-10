@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "stores": [
+    {
+      "name": "prazos_ledger",
+      "path": "data/prazos.json",
+      "kind": "machine-written",
+      "scope": "local-only",
+      "gitignored": true,
+      "owner": "legalops.cli",
+      "writers": ["legalops prazo --salvar"],
+      "readers": ["legalops prazos", "/painel", "/briefing", "/intimacao (dedup)"],
+      "ttl": null
+    }
+  ]
+}

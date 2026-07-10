@@ -9,11 +9,23 @@ Dados SINTETICOS apenas — nenhum PII real (hook no-real-pii bloquearia).
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
+from datetime import date
 from pathlib import Path
 
 import pytest
 
 from legalops.cli import main
+
+
+def _run_cli(args, cwd):
+    return subprocess.run(  # noqa: S603 - test helper invokes controlled CLI args
+        [sys.executable, "-m", "legalops.cli", *args],
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+    )
 
 
 class TestTribunalDetect:
@@ -378,3 +390,162 @@ class TestDueDiligence:
         assert out["area_filtro"] == "fiscal"
         assert all(it["area"] == "fiscal" for it in out["itens"])
         assert out["n_itens"] == 3
+
+
+def test_validar_extracao_ok(tmp_path):
+    extr = {
+        "data_publicacao": "2026-07-01",
+        "prazo_dias": 15,
+        "parte": "particular",
+        "tribunal": "TJPR",
+        "via_dje": True,
+        "confianca": 0.9,
+        "cnj": "0001234-56.2026.8.16.0001",
+        "ref": "PROC-1",
+        "ato": "contestacao",
+    }
+    (tmp_path / "a.json").write_text(json.dumps(extr))
+    (tmp_path / "b.json").write_text(json.dumps(extr))
+    r = _run_cli(
+        [
+            "validar-extracao",
+            "--file-a",
+            "a.json",
+            "--file-b",
+            "b.json",
+            "--hoje",
+            "2026-07-09",
+        ],
+        cwd=tmp_path,
+    )
+    assert r.returncode == 0, r.stderr
+    out = json.loads(r.stdout)
+    assert out["status"] == "ok"
+
+
+def test_validar_extracao_divergencia_exit_3(tmp_path):
+    a = {
+        "data_publicacao": "2026-07-01",
+        "prazo_dias": 15,
+        "parte": "particular",
+        "tribunal": "TJPR",
+        "via_dje": True,
+        "ref": "PROC-1",
+        "ato": "contestacao",
+    }
+    b = dict(a, prazo_dias=30)
+    (tmp_path / "a.json").write_text(json.dumps(a))
+    (tmp_path / "b.json").write_text(json.dumps(b))
+    r = _run_cli(
+        [
+            "validar-extracao",
+            "--file-a",
+            "a.json",
+            "--file-b",
+            "b.json",
+            "--hoje",
+            "2026-07-09",
+        ],
+        cwd=tmp_path,
+    )
+    assert r.returncode == 3
+    out = json.loads(r.stdout)
+    assert out["status"] == "revisao_manual_obrigatoria"
+    assert out["reasons"]
+
+
+def test_calc_disponivel_ok(tmp_path):
+    r = _run_cli(["calc-disponivel"], cwd=tmp_path)
+    assert r.returncode == 0, r.stderr
+    out = json.loads(r.stdout)
+    assert out["disponivel"] is True
+
+
+def test_validar_extracao_ok_in_process(capsys: pytest.CaptureFixture[str], tmp_path: Path):
+    extr = {
+        "data_publicacao": "2026-07-01",
+        "prazo_dias": 15,
+        "parte": "particular",
+        "tribunal": "TJPR",
+        "via_dje": True,
+        "cnj": "0001234-56.2026.8.16.0001",
+        "ref": "PROC-1",
+        "ato": "contestacao",
+    }
+    a = tmp_path / "a.json"
+    b = tmp_path / "b.json"
+    a.write_text(json.dumps(extr), encoding="utf-8")
+    b.write_text(json.dumps(extr), encoding="utf-8")
+    code = main(
+        [
+            "validar-extracao",
+            "--file-a",
+            str(a),
+            "--file-b",
+            str(b),
+            "--hoje",
+            "2026-07-09",
+        ]
+    )
+    out = json.loads(capsys.readouterr().out)
+    assert code == 0
+    assert out["status"] == "ok"
+
+
+def test_validar_extracao_entrada_invalida(capsys: pytest.CaptureFixture[str], tmp_path: Path):
+    bad = tmp_path / "bad.json"
+    good = tmp_path / "good.json"
+    bad.write_text("{nao-json", encoding="utf-8")
+    good.write_text("{}", encoding="utf-8")
+    code = main(
+        [
+            "validar-extracao",
+            "--file-a",
+            str(bad),
+            "--file-b",
+            str(good),
+            "--hoje",
+            "2026-07-09",
+        ]
+    )
+    out = json.loads(capsys.readouterr().out)
+    assert code == 2
+    assert "entrada inválida" in out["error"]
+
+
+def test_calc_disponivel_ok_in_process(capsys: pytest.CaptureFixture[str]):
+    code = main(["calc-disponivel"])
+    out = json.loads(capsys.readouterr().out)
+    assert code == 0
+    assert out["disponivel"] is True
+
+
+def test_calc_disponivel_fail_closed_quando_engine_falha(
+    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+):
+    def _boom(*args, **kwargs):
+        raise RuntimeError("engine offline")
+
+    monkeypatch.setattr("legalops.cpc_prazos.calcular_prazo", _boom)
+    code = main(["calc-disponivel"])
+    out = json.loads(capsys.readouterr().out)
+    assert code == 1
+    assert out["disponivel"] is False
+    assert "engine offline" in out["erro"]
+
+
+def test_calc_disponivel_fail_closed_quando_canario_diverge(
+    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+):
+    class _Resultado:
+        dies_ad_quem = date(2026, 3, 24)
+
+    def _diverge(*args, **kwargs):
+        return _Resultado()
+
+    monkeypatch.setattr("legalops.cpc_prazos.calcular_prazo", _diverge)
+    code = main(["calc-disponivel"])
+    out = json.loads(capsys.readouterr().out)
+    assert code == 1
+    assert out["disponivel"] is False
+    assert "canário divergiu" in out["erro"]
