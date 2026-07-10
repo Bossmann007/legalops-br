@@ -46,7 +46,25 @@ Vulnerabilities devem ser reportadas privadamente — **nao abra GitHub issue pu
 - Stdlib `urllib` apenas (sem httpx — reduzir surface attack)
 - M365 OAuth: token cache em memoria (nao persistido)
 - M365: HTTPS enforced (urllib default)
-- GalileuCLI (opcional, Go MITM proxy :9000) adiciona network gate
+
+### Egress / vazamento de PII — postura em camadas (nao "prova")
+
+Nao ha proxy de rede interceptando a saida (a ideia do Galileu foi descartada: componente
+externo Go que um escritorio nao-tecnico jamais manteria). A garantia migra de trava-de-rede
+para **redacao na origem + storage local**, em camadas:
+
+1. **Redact-first** — `pii_redactor` remove PII ANTES de qualquer texto cruzar fronteira
+   (LLM/MCP). O modelo nunca ve PII crua. Trava principal.
+2. **Local-only** — `data/`, `logs/`, `memory.local/`, `state/` nunca versionados; `setup.sh`
+   RECUSA instalar em pasta sincronizada (OneDrive/Drive/Dropbox/iCloud). Dado nao sai por sync.
+3. **Alias-only** — cliente sempre `CLI-XXX` em toda superficie e ledger.
+4. **MCP read-only** — ingestao (`/varrer`) so LE email; nunca envia.
+5. **Anti-injection** — hooks `flag-llm-paste` + `scan-injection`: doc colado = dado, nao ordem.
+
+**Limitacao declarada (o que o proxy cobria e isto NAO cobre):** sem trava de rede, uma FALHA
+de redacao (padrao de PII nao pego) pode alcancar o modelo — nao ha como interceptar a saida
+do proprio Claude no runtime dela. Por isso o recall da redacao e critico e medido; e por isso
+a postura e "reducao de risco em camadas", nao "prova de nao-vazamento".
 
 ### Audit log posture
 
@@ -73,9 +91,9 @@ Vulnerabilities devem ser reportadas privadamente — **nao abra GitHub issue pu
 
 ### Out-of-scope
 
-- Compromise do bridge.js WhatsApp (depende projeto externo)
-- Compromise da Microsoft Graph API (depende Microsoft)
-- Compromise do Galileu proxy (depende projeto externo)
+- Compromise da Microsoft Graph API / conector MCP (depende Microsoft)
+- Falha de redacao (padrao PII nao pego) alcancar o modelo — mitigado por recall medido,
+  nao eliminado (ver "Egress / vazamento de PII")
 - Side-channel attacks (timing, memory) em vulneravel hardware
 
 ## Hall of Fame
