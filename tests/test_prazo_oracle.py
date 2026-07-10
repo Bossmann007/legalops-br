@@ -2,6 +2,7 @@ from datetime import date
 
 from legalops.prazo_oracle import (
     LEGAL_PRAZO_SET,
+    is_duplicate,
     validate_cnj_tribunal,
     validate_data_publicacao,
     validate_prazo_dias,
@@ -69,3 +70,27 @@ def test_tribunal_fora_do_mapa_inconclusivo():
 def test_cnj_malformado_inconclusivo():
     assert validate_cnj_tribunal("nao-e-um-cnj", "TJPR") is None
     assert validate_cnj_tribunal("", "TJPR") is None
+
+
+def test_dedup_ref_e_ato_iguais_e_duplicata():
+    ledger = [{"ref": "PROC-1", "ato": "contestacao", "status": "aberto"}]
+    assert is_duplicate("PROC-1", "contestacao", ledger) is True
+
+
+def test_dedup_mesmo_ref_ato_diferente_nao_e_duplicata():
+    ledger = [{"ref": "PROC-1", "ato": "contestacao", "status": "aberto"}]
+    assert is_duplicate("PROC-1", "replica", ledger) is False
+
+
+def test_dedup_ref_novo_nao_e_duplicata():
+    ledger = [{"ref": "PROC-1", "ato": "contestacao", "status": "aberto"}]
+    assert is_duplicate("PROC-2", "contestacao", ledger) is False
+
+
+def test_dedup_ledger_vazio():
+    assert is_duplicate("PROC-1", "contestacao", []) is False
+
+
+def test_dedup_case_insensitive_no_ato():
+    ledger = [{"ref": "PROC-1", "ato": "Contestacao", "status": "aberto"}]
+    assert is_duplicate("PROC-1", "contestacao", ledger) is True

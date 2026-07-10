@@ -61,3 +61,16 @@ def validate_cnj_tribunal(cnj: str, tribunal: str) -> bool | None:
     if esperado is None:
         return None
     return (m.group(1), m.group(2)) == esperado
+
+
+def is_duplicate(ref: str, ato: str, ledger: list[dict[str, object]]) -> bool:
+    """True se (ref, ato) já existe no ledger (ato case-insensitive)."""
+    ref_norm = (ref or "").strip()
+    ato_norm = (ato or "").strip().lower()
+    for item in ledger:
+        if (
+            str(item.get("ref", "")).strip() == ref_norm
+            and str(item.get("ato", "")).strip().lower() == ato_norm
+        ):
+            return True
+    return False
