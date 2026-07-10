@@ -7,6 +7,10 @@
             "type": "command",
             "command": "{ cat \"${CLAUDE_PLUGIN_ROOT}/memory.local/primer.local.md\" 2>/dev/null || cat \"${CLAUDE_PLUGIN_ROOT}/memory/Primer.md\" 2>/dev/null; echo; cat \"${CLAUDE_PLUGIN_ROOT}/RULES.md\" 2>/dev/null; }",
             "statusMessage": "Carregando estado e regras do escritório..."
+          },
+          {
+            "type": "command",
+            "command": "echo \"👋 Bom dia. 3 coisas: /varrer (checar intimações novas) · /painel (seus prazos) · /briefing (resumo do dia). Última varredura aparece no /painel.\""
           }
         ]
       }
