@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from dataclasses import asdict, is_dataclass
 from datetime import date, datetime
@@ -88,6 +89,33 @@ def _json_default(obj: object) -> object:
 
 def _dump(obj: object) -> str:
     return json.dumps(obj, default=_json_default, ensure_ascii=False, indent=2)
+
+
+_STRICT_RESIDUAL_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("CNPJ", re.compile(r"\b\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}\b")),
+    ("CPF", re.compile(r"\b\d{3}\.\d{3}\.\d{3}-\d{2}\b")),
+    ("OAB", re.compile(r"\bOAB[/-]?[A-Z]{2}\s?\d{1,6}\b")),
+    ("EMAIL", re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")),
+    ("PHONE_BR", re.compile(r"(?:\+?55\s?)?\(?\d{2}\)?\s?9?\d{4}-\d{4}\b")),
+    ("CNPJ_NUMERIC", re.compile(r"\b\d{14}\b")),
+    ("CPF_NUMERIC", re.compile(r"\b\d{11}\b")),
+)
+
+
+def _scan_residual_pii(text: str) -> list[dict[str, object]]:
+    residual: list[dict[str, object]] = []
+    hits: list[tuple[int, int, str]] = []
+    seen_spans: set[tuple[int, int]] = set()
+    for pii_type, pattern in _STRICT_RESIDUAL_PATTERNS:
+        for match in pattern.finditer(text):
+            start, end = match.span()
+            if any(start < e and s < end for s, e in seen_spans):
+                continue
+            seen_spans.add((start, end))
+            hits.append((start, end, pii_type))
+    for start, end, pii_type in sorted(hits):
+        residual.append({"tipo": pii_type, "span": (start, end)})
+    return residual
 
 
 PRAZOS_LEDGER_PATH = Path("data/prazos.json")
@@ -255,6 +283,11 @@ def _make_redactor() -> PIIRedactor:
 def cmd_redact(args: argparse.Namespace) -> int:
     text = _read_input(args.input)
     result = _make_redactor().redact(text)
+    if args.strict:
+        residual = _scan_residual_pii(result.redacted_text)
+        if residual:
+            print(_dump({"ok": False, "residual_pii": residual}))
+            return 3
     if args.json:
         print(
             _dump(
@@ -1335,6 +1368,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_redact = sub.add_parser("redact", help="Redact PII de um texto")
     p_redact.add_argument("--input", "-i", help="Arquivo (default: stdin)")
     p_redact.add_argument("--json", action="store_true", help="Output JSON com stats")
+    p_redact.add_argument(
+        "--strict",
+        action="store_true",
+        help="Falha com exit 3 se sobrar PII estruturada apos redacao",
+    )
     p_redact.set_defaults(func=cmd_redact)
 
     p_parse = sub.add_parser("parse", help="Parse intimacoes TJPR de um email")
