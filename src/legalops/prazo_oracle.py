@@ -8,6 +8,7 @@ entre modelos não pega.
 
 from __future__ import annotations
 
+import re
 from datetime import date, timedelta
 
 # Prazos processuais CPC comuns (base, em dias). Fora deste conjunto = suspeito
@@ -34,3 +35,29 @@ def validate_data_publicacao(data_publicacao: date, *, hoje: date) -> bool:
     if hoje - data_publicacao > MAX_IDADE_PUBLICACAO:
         return False
     return True
+
+
+# Mapa mínimo tribunal → (segmento_justica, codigo_tribunal) do CNJ.
+# Só os foros que a advogada realmente toca. Tribunal fora do mapa =
+# inconclusivo (None), não bloqueia. ponytail: expanda quando surgir foro novo.
+CNJ_TRIBUNAL_MAP: dict[str, tuple[str, str]] = {
+    "TJPR": ("8", "16"),
+    "TRF4": ("4", "04"),
+    "STJ": ("3", "00"),
+}
+
+_CNJ_RE = re.compile(r"^\d{7}-\d{2}\.\d{4}\.(\d)\.(\d{2})\.\d{4}$")
+
+
+def validate_cnj_tribunal(cnj: str, tribunal: str) -> bool | None:
+    """Tri-state: True consistente, False conflito, None inconclusivo.
+
+    None quando o CNJ é malformado OU o tribunal não está no mapa mínimo.
+    """
+    m = _CNJ_RE.match((cnj or "").strip())
+    if not m:
+        return None
+    esperado = CNJ_TRIBUNAL_MAP.get((tribunal or "").upper())
+    if esperado is None:
+        return None
+    return (m.group(1), m.group(2)) == esperado
