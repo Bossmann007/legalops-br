@@ -3,6 +3,7 @@ from datetime import date
 from legalops.prazo_oracle import (
     CAMPOS_CHAVE,
     LEGAL_PRAZO_SET,
+    evaluate_extraction,
     extractions_agree,
     is_duplicate,
     validate_cnj_tribunal,
@@ -130,3 +131,74 @@ def test_confianca_diferente_ainda_concorda():
 
 def test_campos_chave_nao_incluem_confianca():
     assert "confianca" not in CAMPOS_CHAVE
+
+
+def test_veredito_ok_quando_concordam_e_validos():
+    hoje = date(2026, 7, 9)
+    e = _extr(
+        data_publicacao="2026-07-01",
+        prazo_dias=15,
+        tribunal="TJPR",
+        cnj="0001234-56.2026.8.16.0001",
+        ref="PROC-1",
+        ato="contestacao",
+    )
+    v = evaluate_extraction(e, dict(e), hoje=hoje, ledger=[])
+    assert v.status == "ok"
+    assert v.reasons == []
+    assert v.campos["prazo_dias"] == 15
+
+
+def test_veredito_revisao_quando_divergem():
+    hoje = date(2026, 7, 9)
+    a = _extr(prazo_dias=15, ref="PROC-1", ato="contestacao")
+    b = _extr(prazo_dias=30, ref="PROC-1", ato="contestacao")
+    v = evaluate_extraction(a, b, hoje=hoje, ledger=[])
+    assert v.status == "revisao_manual_obrigatoria"
+    assert any("diverg" in r.lower() for r in v.reasons)
+
+
+def test_veredito_revisao_quando_prazo_fora_do_conjunto():
+    hoje = date(2026, 7, 9)
+    e = _extr(prazo_dias=13, ref="PROC-1", ato="contestacao")
+    v = evaluate_extraction(e, dict(e), hoje=hoje, ledger=[])
+    assert v.status == "revisao_manual_obrigatoria"
+    assert any("prazo" in r.lower() for r in v.reasons)
+
+
+def test_veredito_revisao_quando_data_futura():
+    hoje = date(2026, 7, 9)
+    e = _extr(data_publicacao="2026-08-01", ref="PROC-1", ato="contestacao")
+    v = evaluate_extraction(e, dict(e), hoje=hoje, ledger=[])
+    assert v.status == "revisao_manual_obrigatoria"
+    assert any("data" in r.lower() for r in v.reasons)
+
+
+def test_veredito_revisao_quando_cnj_conflita():
+    hoje = date(2026, 7, 9)
+    e = _extr(
+        tribunal="TRF4",
+        cnj="0001234-56.2026.8.16.0001",
+        ref="PROC-1",
+        ato="contestacao",
+    )
+    v = evaluate_extraction(e, dict(e), hoje=hoje, ledger=[])
+    assert v.status == "revisao_manual_obrigatoria"
+    assert any("cnj" in r.lower() for r in v.reasons)
+
+
+def test_veredito_revisao_quando_duplicata():
+    hoje = date(2026, 7, 9)
+    e = _extr(ref="PROC-1", ato="contestacao")
+    ledger = [{"ref": "PROC-1", "ato": "contestacao", "status": "aberto"}]
+    v = evaluate_extraction(e, dict(e), hoje=hoje, ledger=ledger)
+    assert v.status == "revisao_manual_obrigatoria"
+    assert any("duplic" in r.lower() for r in v.reasons)
+
+
+def test_veredito_cnj_inconclusivo_nao_bloqueia():
+    hoje = date(2026, 7, 9)
+    # tribunal no mapa mas cnj vazio → inconclusivo, restante válido → ok
+    e = _extr(tribunal="TJPR", cnj="", ref="PROC-1", ato="contestacao")
+    v = evaluate_extraction(e, dict(e), hoje=hoje, ledger=[])
+    assert v.status == "ok"

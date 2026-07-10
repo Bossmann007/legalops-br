@@ -9,6 +9,7 @@ entre modelos não pega.
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass, field
 from datetime import date, timedelta
 
 # Prazos processuais CPC comuns (base, em dias). Fora deste conjunto = suspeito
@@ -93,3 +94,60 @@ def extractions_agree(a: dict[str, object], b: dict[str, object]) -> bool:
         if a.get(campo) != b.get(campo):
             return False
     return True
+
+
+STATUS_OK = "ok"
+STATUS_REVISAO = "revisao_manual_obrigatoria"
+
+
+@dataclass
+class Verdict:
+    status: str
+    reasons: list[str] = field(default_factory=list)
+    campos: dict[str, object] = field(default_factory=dict)
+
+
+def evaluate_extraction(
+    a: dict[str, object],
+    b: dict[str, object],
+    *,
+    hoje: date,
+    ledger: list[dict[str, object]],
+) -> Verdict:
+    """Aplica dual-extract + validações estruturais + dedup.
+
+    Retorna veredito ok só se: as duas extrações concordam nos campos-chave,
+    todas as validações estruturais passam (CNJ inconclusivo não bloqueia),
+    e não é duplicata. Qualquer falha → revisao_manual_obrigatoria.
+    """
+    reasons: list[str] = []
+
+    if not extractions_agree(a, b):
+        divergentes = [c for c in CAMPOS_CHAVE if a.get(c) != b.get(c)]
+        reasons.append(f"Divergência entre modelos em: {', '.join(divergentes)}")
+        # Divergência é terminal: sem campo consolidável, não seguimos validando.
+        return Verdict(status=STATUS_REVISAO, reasons=reasons)
+
+    # A partir daqui as duas concordam; usamos 'a' como fonte consolidada.
+    prazo_dias = a.get("prazo_dias")
+    if not isinstance(prazo_dias, int) or not validate_prazo_dias(prazo_dias):
+        reasons.append(f"prazo_dias fora do conjunto legal: {prazo_dias!r}")
+
+    data_pub_raw = a.get("data_publicacao")
+    try:
+        data_pub = date.fromisoformat(str(data_pub_raw))
+        if not validate_data_publicacao(data_pub, hoje=hoje):
+            reasons.append(f"data_publicacao implausível: {data_pub_raw!r}")
+    except (TypeError, ValueError):
+        reasons.append(f"data_publicacao inválida: {data_pub_raw!r}")
+
+    cnj_ok = validate_cnj_tribunal(str(a.get("cnj", "")), str(a.get("tribunal", "")))
+    if cnj_ok is False:
+        reasons.append(f"CNJ inconsistente com tribunal {a.get('tribunal')!r}: {a.get('cnj')!r}")
+
+    if is_duplicate(str(a.get("ref", "")), str(a.get("ato", "")), ledger):
+        reasons.append(f"Duplicata no ledger: ref={a.get('ref')!r} ato={a.get('ato')!r}")
+
+    if reasons:
+        return Verdict(status=STATUS_REVISAO, reasons=reasons)
+    return Verdict(status=STATUS_OK, reasons=[], campos=dict(a))
