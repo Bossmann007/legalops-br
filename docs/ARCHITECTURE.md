@@ -32,10 +32,6 @@ Pipeline local-first em 4 camadas, com gates LGPD entre cada uma.
                           ▼
               ┌────────────────────────┐
               │ oab_sigilo (audit)     │  ← SHA-256 chain SQLite
-              └───────────┬────────────┘
-                          ▼
-              ┌────────────────────────┐
-              │ whatsapp_notifier      │  ← bridge.js :3000, só URGENTE, sem PII
               └────────────────────────┘
 ```
 
@@ -43,11 +39,9 @@ Pipeline local-first em 4 camadas, com gates LGPD entre cada uma.
 
 | Camada | Gate | Mecanismo |
 |--------|------|-----------|
-| Network | GalileuCLI (Go MITM) | Proxy :9000 redige payloads cross-app |
 | Aplicacional | pii_redactor | Regex BR + validators |
 | Audit | oab_sigilo metadata | Regex pre-insert rejeita PII em logs |
-| Egress (LLM) | claude.ai manual | Cópia-cola humana (zero auto-call) |
-| Notification | whatsapp_notifier | Formato fixo: só CNJ + dies ad quem |
+| Egress (LLM) | SECURITY.md | Postura em camadas; sem auto-call |
 
 ## Multiplex de parsers
 

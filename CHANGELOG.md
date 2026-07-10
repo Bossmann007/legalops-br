@@ -45,7 +45,7 @@ Versioning: [SemVer](https://semver.org/spec/v2.0.0.html).
 - **`.env.example`**: template completo com `LEGALOPS_PII_SALT` (obrigatorio),
   `LEGALOPS_AUDIT_HMAC_KEY` + `LEGALOPS_SMTP_PASSWORD` (opcionais) + creds M365.
 - **Cobertura ≥95%** (era 92%): novos tests `test_cli_helpers.py` (helpers +
-  health + notify dry-run + audit verify), `test_eml_reader.py` expandido
+  health + audit verify), `test_eml_reader.py` expandido
   (max_files, attachment, bad date, empty body), parsers TJSC/TJRJ (empty,
   no CNJ, tipo desconhecido, datas invalidas, cartorio fallback). Total: **810
   tests · 95% cov**.
@@ -132,20 +132,6 @@ da Tia May e fica fora do repo.
 | v1.2 | Contract AI | contract_analyzer, renewal_watcher | 1.4.0 |
 | v1.3 | M&A + Due Diligence | societario, due_diligence, data_room, disclosure, red_flags | 1.4.0 |
 
-## [1.3.0] — 2026-05-28
-
-Multi-channel notifications: SMTP email + Slack webhook + fan-out multiplex.
-
-### Added
-- `email_notifier.py` — `EmailNotifier` via stdlib `smtplib`/`email.message`. STARTTLS opcional, plain text only (sem HTML, reduz superficie). LGPD: body so com `numero_processo` + `dies_ad_quem` + `prazo_efetivo_dias`. Raises `EmailNotifierError` em falhas SMTP.
-- `slack_notifier.py` — `SlackNotifier` via stdlib `urllib`. POST `{text, channel?}` para incoming webhook. LGPD: text so com processo + dies_ad_quem. Raises `SlackNotifierError` em falhas HTTP.
-- `notification_multiplex.py` — `NotificationMultiplex.notify_all()` faz fan-out para N canais registrados via `add_channel(name, callable)`. Threshold `min_prazo_dias` filtra urgentes; quiet hours suprime tudo na janela (suporta janelas que cruzam meia-noite). Erro por canal eh isolado: loga + zero, segue outros canais.
-- `legalops notify` ganha `--channels whatsapp,email,slack`, `--min-prazo-days`, `--quiet-start`, `--quiet-end`. Backwards-compat: sem `--channels` mantem comportamento single-WhatsApp anterior.
-- `config.py` ganha secoes `[email]`, `[slack]`, `[notification]` no TOML; `LegalOpsConfig` extendido com defaults.
-
-### Tests
-- 30+ testes novos: `test_email_notifier.py` (12) · `test_slack_notifier.py` (10) · `test_notification_multiplex.py` (8). Total: 426 → 456+.
-
 ## [1.2.0] — 2026-05-28
 
 Observability v1: structured logs + Prometheus metrics + health CLI.
@@ -190,7 +176,7 @@ multi-tribunal com gates network + application + audit + egress.
 - Parsers standalone para TJSC (e-Proc) e TJRJ (PJe) com regex tribunal-specific
 - `tribunal_detector` multiplex via sender domain + header fingerprint
 - CLI `--config` flag (TOML loader, defaults aplicaveis aos subcomandos)
-- CLI `--sender` flag em `pipeline` + `notify` (forca deteccao tribunal)
+- CLI `--sender` flag em `pipeline` (forca deteccao tribunal)
 - CLI `--version` flag
 - Edge cases tests (17): empty/malformed CNJ/UTF8/large input/FP defense
 - Validate pipeline E2E expandido (8 casos multi-tribunal)
@@ -263,9 +249,7 @@ Initial PoC release.
 - `lgpd_specifics`: constantes LGPD
 - `bacen_cvm_feeds`: parser RSS BACEN/CVM
 - `practice_profile`: profile escritorio (sem PII)
-- `whatsapp_notifier`: bridge.js client stdlib
 - `eml_reader`: parser RFC 822 stdlib
 - `orchestrator`: pipeline encadeado
 - `cli`: argparse subcommands
 - Corpus 200 sintetico
-- GalileuCLI integration (proxy MITM defense-in-depth)

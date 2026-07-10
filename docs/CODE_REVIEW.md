@@ -41,16 +41,14 @@ Permite **1 falha em 4** emails e ainda exit code 0. Permissivo demais para vali
 | Arquivo | Problema |
 |---------|----------|
 | `src/legalops/eml_reader.py:77` | `Message` sem `get_content` no tipo (mypy sugere `get_content_type`) |
-| `src/legalops/cli.py:236` | `notify_urgentes()` retorna `str \| None`, mas `msg` é usado como `str` no JSON final |
 
 ### 4. Lacunas de PII (alinhar com discurso LGPD do produto)
 
 | Gap | Impacto |
 |-----|---------|
 | CPF/CNPJ **sem máscara** (`12345678900`) | Não redigidos pelos regex atuais |
-| **Número CNJ** no texto | Mantido de propósito para o parser; também vai para WhatsApp e `audit` `resource` |
+| **Número CNJ** no texto | Mantido de propósito para o parser; também vai para `audit` `resource` |
 | `oab_sigilo` audit | Só bloqueia CPF/CNPJ/RG no metadata — **email, OAB, telefone** passam |
-| `whatsapp_notifier` | `format_urgentes_message` inclui **número de processo completo**; comentário diz "sem PII", mas CNJ identifica o caso |
 
 Não é bug se for decisão de produto — documentar na proposta/LGPD.
 
@@ -77,8 +75,7 @@ Sem GitHub Actions, ninguém garante `pytest` / `ruff` / `mypy` antes de merge. 
 - **`oab_sigilo.py`** — cadeia SHA-256, SQLite transacional, guarda PII no metadata.
 - **`cpc_prazos.py`** — feriados, recesso TJPR, dobro por parte, alertas; bem testado.
 - **`pii_redactor.py`** — placeholders determinísticos, ordem por especificidade.
-- **`cli.py`** — `redact`, `parse`, `pipeline`, `batch`, `notify`, `audit`.
-- **`proxy/galileu/galileu.yml`** — padrões alinhados ao redactor; certs no `.gitignore`.
+- **`cli.py`** — `redact`, `parse`, `pipeline`, `batch`, `audit`.
 
 ---
 
@@ -89,21 +86,20 @@ Sem GitHub Actions, ninguém garante `pytest` / `ruff` / `mypy` antes de merge. 
 1. Unificar `scripts/validate_pipeline.py` com `process_email()`; testar `parte="fazenda"` no caso certo.
 2. Corrigir os 2 erros de `mypy`.
 3. `.gitignore`: `slide/node_modules/`, `slide/package-lock.json` (se existir).
-4. Documentar ou fechar gaps de PII (CNJ no WhatsApp, CPF sem máscara, audit ampliado).
+4. Documentar ou fechar gaps de PII (CNJ, CPF sem máscara, audit ampliado).
 
 ### Média
 
 5. `[project.scripts]` → `legalops = "legalops.cli:main"`.
 6. CI mínimo: `uv sync` → gerar corpus → `pytest` → `ruff check` → `mypy src`.
 7. Atualizar **README** (faltam orchestrator, CLI, LGPD, feeds, practice profile).
-8. `whatsapp_notifier` — validar `base_url` (só `http`/`https`).
 9. `eml_reader.read_eml_dir` — documentar não-recursivo; considerar limite de arquivos.
 
 ### Baixa
 
 10. Ruff: `StrEnum` em vez de `str, Enum`; E501 em `lgpd_specifics.py`.
 11. `bacen_cvm_feeds`: `defusedxml` se aceitar XML de rede no futuro (hoje stub).
-12. `AGENTS.md` ou `CONTRIBUTING.md` — setup, corpus, Galileu.
+12. `AGENTS.md` ou `CONTRIBUTING.md` — setup e corpus.
 
 ---
 
@@ -113,16 +109,7 @@ Sem GitHub Actions, ninguém garante `pytest` / `ruff` / `mypy` antes de merge. 
 |---------|------------|
 | `scripts/measure_redactor.py` | Boa métrica recall/leak; depende do corpus gerado |
 | `tests/test_egress.py` | **Skip** sem corpus — clone fresco parece verde sem testar egress |
-| `tests/test_whatsapp_notifier.py` | Mock correto |
 | `corpus/synthetic/generate.py` | Ruff S311 em `random` — OK para dados fake |
-
----
-
-## Galileu / proxy
-
-- `proxy/galileu/galileu.yml` coerente com redactor Python.
-- Caminho absoluto para `galileu-cli` só em comentário — documentar env var.
-- Padrão "Clientes [REDACTED]" com `enabled: false` — correto; nunca commitar nomes reais.
 
 ---
 
