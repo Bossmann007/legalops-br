@@ -39,6 +39,7 @@ secrets/
 .agents/
 .codex/
 AGENTS.md
+state/
 
 # Release script output (generated, dated)
 metrics/

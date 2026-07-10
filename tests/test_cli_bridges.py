@@ -461,6 +461,108 @@ def test_calc_disponivel_ok(tmp_path):
     assert out["disponivel"] is True
 
 
+def test_scan_state_set_then_get(tmp_path):
+    r_set = _run_cli(
+        [
+            "scan-state",
+            "--set",
+            "--resultado",
+            "ok",
+            "--n-encontrados",
+            "3",
+            "--quando",
+            "2026-07-10T09:15:00",
+        ],
+        cwd=tmp_path,
+    )
+    assert r_set.returncode == 0, r_set.stderr
+    r_get = _run_cli(["scan-state", "--get", "--hoje", "2026-07-10"], cwd=tmp_path)
+    assert r_get.returncode == 0, r_get.stderr
+    out = json.loads(r_get.stdout)
+    assert out["estado"] == "ok"
+    assert out["comando_sugerido"] == "/painel"
+
+
+def test_scan_state_get_sem_arquivo_nunca(tmp_path):
+    r = _run_cli(["scan-state", "--get", "--hoje", "2026-07-10"], cwd=tmp_path)
+    assert r.returncode == 0, r.stderr
+    out = json.loads(r.stdout)
+    assert out["estado"] == "nunca"
+
+
+def test_triagem_filtra_tribunal(tmp_path):
+    emails = [
+        {
+            "sender": "intimacao@tjpr.jus.br",
+            "subject": "Intimação",
+            "data": "2026-07-08",
+            "body": "Projudi ...",
+        },
+        {
+            "sender": "news@migalhas.com.br",
+            "subject": "Boletim",
+            "data": "2026-07-09",
+            "body": "notícias",
+        },
+    ]
+    (tmp_path / "cand.json").write_text(json.dumps(emails))
+    r = _run_cli(
+        ["triagem", "--input", "cand.json", "--janela", "7", "--hoje", "2026-07-10"],
+        cwd=tmp_path,
+    )
+    assert r.returncode == 0, r.stderr
+    out = json.loads(r.stdout)
+    assert len(out["candidatos"]) == 1
+    assert out["candidatos"][0]["tribunal"] == "tjpr"
+
+
+def test_triagem_input_invalido_exit_2(tmp_path):
+    (tmp_path / "ruim.json").write_text("{ not json")
+    r = _run_cli(
+        ["triagem", "--input", "ruim.json", "--janela", "7", "--hoje", "2026-07-10"],
+        cwd=tmp_path,
+    )
+    assert r.returncode == 2
+
+
+def test_scan_state_in_process_set_get(
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+):
+    monkeypatch.chdir(tmp_path)
+    code_set = main(
+        [
+            "scan-state",
+            "--set",
+            "--resultado",
+            "vazio",
+            "--quando",
+            "2026-07-10T09:15:00",
+        ]
+    )
+    out_set = json.loads(capsys.readouterr().out)
+    assert code_set == 0
+    assert out_set["salvo"] is True
+
+    code_get = main(["scan-state", "--get", "--hoje", "2026-07-10"])
+    out_get = json.loads(capsys.readouterr().out)
+    assert code_get == 0
+    assert out_get["estado"] == "vazio"
+
+
+def test_triagem_in_process_input_nao_lista(
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+):
+    f = tmp_path / "obj.json"
+    f.write_text(json.dumps({"sender": "intimacao@tjpr.jus.br"}), encoding="utf-8")
+    code = main(["triagem", "--input", str(f), "--janela", "7", "--hoje", "2026-07-10"])
+    out = json.loads(capsys.readouterr().out)
+    assert code == 2
+    assert "entrada inválida" in out["error"]
+
+
 def test_validar_extracao_ok_in_process(capsys: pytest.CaptureFixture[str], tmp_path: Path):
     extr = {
         "data_publicacao": "2026-07-01",
