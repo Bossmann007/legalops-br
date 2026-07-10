@@ -932,6 +932,24 @@ def cmd_scan_state(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_triagem(args: argparse.Namespace) -> int:
+    """Filtra candidatos de tribunal de uma lista bruta de emails (JSON)."""
+    from legalops.triagem import filtrar_candidatos
+
+    hoje = date.fromisoformat(args.hoje) if args.hoje else date.today()
+    try:
+        emails = json.loads(Path(args.input).read_text(encoding="utf-8"))
+        if not isinstance(emails, list):
+            raise ValueError("input deve ser uma lista de emails")
+    except (OSError, json.JSONDecodeError, ValueError) as e:
+        print(_dump({"error": f"entrada inválida: {e}"}))
+        return 2
+
+    candidatos = filtrar_candidatos(emails, janela_dias=args.janela, hoje=hoje)
+    print(_dump({"candidatos": candidatos, "total": len(candidatos)}))
+    return 0
+
+
 def cmd_prazos(args: argparse.Namespace) -> int:
     """Lista prazos locais persistidos em data/prazos.json."""
     hoje = date.fromisoformat(args.hoje) if args.hoje else date.today()
@@ -1601,6 +1619,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_scan.add_argument("--n-revisao", type=int, default=0)
     p_scan.add_argument("--hoje", help="Data atual ISO (com --get)")
     p_scan.set_defaults(func=cmd_scan_state)
+
+    p_tri = sub.add_parser("triagem", help="Filtra candidatos de tribunal de uma lista de emails")
+    p_tri.add_argument("--input", required=True, help="JSON: lista de {sender,subject,data,body}")
+    p_tri.add_argument("--janela", type=int, default=7, help="Janela em dias corridos")
+    p_tri.add_argument("--hoje", help="Data atual ISO (default: hoje)")
+    p_tri.set_defaults(func=cmd_triagem)
 
     p_prazos = sub.add_parser("prazos", help="Lista prazos locais registrados")
     p_prazos.add_argument("--ate", type=int, default=7, help="Janela em dias corridos (default 7)")

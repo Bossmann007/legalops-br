@@ -490,6 +490,41 @@ def test_scan_state_get_sem_arquivo_nunca(tmp_path):
     assert out["estado"] == "nunca"
 
 
+def test_triagem_filtra_tribunal(tmp_path):
+    emails = [
+        {
+            "sender": "intimacao@tjpr.jus.br",
+            "subject": "Intimação",
+            "data": "2026-07-08",
+            "body": "Projudi ...",
+        },
+        {
+            "sender": "news@migalhas.com.br",
+            "subject": "Boletim",
+            "data": "2026-07-09",
+            "body": "notícias",
+        },
+    ]
+    (tmp_path / "cand.json").write_text(json.dumps(emails))
+    r = _run_cli(
+        ["triagem", "--input", "cand.json", "--janela", "7", "--hoje", "2026-07-10"],
+        cwd=tmp_path,
+    )
+    assert r.returncode == 0, r.stderr
+    out = json.loads(r.stdout)
+    assert len(out["candidatos"]) == 1
+    assert out["candidatos"][0]["tribunal"] == "tjpr"
+
+
+def test_triagem_input_invalido_exit_2(tmp_path):
+    (tmp_path / "ruim.json").write_text("{ not json")
+    r = _run_cli(
+        ["triagem", "--input", "ruim.json", "--janela", "7", "--hoje", "2026-07-10"],
+        cwd=tmp_path,
+    )
+    assert r.returncode == 2
+
+
 def test_validar_extracao_ok_in_process(capsys: pytest.CaptureFixture[str], tmp_path: Path):
     extr = {
         "data_publicacao": "2026-07-01",
