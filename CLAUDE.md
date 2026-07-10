@@ -41,8 +41,6 @@ src/legalops/
 ├── doc_templates.py      — templates de documentos
 ├── oab_sigilo.py         — OAB sigilo guardrails + HMAC audit
 ├── orchestrator.py       — workflow orchestration
-├── whatsapp_notifier.py  — Evolution API (WhatsApp Business)
-├── notification_multiplex.py — multi-channel (WA + email + Slack)
 ├── renewal_watcher.py    — contratos vencendo
 ├── practice_profile.py   — perfil do escritório
 ├── lgpd_specifics.py     — LGPD compliance
@@ -91,7 +89,7 @@ dashboard/                 — dashboard web Node.js (7 views)
 ## Status
 v1.6.0 · 924 testes (95% cov) · GitHub privado: Bossmann007/legalops-br
 Harness = plugin Claude Code (.claude-plugin/plugin.json + hooks/hooks.json).
-Notificação: PULL (/painel Artifact + /briefing) — WhatsApp push e dashboard Node deprecated.
+Notificação: PULL (/painel Artifact + /briefing); push e dashboard Node deprecated.
 Fase A ✅ (prazos + oracle anti-alucinação: /intimacao, dual-extract, validar-extracao, calc-disponivel).
 Fase B ✅ (contratos/operação → subagents: contrato-analista, operacao-ledger).
 Fase B1 ✅ (ingestão email: /varrer, triagem, scan-state "não-olhei ≠ nada-novo", guia de comandos).

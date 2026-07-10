@@ -117,7 +117,7 @@ class TestPhoneBR:
         assert any(m.pii_type == "PHONE_BR" for m in result.matches)
 
     def test_phone_with_country_code_redacted(self, redactor: PIIRedactor) -> None:
-        text = "WhatsApp +55 41 99999-9999"
+        text = "Contato +55 41 99999-9999"
         result = redactor.redact(text)
         assert "99999-9999" not in result.redacted_text
         assert any(m.pii_type == "PHONE_BR" for m in result.matches)

@@ -44,12 +44,6 @@ state/
 # Release script output (generated, dated)
 metrics/
 
-# Galileu runtime (CRITICAL — never commit private key)
-proxy/galileu/galileu-ca.pem
-proxy/galileu/galileu-ca-key.pem
-proxy/galileu/galileu_audit.log
-proxy/galileu/*.log
-
 # Synthetic corpus output (regenerable)
 corpus/synthetic/docs/
 
@@ -73,12 +67,6 @@ slide/node_modules/
 slide/package-lock.json
 slide/yarn.lock
 slide/dist/
-
-# maffini-dashboard (nested project has own .gitignore; belt-and-suspenders here)
-maffini-dashboard/.env
-maffini-dashboard/data/
-maffini-dashboard/public/bundle.js
-maffini-dashboard/node_modules/
 
 # codebase-memory-mcp — machine-local, absolute binary path (do not ship to handoff)
 .mcp.json

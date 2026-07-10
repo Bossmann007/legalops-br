@@ -23,10 +23,6 @@ Versioning: [SemVer](https://semver.org/spec/v2.0.0.html).
   acidental, não rewrite deliberado). Com chave, um atacante que rewrita a tabela inteira
   não consegue recomputar hashes válidos. `verify_chain()` agora usa `hmac.compare_digest`
   (comparação em tempo constante).
-- **config (SMTP password)**: senha SMTP em texto plano no TOML deixa de ser único caminho.
-  Env `LEGALOPS_SMTP_PASSWORD` tem precedência. Aviso (`UserWarning`) quando o `config.toml`
-  contém `email.password` E tem permissões frouxas (grupo/outros podem ler) — recomenda
-  `chmod 600` ou env var.
 - **pii_redactor (PHONE_BR)**: regex agora exige hífen no número local (`\d{4}-\d{4}`).
   Antes, um número bare de 11 dígitos (CPF sem máscara) podia ser engolido como `PHONE_BR`
   por casar parcialmente, mascarando o gate de validação de CPF.
@@ -43,7 +39,7 @@ Versioning: [SemVer](https://semver.org/spec/v2.0.0.html).
   no nivel do workflow (`env:`) — scripts e tests passam a rodar; salt em prod
   via secret manager.
 - **`.env.example`**: template completo com `LEGALOPS_PII_SALT` (obrigatorio),
-  `LEGALOPS_AUDIT_HMAC_KEY` + `LEGALOPS_SMTP_PASSWORD` (opcionais) + creds M365.
+  `LEGALOPS_AUDIT_HMAC_KEY` (opcional) + creds M365.
 - **Cobertura ≥95%** (era 92%): novos tests `test_cli_helpers.py` (helpers +
   health + audit verify), `test_eml_reader.py` expandido
   (max_files, attachment, bad date, empty body), parsers TJSC/TJRJ (empty,

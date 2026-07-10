@@ -111,11 +111,9 @@ export LEGALOPS_PII_SALT="$(openssl rand -hex 24)"   # guarde em secret manager
 | Env var | Default | Quando usar |
 |---------|---------|-------------|
 | `LEGALOPS_AUDIT_HMAC_KEY` | unset → SHA-256 puro | Audit log com tamper-evidence (HMAC-SHA256). Sem chave, detecta corrupção acidental mas não rewrite deliberado da tabela. |
-| `LEGALOPS_SMTP_PASSWORD` | TOML `[email].password` | Mantém a senha SMTP fora do disco. Tem precedência sobre o TOML. Recomendado em produção. |
 
 ```bash
 export LEGALOPS_AUDIT_HMAC_KEY="$(openssl rand -hex 32)"
-export LEGALOPS_SMTP_PASSWORD="$(pass show legalops/smtp)"
 ```
 
 ### Gerar corpus sintetico (necessario para tests/test_egress.py)
