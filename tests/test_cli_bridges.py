@@ -461,6 +461,35 @@ def test_calc_disponivel_ok(tmp_path):
     assert out["disponivel"] is True
 
 
+def test_scan_state_set_then_get(tmp_path):
+    r_set = _run_cli(
+        [
+            "scan-state",
+            "--set",
+            "--resultado",
+            "ok",
+            "--n-encontrados",
+            "3",
+            "--quando",
+            "2026-07-10T09:15:00",
+        ],
+        cwd=tmp_path,
+    )
+    assert r_set.returncode == 0, r_set.stderr
+    r_get = _run_cli(["scan-state", "--get", "--hoje", "2026-07-10"], cwd=tmp_path)
+    assert r_get.returncode == 0, r_get.stderr
+    out = json.loads(r_get.stdout)
+    assert out["estado"] == "ok"
+    assert out["comando_sugerido"] == "/painel"
+
+
+def test_scan_state_get_sem_arquivo_nunca(tmp_path):
+    r = _run_cli(["scan-state", "--get", "--hoje", "2026-07-10"], cwd=tmp_path)
+    assert r.returncode == 0, r.stderr
+    out = json.loads(r.stdout)
+    assert out["estado"] == "nunca"
+
+
 def test_validar_extracao_ok_in_process(capsys: pytest.CaptureFixture[str], tmp_path: Path):
     extr = {
         "data_publicacao": "2026-07-01",

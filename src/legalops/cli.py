@@ -905,6 +905,33 @@ def cmd_calc_disponivel(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_scan_state(args: argparse.Namespace) -> int:
+    """Get: imprime o estado descrito. Set: grava o resultado da varredura."""
+    from legalops.scan_state import (
+        ScanState,
+        describe_state,
+        load_scan_state,
+        save_scan_state,
+    )
+
+    if args.set:
+        state = ScanState(
+            ultima_varredura=args.quando,
+            resultado=args.resultado,
+            n_encontrados=args.n_encontrados,
+            n_processados=args.n_processados,
+            n_revisao=args.n_revisao,
+        )
+        save_scan_state(state)
+        print(_dump({"salvo": True, "estado_bruto": args.resultado}))
+        return 0
+
+    hoje = date.fromisoformat(args.hoje) if args.hoje else date.today()
+    described = describe_state(load_scan_state(), hoje=hoje)
+    print(_dump(described))
+    return 0
+
+
 def cmd_prazos(args: argparse.Namespace) -> int:
     """Lista prazos locais persistidos em data/prazos.json."""
     hoje = date.fromisoformat(args.hoje) if args.hoje else date.today()
@@ -1558,6 +1585,22 @@ def build_parser() -> argparse.ArgumentParser:
         help="Preflight fail-closed: prova que o motor de cálculo está são",
     )
     p_calc.set_defaults(func=cmd_calc_disponivel)
+
+    p_scan = sub.add_parser("scan-state", help="Estado da ultima varredura de caixa")
+    p_scan.add_argument("--get", action="store_true", help="Imprime o estado descrito")
+    p_scan.add_argument("--set", action="store_true", help="Grava resultado da varredura")
+    p_scan.add_argument(
+        "--resultado",
+        choices=["ok", "vazio", "falha"],
+        default="vazio",
+        help="Resultado da varredura (com --set)",
+    )
+    p_scan.add_argument("--quando", help="Timestamp ISO da varredura (com --set)")
+    p_scan.add_argument("--n-encontrados", type=int, default=0)
+    p_scan.add_argument("--n-processados", type=int, default=0)
+    p_scan.add_argument("--n-revisao", type=int, default=0)
+    p_scan.add_argument("--hoje", help="Data atual ISO (com --get)")
+    p_scan.set_defaults(func=cmd_scan_state)
 
     p_prazos = sub.add_parser("prazos", help="Lista prazos locais registrados")
     p_prazos.add_argument("--ate", type=int, default=7, help="Janela em dias corridos (default 7)")
