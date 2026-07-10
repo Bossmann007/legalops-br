@@ -46,18 +46,16 @@ O que ele faz sozinho:
 
 Deu certo quando aparecer: `✅ LegalOps instalado.`
 
-## 3. Ativar como plugin do Claude Code
-O harness (comandos `/`) roda como plugin do Claude Code. Dentro da pasta do projeto:
+## 3. Abrir a pasta no Claude Code
+Não precisa instalar plugin. O harness é um projeto Claude Code nativo — tudo mora em
+`.claude/`. Basta abrir a pasta:
 ```bash
 cd ~/legalops
-claude plugin install .
+claude            # abre o Claude Code nesta pasta
 ```
-Isso registra os comandos (`/painel`, `/prazo`, `/intimacao`, `/varrer`, …) e os hooks
-(carrega o estado do escritório e mostra o guia de comandos no início de cada sessão).
-
-> Se `claude plugin install .` não existir na versão dela, aponte o Claude Code para a pasta
-> do projeto como plugin local conforme a documentação da versão instalada. O essencial: o
-> Claude precisa enxergar `.claude-plugin/plugin.json` desta pasta.
+Ao abrir, o Claude Code carrega sozinho os comandos (`/painel`, `/prazo`, `/intimacao`,
+`/varrer`, …) e os hooks de `.claude/settings.json` (estado do escritório + guia de comandos
+no início de cada sessão).
 
 ## 4. Conectar a caixa de email (para o `/varrer`) — opcional
 O `/varrer` checa a caixa dela (Outlook/M365) por intimações novas. Para isso, o **conector

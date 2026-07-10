@@ -1,9 +1,0 @@
-{
-  "name": "legalops",
-  "version": "1.6.0",
-  "description": "LegalOS Harness — o Sócio Invisível para escritórios de advocacia 1–5 advogados. Prazos CPC, análise de contratos, LGPD (RIPD/DPA/DSAR), triagem bancária e de saúde, e painel operacional — tudo por comandos /. Toda saída é rascunho (DRAFT) para revisão do advogado. Requer o engine legalops instalado (setup.sh).",
-  "author": {
-    "name": "Enzo Bossmann"
-  },
-  "hooks": "./hooks/hooks.json"
-}

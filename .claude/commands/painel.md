@@ -21,7 +21,7 @@ uv run legalops prazos --ate 7 --hoje AAAA-MM-DD
 # Contratos vencendo / renovacao
 uv run legalops renovacao --hoje AAAA-MM-DD
 # Estado corrente do escritorio (prazos abertos, threads, DSARs)
-cat memory.local/primer.local.md 2>/dev/null || cat memory/Primer.md
+cat .claude/memory.local/primer.local.md 2>/dev/null || cat .claude/memory/Primer.md
 # Estado da ultima varredura (nao-olhei != nada-novo)
 uv run legalops scan-state --get --hoje AAAA-MM-DD
 ```

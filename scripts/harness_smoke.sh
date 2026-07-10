@@ -8,8 +8,8 @@ cd "$(dirname "$0")/.."
 fail=0
 check() { if "$@"; then echo "  ok: $*"; else echo "  FAIL: $*"; fail=1; fi; }
 
-echo "[1] JSON válido — hooks.json + memory-manifest.json"
-for j in hooks/hooks.json .claude/memory-manifest.json; do
+echo "[1] JSON válido — settings.json + memory-manifest.json"
+for j in .claude/settings.json .claude/memory-manifest.json; do
   if python -c "import json,sys; json.load(open('$j'))" 2>/dev/null; then
     echo "  ok: $j"
   else
@@ -20,12 +20,12 @@ done
 echo "[2] Hooks referenciados existem"
 python - <<'PY' || fail=1
 import json, re, os, sys
-cfg = json.load(open("hooks/hooks.json"))
+cfg = json.load(open(".claude/settings.json"))
 missing = []
 for evs in cfg.get("hooks", {}).values():
     for group in evs:
         for h in group.get("hooks", []):
-            for m in re.findall(r'\$\{CLAUDE_PLUGIN_ROOT\}/([^\s"\\]+\.(?:mjs|js|sh|md))', h.get("command","")):
+            for m in re.findall(r'\$(?:\{)?CLAUDE_PROJECT_DIR(?:\})?/([^\s"\\]+\.(?:mjs|js|sh|md))', h.get("command","")):
                 if ".local" in m:  # override local opcional (gitignored, tem fallback ||)
                     continue
                 if not os.path.exists(m):
@@ -39,7 +39,7 @@ echo "[3] Agents sem import morto (módulo legalops inexistente)"
 python - <<'PY' || fail=1
 import re, os, glob, sys
 dead = []
-for f in glob.glob("agents/*.md"):
+for f in glob.glob(".claude/agents/*.md"):
     txt = open(f).read()
     for mod in re.findall(r'(?:from|import)\s+legalops\.([a-z_]+)', txt):
         if not os.path.exists(f"src/legalops/{mod}.py"):
@@ -51,7 +51,7 @@ PY
 
 echo "[4] Anti-injection scanner (test.mjs)"
 if command -v node >/dev/null; then
-  check node anti-injection/hooks/test.mjs
+  check node .claude/anti-injection/hooks/test.mjs
 else
   echo "  SKIP: node ausente"
 fi

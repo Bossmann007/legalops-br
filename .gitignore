@@ -55,8 +55,8 @@ audit_*.db
 # Client PII / local firm state (LGPD — NUNCA versionar dados reais do escritório)
 data/
 logs/
-memory.local/
-memory/*.local.md
+.claude/memory.local/
+.claude/memory/*.local.md
 clientes-aliases.json
 
 # OS
@@ -70,6 +70,3 @@ slide/dist/
 
 # codebase-memory-mcp — machine-local, absolute binary path (do not ship to handoff)
 .mcp.json
-
-# Config dev local do Claude Code (o produto e o plugin: .claude-plugin + hooks/hooks.json)
-.claude/settings.json

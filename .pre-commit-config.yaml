@@ -69,16 +69,17 @@ repos:
         pass_filenames: false
 
       - id: no-structured-pii
-        name: bloqueia PII estruturada em memory/ e skills/
+        name: bloqueia PII estruturada em .claude/memory e .claude/commands
         entry: |
           bash -c '
-          # Escopo: memory/ e skills/ sao a superficie de vazamento de dado de CLIENTE
-          # (templates/playbooks rastreados; dado real vai para memory.local/ gitignored).
+          # Escopo: .claude/memory e .claude/commands sao a superficie de vazamento de dado
+          # de CLIENTE (templates/playbooks rastreados; dado real vai para
+          # .claude/memory.local/ gitignored).
           # NAO escaneia o resto do repo: docstrings/docs/tests usam o CPF sintetico
           # canonico 123.456.789-00 (invalido) como exemplo pedagogico legitimo.
           PAT="\b[0-9]{3}\.[0-9]{3}\.[0-9]{3}-[0-9]{2}\b|\bOAB[/-]?[A-Z]{2}[[:space:]]?[0-9]{1,6}\b|\(?[0-9]{2}\)?[[:space:]]?9?[0-9]{4}-[0-9]{4}\b"
-          if git diff --cached -- memory/ skills/ | grep -E "^\+[^+]" | grep -E "$PAT" > /dev/null; then
-            echo "PII estruturada (CPF/OAB/telefone) em memory/ ou skills/ — use alias/redact"
+          if git diff --cached -- .claude/memory/ .claude/commands/ | grep -E "^\+[^+]" | grep -E "$PAT" > /dev/null; then
+            echo "PII estruturada (CPF/OAB/telefone) em .claude/memory ou .claude/commands — use alias/redact"
             exit 1
           fi
           '

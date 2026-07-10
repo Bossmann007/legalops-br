@@ -53,14 +53,20 @@ src/legalops/
 tests/                     — 844 testes, AAA pattern
 ```
 
-### Harness (camada cliente — skills + hooks + agents + memory)
+### Harness (camada cliente — projeto Claude Code nativo, tudo em `.claude/`)
 ```
-skills/                    — ativáveis via /nome no Claude Code
-hooks/                     — cron: briefing matinal + alertas de prazo
-agents/                    — monitores autônomos (processos, renovações)
-memory/                    — contexto persistente do escritório cliente
-dashboard/                 — dashboard web Node.js (7 views)
+.claude/
+├── settings.json          — hooks (SessionStart/anti-injection/Stop/PreToolUse)
+├── commands/              — /nome (prazo, intimacao, varrer, painel, …)
+├── agents/                — subagents (contrato-analista, peticao-drafter, …)
+├── skills/                — skills nativos (quarentena-doc)
+├── anti-injection/        — hooks de segurança (flag-llm-paste, scan-injection)
+├── hooks/                 — scripts auxiliares (briefing, prazo-alerta)
+├── memory/                — templates de contexto (memory.local/ = dado real, gitignored)
+├── workflows/             — intimacoes-batch
+└── memory-manifest.json   — fonte de verdade dos stores locais
 ```
+Instalação = abrir a pasta no Claude Code (projeto nativo, sem `plugin install`).
 
 ## Harness Skills
 - `/briefing` — prazos urgentes + agenda do dia
@@ -88,10 +94,10 @@ dashboard/                 — dashboard web Node.js (7 views)
 
 ## Status
 v1.6.0 · 844 testes (95% cov) · GitHub privado: Bossmann007/legalops-br
-Harness = plugin Claude Code (.claude-plugin/plugin.json + hooks/hooks.json).
+Harness = projeto Claude Code nativo (tudo em `.claude/`; hooks em `.claude/settings.json`). Sem plugin install — ela abre a pasta.
 Notificação: PULL (/painel Artifact + /briefing); push e dashboard Node deprecated.
 Fase A ✅ (prazos + oracle anti-alucinação: /intimacao, dual-extract, validar-extracao, calc-disponivel).
 Fase B ✅ (contratos/operação → subagents: contrato-analista, operacao-ledger).
 Subagents de fork (isolam contexto): peticao-drafter (opus, /peticao), varredura-triagem (sonnet, triage do /varrer).
 Fase B1 ✅ (ingestão email: /varrer, triagem, scan-state "não-olhei ≠ nada-novo", guia de comandos).
-Próximo (fechamento técnico): verificar conector MCP M365 no plano dela · smoke `claude plugin install` · shadow-run humano ~2 sem (critério de pronto real). Adiado: B2 re-auth guiado.
+Próximo (fechamento técnico): verificar conector MCP M365 no plano dela · smoke de abrir a pasta no Claude Code dela (discovery de commands/agents/hooks nativos) · shadow-run humano ~2 sem (critério de pronto real). Adiado: B2 re-auth guiado.
