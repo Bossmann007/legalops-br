@@ -7,7 +7,14 @@ triggers: ["/briefing", "prazos do dia", "o que tenho hoje", "agenda hoje"]
 Execute em sequência:
 
 ## 1. Prazos Urgentes
-Primeiro leia os prazos locais registrados (rede de segurança; não é fonte oficial):
+Primeiro, o estado da última varredura (não-olhei ≠ nada-novo):
+```bash
+uv run legalops scan-state --get --hoje AAAA-MM-DD
+```
+Mostre a faixa de varredura ANTES dos prazos: se `estado` for `falha`, abra com o banner
+vermelho e NÃO diga "sem prazos"; se `nunca`, sugira `/varrer` antes de afirmar que não há nada.
+
+Depois leia os prazos locais registrados (rede de segurança; não é fonte oficial):
 ```bash
 uv run legalops prazos --ate 7 --hoje AAAA-MM-DD
 ```
@@ -70,3 +77,5 @@ DRAFT — Requer revisão e assinatura
 Se algum comando `legalops` falhar (não há servidor — é um programa local): diga em linguagem
 simples que aquele cálculo não rodou, mostre o resto do briefing, e lembre de conferir prazos
 no PJe. Nunca peça para ela "verificar servidor" — não existe.
+
+➡️ Próximo: `/varrer` se ainda não checou a caixa hoje · `/painel` para o quadro completo.
