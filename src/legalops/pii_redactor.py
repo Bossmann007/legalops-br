@@ -47,6 +47,7 @@ PIIType = Literal[
     "PHONE_BR",
     "CPF_NUMERIC",
     "CNPJ_NUMERIC",
+    "NOME",
 ]
 
 
@@ -96,6 +97,54 @@ PATTERN_VALIDATORS: dict[PIIType, Callable[[str], bool]] = {
     "CPF_NUMERIC": is_valid_cpf,
     "CNPJ_NUMERIC": is_valid_cnpj,
 }
+
+_NAME_PREFIX_RE = re.compile(
+    r"\b(?:AUTOR|R[ÉE]U|RECLAMANTE|RECLAMADO|REQUERENTE|REQUERIDO|"
+    r"EXEQUENTE|EXECUTADO|INTIMADO|ADVOGAD[OA]|PATRONO)\b:?"
+    r"|\b(?:Dr|Dra|Sr|Sra)\.\s*",
+    re.IGNORECASE,
+)
+_CAPITALIZED_WORD_RE = re.compile(r"[A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-Za-zÀ-ÖØ-öø-ÿ']*")
+_NAME_CONNECTORS = {"de", "da", "do", "das", "dos", "e"}
+_ALIAS_RE = re.compile(r"CLI-\d+\b", re.IGNORECASE)
+
+
+def _name_span_after_prefix(text: str, pos: int) -> tuple[int, int] | None:
+    start = pos
+    while start < len(text) and text[start] in " \t":
+        start += 1
+    if start >= len(text) or text[start] in "\r\n,.;:()[]{}":
+        return None
+    if _ALIAS_RE.match(text, start):
+        return None
+
+    cur = start
+    last_cap_end: int | None = None
+    saw_capitalized = False
+    while cur < len(text):
+        while cur < len(text) and text[cur] == " ":
+            cur += 1
+        if cur >= len(text) or text[cur] in "\r\n,.;:()[]{}":
+            break
+
+        word_match = re.match(r"[A-Za-zÀ-ÖØ-öø-ÿ']+", text[cur:])
+        if not word_match:
+            break
+        word = word_match.group()
+        end = cur + len(word)
+        if _CAPITALIZED_WORD_RE.fullmatch(word):
+            saw_capitalized = True
+            last_cap_end = end
+            cur = end
+            continue
+        if saw_capitalized and word.lower() in _NAME_CONNECTORS:
+            cur = end
+            continue
+        break
+
+    if last_cap_end is None:
+        return None
+    return start, last_cap_end
 
 
 class PIIRedactor:
@@ -160,6 +209,16 @@ class PIIRedactor:
                     continue
                 seen_spans.add((start, end))
                 all_hits.append((start, end, pii_type, m.group()))
+
+        for prefix_match in _NAME_PREFIX_RE.finditer(text):
+            span = _name_span_after_prefix(text, prefix_match.end())
+            if span is None:
+                continue
+            start, end = span
+            if any(start < e and s < end for s, e in seen_spans):
+                continue
+            seen_spans.add((start, end))
+            all_hits.append((start, end, "NOME", text[start:end]))
 
         # Replace from end to start to preserve earlier indices
         all_hits.sort(key=lambda x: x[0], reverse=True)
