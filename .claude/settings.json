@@ -5,12 +5,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "{ cat \"$CLAUDE_PROJECT_DIR/.claude/memory.local/primer.local.md\" 2>/dev/null || cat \"$CLAUDE_PROJECT_DIR/.claude/memory/Primer.md\" 2>/dev/null; echo; cat \"$CLAUDE_PROJECT_DIR/.claude/RULES.md\" 2>/dev/null; }",
-            "statusMessage": "Carregando estado e regras do escritório..."
+            "command": "{ cat \"$CLAUDE_PROJECT_DIR/.claude/memory.local/primer.local.md\" 2>/dev/null || cat \"$CLAUDE_PROJECT_DIR/.claude/memory/Primer.md\" 2>/dev/null; echo; cat \"$CLAUDE_PROJECT_DIR/.claude/memory.local/firm_context.local.md\" 2>/dev/null || cat \"$CLAUDE_PROJECT_DIR/.claude/memory/firm_context.md\" 2>/dev/null; echo; cat \"$CLAUDE_PROJECT_DIR/.claude/RULES.md\" 2>/dev/null; }",
+            "statusMessage": "Carregando escritório, estado e regras..."
           },
           {
             "type": "command",
-            "command": "echo \"👋 Bom dia. 3 coisas: /varrer (checar intimações novas) · /painel (seus prazos) · /briefing (resumo do dia). Última varredura aparece no /painel.\""
+            "command": "echo \"👋 Bom dia. 3 coisas: /varrer (checar intimações novas) · /painel (seus prazos + pendências) · /briefing (resumo do dia). Última varredura aparece no /painel.\""
           }
         ]
       }
@@ -36,24 +36,13 @@
         ]
       }
     ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "cd \"$CLAUDE_PROJECT_DIR\" && uv run pytest --tb=no -q 2>&1 | tail -3",
-            "statusMessage": "Running legalops tests..."
-          }
-        ]
-      }
-    ],
     "PreToolUse": [
       {
         "matcher": "Write|Edit",
         "hooks": [
           {
             "type": "command",
-            "command": "echo '{\"systemMessage\": \"⚖️ LEGALOPS: Verifique — tipo hints obrigatórios, sem PII real em tests, cobertura ≥95% em código crítico\"}'"
+            "command": "echo '{\"systemMessage\": \"⚖️ LEGALOPS: rascunho sempre com DRAFT · cliente por apelido (nunca nome/CPF/OAB reais) · redija PII antes de gravar/logar · você não calcula prazo, só o motor legalops\"}'"
           }
         ]
       }

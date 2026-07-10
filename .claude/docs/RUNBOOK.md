@@ -16,38 +16,30 @@
 cd ~/Projects/legalops-br
 uv sync
 export LEGALOPS_PII_SALT="$(openssl rand -hex 24)"  # obrigatorio; guardar em secret manager
-uv run pytest -q --no-cov   # esperar 811/811
+uv run pytest -q --no-cov   # esperar 844/844
 uv run mypy --strict src/    # 0 errors
 uv run ruff check .          # 0 errors
-mkdir -p ~/.config/legalops ~/.local/share/legalops
-cp legalops.toml.example ~/.config/legalops/config.toml   # ajustar
-ln -s "$PWD"/.venv/bin/legalops ~/.local/bin/legalops
-legalops --help
+uv run legalops --help
 ```
 
-## Deploy via Docker
+## Config TOML (opcional)
+
+Defaults por subcomando, lidos por `legalops/config.py` de `~/.config/legalops/config.toml`
+se o arquivo existir (ausente = usa defaults internos). Copie o exemplo e ajuste:
 
 ```bash
-docker build -t legalops:0.3 .
-docker run --rm -v "$PWD"/data:/data legalops:0.3 \
-    pipeline --input /data/email.txt --audit-db /data/audit.db
+mkdir -p ~/.config/legalops
+cp legalops.toml.example ~/.config/legalops/config.toml   # editar tribunal/parte
 ```
-
-## Config TOML
-
-`~/.config/legalops/config.toml`:
 
 ```toml
 [defaults]
-parte = "particular"
+parte = "particular"   # particular | fazenda | mp | defensoria
 via_dje = false
 tribunal = "TJPR"
-
-[audit]
-db = "~/.local/share/legalops/audit.db"
 ```
 
-Override via flag CLI: `legalops pipeline --parte fazenda` ignora `defaults.parte`.
+Flag CLI sempre vence o config: `legalops prazo --parte fazenda` ignora `defaults.parte`.
 
 ## Pipeline E2E
 

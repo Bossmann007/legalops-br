@@ -22,6 +22,30 @@
       "writers": ["legalops scan-state --set", "/varrer"],
       "readers": ["legalops scan-state --get", "/painel", "/briefing"],
       "ttl": null
+    },
+    {
+      "name": "firm_context",
+      "path": ".claude/memory.local/firm_context.local.md",
+      "kind": "human-written",
+      "scope": "local-only",
+      "gitignored": true,
+      "owner": "/onboarding",
+      "writers": ["/onboarding"],
+      "readers": ["SessionStart (injetado)", "todos os comandos"],
+      "ttl": null,
+      "template": ".claude/memory/firm_context.md"
+    },
+    {
+      "name": "human_review_todo",
+      "path": ".claude/memory.local/human_review_todo.local.md",
+      "kind": "human-written",
+      "scope": "local-only",
+      "gitignored": true,
+      "owner": "advogada",
+      "writers": ["/intimacao (fila de revisão)", "/varrer", "advogada"],
+      "readers": ["/painel"],
+      "ttl": null,
+      "template": ".claude/memory/human_review_todo.md"
     }
   ]
 }

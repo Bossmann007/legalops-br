@@ -24,6 +24,8 @@ uv run legalops renovacao --hoje AAAA-MM-DD
 cat .claude/memory.local/primer.local.md 2>/dev/null || cat .claude/memory/Primer.md
 # Estado da ultima varredura (nao-olhei != nada-novo)
 uv run legalops scan-state --get --hoje AAAA-MM-DD
+# Fila persistente de revisao manual da advogada (entre sessoes)
+cat .claude/memory.local/human_review_todo.local.md 2>/dev/null || cat .claude/memory/human_review_todo.md
 ```
 Para prazos individuais que a advogada acompanha, calcule cada um com
 `uv run legalops prazo --data-publicacao ... --prazo-dias N --parte ... --hoje AAAA-MM-DD`.
@@ -48,9 +50,10 @@ Produza UM Artifact HTML com estes cards, em portugues, responsivo, tema claro/e
 5. **Revisão manual pendente** — intimações que o oracle não validou (dois modelos
    divergiram, validação estrutural falhou, ou cálculo indisponível). Estas NÃO estão
    no ledger de prazos — aparecem aqui como "precisa conferir no PJe e reprocessar".
-   Se a sessão registrou algum item em revisão (do `/intimacao` ou do lote), liste-o
-   com o motivo. Se não houver registro persistente, mostre "Nenhuma pendência de
-   revisão nesta sessão" — nunca invente itens.
+   Junte duas fontes: (a) a fila **persistente** de `human_review_todo.local.md` (itens
+   que ficaram pendentes de sessões anteriores) e (b) itens que esta sessão registrou
+   (do `/intimacao` ou do lote), cada um com o motivo. Se ambas vazias, mostre "Nenhuma
+   pendência de revisão" — nunca invente itens.
 
 Regras do Artifact: HTML self-contained (CSS/JS inline, sem CDN, sem fetch), sem nome real
 de cliente, sem PII. Cabecalho: "Painel — [data]". Se tudo vazio, mostre "Sem pendencias
