@@ -89,7 +89,10 @@ dashboard/                 — dashboard web Node.js (7 views)
 - Clientes: aliases only (`CLI-021`, hash) — nunca nome real em banco/log
 
 ## Status
-v1.6.0 · 856 testes (95% cov) · GitHub privado: Bossmann007/legalops-br
+v1.6.0 · 924 testes (95% cov) · GitHub privado: Bossmann007/legalops-br
 Harness = plugin Claude Code (.claude-plugin/plugin.json + hooks/hooks.json).
 Notificação: PULL (/painel Artifact + /briefing) — WhatsApp push e dashboard Node deprecated.
-Próximo: smoke real de `claude plugin install` + 2ª onda (honorarios/clientes/ledger de prazos).
+Fase A ✅ (prazos + oracle anti-alucinação: /intimacao, dual-extract, validar-extracao, calc-disponivel).
+Fase B ✅ (contratos/operação → subagents: contrato-analista, operacao-ledger).
+Fase B1 ✅ (ingestão email: /varrer, triagem, scan-state "não-olhei ≠ nada-novo", guia de comandos).
+Próximo (fechamento técnico): verificar conector MCP M365 no plano dela · smoke `claude plugin install` · shadow-run humano ~2 sem (critério de pronto real). Adiado: B2 re-auth guiado.
