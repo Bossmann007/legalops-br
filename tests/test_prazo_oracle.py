@@ -174,6 +174,14 @@ def test_veredito_revisao_quando_data_futura():
     assert any("data" in r.lower() for r in v.reasons)
 
 
+def test_veredito_revisao_quando_data_invalida():
+    hoje = date(2026, 7, 9)
+    e = _extr(data_publicacao="nao-e-data", ref="PROC-1", ato="contestacao")
+    v = evaluate_extraction(e, dict(e), hoje=hoje, ledger=[])
+    assert v.status == "revisao_manual_obrigatoria"
+    assert any("data_publicacao inválida" in r for r in v.reasons)
+
+
 def test_veredito_revisao_quando_cnj_conflita():
     hoje = date(2026, 7, 9)
     e = _extr(
