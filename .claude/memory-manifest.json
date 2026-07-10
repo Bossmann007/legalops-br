@@ -11,6 +11,17 @@
       "writers": ["legalops prazo --salvar"],
       "readers": ["legalops prazos", "/painel", "/briefing", "/intimacao (dedup)"],
       "ttl": null
+    },
+    {
+      "name": "scan_state",
+      "path": "state/scan-state.json",
+      "kind": "machine-written",
+      "scope": "local-only",
+      "gitignored": true,
+      "owner": "legalops.scan_state",
+      "writers": ["legalops scan-state --set", "/varrer"],
+      "readers": ["legalops scan-state --get", "/painel", "/briefing"],
+      "ttl": null
     }
   ]
 }
