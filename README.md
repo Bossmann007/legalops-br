@@ -33,7 +33,7 @@ Local-first, **nenhuma chamada automatica a LLM externa**.
 > A release `1.5.0` entrega o tooling Python das fases de produto 1.1→1.4. Camada de
 > prompts/Claude Projects (interface claude.ai) depende da Tia May — fora do repo.
 
-- See [CHANGELOG.md](CHANGELOG.md) · [ARCHITECTURE.md](.claude/docs/ARCHITECTURE.md) · [RUNBOOK.md](.claude/docs/RUNBOOK.md) · [SECURITY.md](.claude/docs/SECURITY.md)
+- See [CHANGELOG.md](.claude/docs/CHANGELOG.md) · [ARCHITECTURE.md](.claude/docs/ARCHITECTURE.md) · [RUNBOOK.md](.claude/docs/RUNBOOK.md) · [SECURITY.md](.claude/docs/SECURITY.md)
 - Guia da advogada (instalação + uso): [GUIA-TIA.md](GUIA-TIA.md)
 
 ---
