@@ -708,3 +708,40 @@ def test_honorarios_add_e_list_total_alias_only(
     assert code == 0
     assert out["total"] == 1500.0
     assert out["honorarios"] == [saved]
+
+
+def test_clientes_add_e_list_alias_metadata_only(
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.chdir(tmp_path)
+
+    code = main(
+        [
+            "clientes",
+            "--add",
+            "--alias",
+            "CLI-1",
+            "--area",
+            "bancario",
+            "--tribunal",
+            "TJPR",
+            "--obs",
+            "sem nome real",
+        ]
+    )
+    saved = json.loads(capsys.readouterr().out)
+    assert code == 0
+    assert saved == {
+        "alias": "CLI-1",
+        "area": "bancario",
+        "tribunal": "TJPR",
+        "obs": "sem nome real",
+        "criado_em": date.today().isoformat(),
+    }
+
+    code = main(["clientes", "--list"])
+    out = json.loads(capsys.readouterr().out)
+    assert code == 0
+    assert out["clientes"] == [saved]

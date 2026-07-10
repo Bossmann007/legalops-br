@@ -92,6 +92,7 @@ def _dump(obj: object) -> str:
 
 PRAZOS_LEDGER_PATH = Path("data/prazos.json")
 HONORARIOS_LEDGER_PATH = Path("data/honorarios.json")
+CLIENTES_LEDGER_PATH = Path("data/clientes.json")
 
 
 def _prazo_to_json(
@@ -172,6 +173,31 @@ def _append_honorarios_ledger(path: Path, item: dict[str, object]) -> None:
     items = _load_honorarios_ledger(path)
     items.append(item)
     _save_honorarios_ledger(path, items)
+
+
+def _load_clientes_ledger(path: Path) -> list[dict[str, object]]:
+    if not path.exists():
+        return []
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(raw, list):
+        raise ValueError("clientes.json deve conter uma lista")
+    items: list[dict[str, object]] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            raise ValueError("cada cliente deve ser um objeto JSON")
+        items.append(item)
+    return items
+
+
+def _save_clientes_ledger(path: Path, items: list[dict[str, object]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(_dump(items) + "\n", encoding="utf-8")
+
+
+def _append_clientes_ledger(path: Path, item: dict[str, object]) -> None:
+    items = _load_clientes_ledger(path)
+    items.append(item)
+    _save_clientes_ledger(path, items)
 
 
 def _contrato_from_json(raw: object) -> Contrato:
@@ -826,6 +852,30 @@ def cmd_honorarios(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_clientes(args: argparse.Namespace) -> int:
+    """Append/list do registro alias-only em data/clientes.json."""
+    try:
+        if args.add:
+            item: dict[str, object] = {
+                "alias": args.alias,
+                "area": args.area,
+                "tribunal": args.tribunal,
+                "obs": args.obs or "",
+                "criado_em": date.today().isoformat(),
+            }
+            _append_clientes_ledger(CLIENTES_LEDGER_PATH, item)
+            print(_dump(item))
+            return 0
+
+        items = _load_clientes_ledger(CLIENTES_LEDGER_PATH)
+    except (OSError, ValueError, json.JSONDecodeError) as e:
+        print(_dump({"error": str(e), "path": str(CLIENTES_LEDGER_PATH)}))
+        return 2
+
+    print(_dump({"clientes": items}))
+    return 0
+
+
 def cmd_renovacao(args: argparse.Namespace) -> int:
     """Lista alertas de renovacao a partir de data/contratos.json."""
     hoje = date.fromisoformat(args.hoje) if args.hoje else date.today()
@@ -1443,6 +1493,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="Status do item (default pendente)",
     )
     p_hon.set_defaults(func=cmd_honorarios)
+
+    p_cli = sub.add_parser("clientes", help="Registra/lista metadados alias-only de clientes")
+    cli_mode = p_cli.add_mutually_exclusive_group(required=True)
+    cli_mode.add_argument("--add", action="store_true", help="Adiciona alias ao registro")
+    cli_mode.add_argument("--list", action="store_true", help="Lista aliases registrados")
+    p_cli.add_argument("--alias", help="Alias sem nome real (ex: CLI-001)")
+    p_cli.add_argument("--area", help="Area de pratica/metadado do alias")
+    p_cli.add_argument("--tribunal", help="Tribunal principal/metadado do alias")
+    p_cli.add_argument("--obs", default="", help="Observacao sem PII/nome real")
+    p_cli.set_defaults(func=cmd_clientes)
 
     p_ren = sub.add_parser("renovacao", help="Lista alertas de renovacao de contratos")
     p_ren.add_argument("--hoje", help="Data atual ISO (default: hoje)")
