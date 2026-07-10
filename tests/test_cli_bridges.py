@@ -9,11 +9,22 @@ Dados SINTETICOS apenas — nenhum PII real (hook no-real-pii bloquearia).
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 
 from legalops.cli import main
+
+
+def _run_cli(args, cwd):
+    return subprocess.run(  # noqa: S603 - test helper invokes controlled CLI args
+        [sys.executable, "-m", "legalops.cli", *args],
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+    )
 
 
 class TestTribunalDetect:
@@ -378,3 +389,65 @@ class TestDueDiligence:
         assert out["area_filtro"] == "fiscal"
         assert all(it["area"] == "fiscal" for it in out["itens"])
         assert out["n_itens"] == 3
+
+
+def test_validar_extracao_ok(tmp_path):
+    extr = {
+        "data_publicacao": "2026-07-01",
+        "prazo_dias": 15,
+        "parte": "particular",
+        "tribunal": "TJPR",
+        "via_dje": True,
+        "confianca": 0.9,
+        "cnj": "0001234-56.2026.8.16.0001",
+        "ref": "PROC-1",
+        "ato": "contestacao",
+    }
+    (tmp_path / "a.json").write_text(json.dumps(extr))
+    (tmp_path / "b.json").write_text(json.dumps(extr))
+    r = _run_cli(
+        [
+            "validar-extracao",
+            "--file-a",
+            "a.json",
+            "--file-b",
+            "b.json",
+            "--hoje",
+            "2026-07-09",
+        ],
+        cwd=tmp_path,
+    )
+    assert r.returncode == 0, r.stderr
+    out = json.loads(r.stdout)
+    assert out["status"] == "ok"
+
+
+def test_validar_extracao_divergencia_exit_3(tmp_path):
+    a = {
+        "data_publicacao": "2026-07-01",
+        "prazo_dias": 15,
+        "parte": "particular",
+        "tribunal": "TJPR",
+        "via_dje": True,
+        "ref": "PROC-1",
+        "ato": "contestacao",
+    }
+    b = dict(a, prazo_dias=30)
+    (tmp_path / "a.json").write_text(json.dumps(a))
+    (tmp_path / "b.json").write_text(json.dumps(b))
+    r = _run_cli(
+        [
+            "validar-extracao",
+            "--file-a",
+            "a.json",
+            "--file-b",
+            "b.json",
+            "--hoje",
+            "2026-07-09",
+        ],
+        cwd=tmp_path,
+    )
+    assert r.returncode == 3
+    out = json.loads(r.stdout)
+    assert out["status"] == "revisao_manual_obrigatoria"
+    assert out["reasons"]

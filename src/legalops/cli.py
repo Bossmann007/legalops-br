@@ -847,6 +847,28 @@ def cmd_prazo(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_validar_extracao(args: argparse.Namespace) -> int:
+    """Roda o oracle sobre duas extrações e imprime o veredito JSON.
+
+    Exit 0 = ok · Exit 3 = revisao_manual_obrigatoria · Exit 2 = erro de entrada.
+    O skill ramifica pelo exit code — nunca por parse de texto.
+    """
+    from legalops.prazo_oracle import STATUS_OK, evaluate_extraction
+
+    hoje = date.fromisoformat(args.hoje) if args.hoje else date.today()
+    try:
+        a = json.loads(Path(args.file_a).read_text(encoding="utf-8"))
+        b = json.loads(Path(args.file_b).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as e:
+        print(_dump({"error": f"entrada inválida: {e}"}))
+        return 2
+
+    ledger, _avisos = _load_prazos_ledger(PRAZOS_LEDGER_PATH)
+    v = evaluate_extraction(a, b, hoje=hoje, ledger=ledger)
+    print(_dump({"status": v.status, "reasons": v.reasons, "campos": v.campos}))
+    return 0 if v.status == STATUS_OK else 3
+
+
 def cmd_prazos(args: argparse.Namespace) -> int:
     """Lista prazos locais persistidos em data/prazos.json."""
     hoje = date.fromisoformat(args.hoje) if args.hoje else date.today()
@@ -1485,6 +1507,15 @@ def build_parser() -> argparse.ArgumentParser:
     p_prazo.add_argument("--ref", help="Referencia opaca do processo/caso (ex: PROC-001)")
     p_prazo.add_argument("--ato", help="Descricao curta do ato/prazo")
     p_prazo.set_defaults(func=cmd_prazo)
+
+    p_val = sub.add_parser(
+        "validar-extracao",
+        help="Oracle: valida duas extrações de intimação (dual-model) antes do cálculo",
+    )
+    p_val.add_argument("--file-a", required=True, help="JSON da extração do modelo A")
+    p_val.add_argument("--file-b", required=True, help="JSON da extração do modelo B")
+    p_val.add_argument("--hoje", help="Data atual ISO (default: hoje)")
+    p_val.set_defaults(func=cmd_validar_extracao)
 
     p_prazos = sub.add_parser("prazos", help="Lista prazos locais registrados")
     p_prazos.add_argument("--ate", type=int, default=7, help="Janela em dias corridos (default 7)")
