@@ -18,39 +18,49 @@ Feito para ser seguido por quem monta o computador (você ou alguém de confian�
 
 > ⚠️ **Regra de ouro:** o LegalOps guarda dados de cliente nesta pasta. **NUNCA** instale dentro
 > de OneDrive, Google Drive, Dropbox ou iCloud — isso vazaria dado de cliente pra nuvem (LGPD).
-> Use uma pasta **local**, ex.: `~/legalops`. O instalador recusa pasta sincronizada automaticamente.
+> No **Windows 11** a pasta *Documentos* costuma ser sincronizada com o OneDrive por padrão —
+> por isso use uma pasta local na raiz do disco, ex.: `C:\legalops`. O instalador recusa pasta
+> sincronizada automaticamente.
+
+> Os passos abaixo são para **Windows** (PowerShell). A variante mac/Linux vai entre parênteses.
 
 ## 0. O que precisa ter antes (uma vez só)
-- **Python 3.11 ou mais novo.** Teste: `python3 --version`.
-- **uv** (gerenciador Python, recomendado): `curl -LsSf https://astral.sh/uv/install.sh | sh`.
+- **Python 3.11 ou mais novo** — [python.org](https://www.python.org/downloads/) ou Microsoft Store.
+  Teste no PowerShell: `python --version`.
+- **uv** (gerenciador Python, recomendado). No PowerShell:
+  `powershell -c "irm https://astral.sh/uv/install.ps1 | iex"`
   (Sem uv, o instalador usa `pip` — funciona igual.)
 - **Claude Code** instalado e logado na conta Claude dela (Pro).
 
 ## 1. Colocar o projeto numa pasta LOCAL
-```bash
-# pasta local, FORA de qualquer nuvem sincronizada
-mkdir -p ~/legalops && cd ~/legalops
+No PowerShell (fora de qualquer nuvem sincronizada):
+```powershell
+mkdir C:\legalops; cd C:\legalops
 git clone https://github.com/Bossmann007/legalops-br.git .
 ```
-(Se não usa git: copie a pasta do projeto para `~/legalops`.)
+(mac/Linux: `mkdir -p ~/legalops && cd ~/legalops` + o mesmo `git clone`. Sem git: copie a pasta.)
 
 ## 2. Rodar o instalador
-```bash
-cd ~/legalops
-bash setup.sh
+No PowerShell, dentro da pasta:
+```powershell
+cd C:\legalops
+.\setup.ps1
 ```
+(Se o PowerShell bloquear scripts: rode antes `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`.)
+(mac/Linux: `bash setup.sh`.)
+
 O que ele faz sozinho:
 - **Recusa** se a pasta estiver numa nuvem sincronizada (proteção LGPD).
 - Instala o engine Python (`uv sync` ou `pip`).
 - Gera um **salt de PII** e grava em `.env` (local, nunca sobe pro git/nuvem).
 
-Deu certo quando aparecer: `✅ LegalOps instalado.`
+Deu certo quando aparecer: `LegalOps instalado.`
 
 ## 3. Abrir a pasta no Claude Code
 O harness é um projeto Claude Code nativo — tudo mora em
 `.claude/`. Basta abrir a pasta:
-```bash
-cd ~/legalops
+```powershell
+cd C:\legalops
 claude            # abre o Claude Code nesta pasta
 ```
 Ao abrir, o Claude Code carrega sozinho os comandos (`/painel`, `/prazo`, `/intimacao`,
@@ -71,11 +81,13 @@ intimação na mão), que funciona do mesmo jeito. O `/varrer` é conveniência,
 > não conseguiu olhar a caixa (nunca finge que "não há prazo") e manda usar o `/intimacao`.
 
 ## 5. Atualizar depois
-```bash
-cd ~/legalops
+No PowerShell:
+```powershell
+cd C:\legalops
 git pull
-bash setup.sh   # re-sincroniza dependências; o .env e os dados locais ficam intactos
+.\setup.ps1   # re-sincroniza dependências; o .env e os dados locais ficam intactos
 ```
+(mac/Linux: `git pull && bash setup.sh`.)
 
 ---
 
@@ -111,7 +123,7 @@ Você conversa em português normal. Para tarefas comuns, digite o comando com `
 
 ## Primeiro dia
 1. Abra o Claude Code dentro de `~/legalops` e rode `/onboarding` — configura o escritório
-   (nome, OAB, áreas, aliases de cliente). Os dados reais ficam em `memory.local/` (local, nunca versionado).
+   (nome, OAB, áreas, aliases de cliente). Os dados reais ficam em `.claude/memory.local/` (local, nunca versionado).
 2. Rode `/briefing` para ver o dia (ou `/painel` para a semana).
 3. Qualquer dúvida: escreva em português o que precisa. Não precisa saber comando.
 
