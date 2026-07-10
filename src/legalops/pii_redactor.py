@@ -109,7 +109,9 @@ _NAME_CONNECTORS = {"de", "da", "do", "das", "dos", "e"}
 _ALIAS_RE = re.compile(r"CLI-\d+\b", re.IGNORECASE)
 
 
-def _name_span_after_prefix(text: str, pos: int) -> tuple[int, int] | None:
+def _name_span_after_prefix(
+    text: str, pos: int, blocked: set[tuple[int, int]]
+) -> tuple[int, int] | None:
     start = pos
     while start < len(text) and text[start] in " \t":
         start += 1
@@ -132,6 +134,11 @@ def _name_span_after_prefix(text: str, pos: int) -> tuple[int, int] | None:
             break
         word = word_match.group()
         end = cur + len(word)
+        # Nao deixe o nome invadir um match estrutural ja reivindicado (ex: OAB,
+        # CPF logo apos o nome). Sem isto, o span do nome engole "OAB", colide, e
+        # o overlap-dedup descartaria o nome inteiro — vazando-o. Trunca antes.
+        if any(cur < e and s < end for s, e in blocked):
+            break
         if _CAPITALIZED_WORD_RE.fullmatch(word):
             saw_capitalized = True
             last_cap_end = end
@@ -211,7 +218,7 @@ class PIIRedactor:
                 all_hits.append((start, end, pii_type, m.group()))
 
         for prefix_match in _NAME_PREFIX_RE.finditer(text):
-            span = _name_span_after_prefix(text, prefix_match.end())
+            span = _name_span_after_prefix(text, prefix_match.end(), seen_spans)
             if span is None:
                 continue
             start, end = span

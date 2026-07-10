@@ -200,6 +200,17 @@ class TestNomeJuridico:
         result = redactor.redact(text)
         assert result.redacted_text == text
 
+    def test_nome_seguido_de_pii_estruturada_nao_vaza(self, redactor: PIIRedactor) -> None:
+        # Regressao: o span do nome nao pode invadir o OAB/CPF adjacente e ser
+        # descartado no overlap-dedup (vazando o nome). Ambos devem ser redigidos.
+        text = "Dr. Joao Silva OAB/PR 12345 intimou AUTOR: MARIA SOUZA CPF 111.444.777-35"
+        result = redactor.redact(text)
+        assert "Joao Silva" not in result.redacted_text
+        assert "MARIA SOUZA" not in result.redacted_text
+        assert result.redacted_text.count("[NOME_") == 2
+        assert "[OAB_" in result.redacted_text
+        assert "[CPF_" in result.redacted_text
+
     def test_alias_cli_nao_e_tocado_como_nome(self, redactor: PIIRedactor) -> None:
         text = "AUTOR: CLI-1 ajuizou acao"
         result = redactor.redact(text)
