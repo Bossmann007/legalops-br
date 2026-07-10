@@ -24,6 +24,32 @@ Feito para ser seguido por quem monta o computador (você ou alguém de confian�
 
 > Os passos abaixo são para **Windows** (PowerShell). A variante mac/Linux vai entre parênteses.
 
+## Jeito fácil: cole um prompt
+
+Depois de instalar o **Claude Code** e o **Python 3.11 ou mais novo**, abra o Claude Code em uma
+pasta **LOCAL e vazia** (por exemplo, `C:\legalops`) e cole o texto abaixo. No Windows 11, não use
+Documentos, Desktop ou qualquer pasta dentro de OneDrive/Google Drive/Dropbox/iCloud: elas podem
+estar sincronizadas na nuvem e expor dados do escritório.
+
+```text
+Quero instalar o LegalOps nesta pasta local. Antes de executar qualquer comando, confira e me diga:
+1) se esta pasta está fora de OneDrive, Google Drive, Dropbox e iCloud; e
+2) se o Python é 3.11 ou mais novo.
+
+Se algum item falhar, pare e explique em linguagem simples como corrigir. Se ambos passarem,
+mostre os comandos que pretende usar e peça minha confirmação antes de rodar qualquer coisa que
+baixe, clone ou altere arquivos. Após meu "sim", execute:
+
+git clone https://github.com/Bossmann007/legalops-br.git .
+.\setup.ps1
+
+O instalador deve recusar pasta sincronizada; não ignore essa recusa nem use modo de força. Ao
+terminar, confirme que apareceu "LegalOps instalado." e então ofereça /onboarding. Não faça ações
+destrutivas, não envie dados para fora e pare se a pasta não estiver vazia ou se houver dúvida.
+```
+
+## Alternativa manual
+
 ## 0. O que precisa ter antes (uma vez só)
 - **Python 3.11 ou mais novo** — [python.org](https://www.python.org/downloads/) ou Microsoft Store.
   Teste no PowerShell: `python --version`.
@@ -115,6 +141,9 @@ Você conversa em português normal. Para tarefas comuns, digite o comando com `
 | `/peticao` | Rascunho de petição (sempre revisar) |
 | `/honorarios` | Fecha o mês / relatório financeiro |
 | `/revisao-semanal` | Reunião semanal: operação + novidades |
+| `/aprender` | Propõe guardar uma preferência sem dados pessoais (só com seu “sim”) |
+| `/esquecer` | Lista preferências guardadas e remove uma (só com seu “sim”) |
+| `/encerrar` | Propõe salvar um resumo local PII-free para a próxima sessão |
 
 ## Três regras de ouro
 1. **Fonte oficial é o tribunal.** O sistema é rede de segurança, não a verdade. Sempre confira prazo no PJe/Projudi.
