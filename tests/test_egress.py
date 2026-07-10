@@ -1,6 +1,6 @@
 """Egress tests — garantem que nenhum PII bruto escape do redactor.
 
-Le todo o corpus sintetico em corpus/synthetic/docs/, redige cada documento,
+Le todo o corpus sintetico em tests/corpus/synthetic/docs/, redige cada documento,
 e verifica que nenhum dos identificadores originais aparece no texto redacted.
 
 Falha = vazamento = bloqueia merge.
@@ -16,7 +16,7 @@ import pytest
 
 from legalops.pii_redactor import PIIRedactor
 
-CORPUS_DIR = Path(__file__).parent.parent / "corpus" / "synthetic" / "docs"
+CORPUS_DIR = Path(__file__).parent / "corpus" / "synthetic" / "docs"
 
 
 def _load_corpus() -> list[dict[str, object]]:

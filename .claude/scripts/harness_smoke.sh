@@ -3,7 +3,7 @@
 # Espelho scoped do ~/.claude/hooks/tests/harness-smoke.sh pessoal.
 # Roda no CI e no pre-commit. Falha fechada: qualquer erro → exit 1.
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 fail=0
 check() { if "$@"; then echo "  ok: $*"; else echo "  FAIL: $*"; fail=1; fi; }

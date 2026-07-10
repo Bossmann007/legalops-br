@@ -40,7 +40,7 @@ Detalhe de módulos e pipeline: [.claude/docs/ARCHITECTURE.md](.claude/docs/ARCH
 uv venv --python 3.11 && uv pip install -e ".[dev]"
 export LEGALOPS_PII_SALT="$(openssl rand -hex 24)"   # obrigatório; guarde em secret manager
 uv run pytest                                        # 844 esperados
-uv run python corpus/synthetic/generate.py --count 200   # corpus p/ test_egress
+uv run python tests/corpus/synthetic/generate.py --count 200   # corpus p/ test_egress
 ```
 
 Instalação da advogada (Windows): use **[GUIA-TIA.md](GUIA-TIA.md)** / `setup.ps1`.

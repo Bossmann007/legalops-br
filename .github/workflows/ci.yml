@@ -32,10 +32,10 @@ jobs:
         run: uv sync --extra dev
 
       - name: Generate synthetic corpus
-        run: uv run python corpus/synthetic/generate.py --count 200
+        run: uv run python tests/corpus/synthetic/generate.py --count 200
 
       - name: Ruff
-        run: uv run ruff check src tests scripts corpus
+        run: uv run ruff check src tests .claude/scripts
 
       - name: Mypy
         run: uv run mypy src
@@ -44,10 +44,10 @@ jobs:
         run: uv run pytest --no-cov -v
 
       - name: Harness smoke (hooks/agents/manifest + anti-injection)
-        run: ./scripts/harness_smoke.sh
+        run: ./.claude/scripts/harness_smoke.sh
 
       - name: Validate pipeline E2E
-        run: uv run python scripts/validate_pipeline.py
+        run: uv run python .claude/scripts/validate_pipeline.py
 
       - name: Measure redactor (gate 0 leaks)
-        run: uv run python scripts/measure_redactor.py
+        run: uv run python .claude/scripts/measure_redactor.py

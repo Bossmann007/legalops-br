@@ -48,7 +48,7 @@ repos:
 
       - id: harness-smoke
         name: harness smoke (hooks/agents/manifest + anti-injection)
-        entry: ./scripts/harness_smoke.sh
+        entry: ./.claude/scripts/harness_smoke.sh
         language: system
         pass_filenames: false
         stages: [pre-push]

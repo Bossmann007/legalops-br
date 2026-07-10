@@ -45,7 +45,7 @@ state/
 metrics/
 
 # Synthetic corpus output (regenerable)
-corpus/synthetic/docs/
+tests/corpus/synthetic/docs/
 
 # Audit log databases (runtime data)
 *.db

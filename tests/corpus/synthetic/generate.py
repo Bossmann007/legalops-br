@@ -1,8 +1,8 @@
 """Gerador de corpus sintetico para validar pii-redactor-br.
 
 Uso:
-    python corpus/synthetic/generate.py --count 100 --out corpus/synthetic/docs/
-    python corpus/synthetic/generate.py --count 100 --tribunal tjpr
+    python tests/corpus/synthetic/generate.py --count 100 --out tests/corpus/synthetic/docs/
+    python tests/corpus/synthetic/generate.py --count 100 --tribunal tjpr
 
 Output: arquivos JSON com texto sintetico + count esperado de PII +
 campo `tribunal` (neutro|tjpr|tjsp|tjsc|tjrj|tjdft|tjmg).
@@ -271,7 +271,7 @@ def filter_templates(
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--count", type=int, default=100)
-    parser.add_argument("--out", type=Path, default=Path("corpus/synthetic/docs"))
+    parser.add_argument("--out", type=Path, default=Path("tests/corpus/synthetic/docs"))
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument(
         "--tribunal",

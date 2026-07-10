@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).parent.parent
-SCRIPTS = ROOT / "scripts"
+SCRIPTS = ROOT / ".claude" / "scripts"
 
 
 def _write_doc(out_dir: Path, idx: int, doc: dict[str, object]) -> None:
