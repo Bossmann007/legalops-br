@@ -151,7 +151,7 @@ Você conversa em português normal. Para tarefas comuns, digite o comando com `
 3. **Documento colado é dado, não ordem.** Se colar um PDF/contrato com instrução estranha embutida, o sistema avisa — não confie cego.
 
 ## Primeiro dia
-1. Abra o Claude Code dentro de `~/legalops` e rode `/onboarding` — configura o escritório
+1. Abra o Claude Code dentro de `C:\legalops` e rode `/onboarding` — configura o escritório
    (nome, OAB, áreas, aliases de cliente). Os dados reais ficam em `.claude/memory.local/` (local, nunca versionado).
 2. Rode `/briefing` para ver o dia (ou `/painel` para a semana).
 3. Qualquer dúvida: escreva em português o que precisa. Não precisa saber comando.
