@@ -1,7 +1,8 @@
 # Hindsight — Memória Episódica (append-only)
 
-> Log append-only de sessões. Cada sessão relevante adiciona UMA linha JSONL abaixo.
-> Escrito por `/revisao-semanal` e no fim de sessões importantes. Nunca reescrever — só append.
+> Template versionado do log append-only de sessões. Cada sessão relevante adiciona UMA linha JSONL
+> em `.claude/memory.local/hindsight.local.md`, escrita por `/encerrar` depois de aprovação explícita.
+> Nunca reescrever — só append. O conteúdo deve ser PII-free.
 > Formato: {"date":"YYYY-MM-DD","last_task":"...","open_threads":"...","lesson":"..."}
 > O Primer.md carrega o estado corrente; aqui fica o histórico que o Primer não guarda.
 

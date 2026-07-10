@@ -46,6 +46,30 @@
       "readers": ["/painel"],
       "ttl": null,
       "template": ".claude/memory/human_review_todo.md"
+    },
+    {
+      "name": "hindsight",
+      "path": ".claude/memory.local/hindsight.local.md",
+      "kind": "human-written/machine-written",
+      "scope": "local-only",
+      "gitignored": true,
+      "owner": "/encerrar",
+      "writers": ["/encerrar"],
+      "readers": ["SessionStart"],
+      "ttl": null,
+      "template": ".claude/memory/Hindsight.md"
+    },
+    {
+      "name": "instincts",
+      "path": ".claude/memory.local/instincts.local.md",
+      "kind": "human-written/machine-written",
+      "scope": "local-only",
+      "gitignored": true,
+      "owner": "/aprender",
+      "writers": ["/aprender"],
+      "readers": ["SessionStart"],
+      "ttl": null,
+      "template": ".claude/memory/instincts.md"
     }
   ]
 }

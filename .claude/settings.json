@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "{ cat \"$CLAUDE_PROJECT_DIR/.claude/memory.local/primer.local.md\" 2>/dev/null || cat \"$CLAUDE_PROJECT_DIR/.claude/memory/Primer.md\" 2>/dev/null; echo; cat \"$CLAUDE_PROJECT_DIR/.claude/memory.local/firm_context.local.md\" 2>/dev/null || cat \"$CLAUDE_PROJECT_DIR/.claude/memory/firm_context.md\" 2>/dev/null; echo; cat \"$CLAUDE_PROJECT_DIR/.claude/RULES.md\" 2>/dev/null; }",
+            "command": "{ cat \"$CLAUDE_PROJECT_DIR/.claude/memory.local/primer.local.md\" 2>/dev/null || cat \"$CLAUDE_PROJECT_DIR/.claude/memory/Primer.md\" 2>/dev/null; echo; cat \"$CLAUDE_PROJECT_DIR/.claude/memory.local/firm_context.local.md\" 2>/dev/null || cat \"$CLAUDE_PROJECT_DIR/.claude/memory/firm_context.md\" 2>/dev/null; echo; echo \"[SESSÕES ANTERIORES]\"; tail -n 3 \"$CLAUDE_PROJECT_DIR/.claude/memory.local/hindsight.local.md\" 2>/dev/null; echo; echo \"[APRENDIDO — preferências aprovadas por ela]\"; cat \"$CLAUDE_PROJECT_DIR/.claude/memory.local/instincts.local.md\" 2>/dev/null; echo; cat \"$CLAUDE_PROJECT_DIR/.claude/RULES.md\" 2>/dev/null; }",
             "statusMessage": "Carregando escritório, estado e regras..."
           },
           {
