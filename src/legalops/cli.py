@@ -91,6 +91,7 @@ def _dump(obj: object) -> str:
 
 
 PRAZOS_LEDGER_PATH = Path("data/prazos.json")
+HONORARIOS_LEDGER_PATH = Path("data/honorarios.json")
 
 
 def _prazo_to_json(
@@ -146,6 +147,31 @@ def _append_prazo_ledger(path: Path, item: dict[str, object]) -> None:
     items, _avisos = _load_prazos_ledger(path)
     items.append(item)
     _save_prazos_ledger(path, items)
+
+
+def _load_honorarios_ledger(path: Path) -> list[dict[str, object]]:
+    if not path.exists():
+        return []
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(raw, list):
+        raise ValueError("honorarios.json deve conter uma lista")
+    items: list[dict[str, object]] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            raise ValueError("cada honorario deve ser um objeto JSON")
+        items.append(item)
+    return items
+
+
+def _save_honorarios_ledger(path: Path, items: list[dict[str, object]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(_dump(items) + "\n", encoding="utf-8")
+
+
+def _append_honorarios_ledger(path: Path, item: dict[str, object]) -> None:
+    items = _load_honorarios_ledger(path)
+    items.append(item)
+    _save_honorarios_ledger(path, items)
 
 
 def _contrato_from_json(raw: object) -> Contrato:
@@ -769,6 +795,37 @@ def cmd_prazos(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_honorarios(args: argparse.Namespace) -> int:
+    """Append/list do ledger local de honorarios em data/honorarios.json."""
+    try:
+        if args.add:
+            item: dict[str, object] = {
+                "ref": args.ref,
+                "descricao": args.descricao,
+                "valor": float(args.valor),
+                "data": date.fromisoformat(args.data).isoformat(),
+                "status": args.status,
+            }
+            _append_honorarios_ledger(HONORARIOS_LEDGER_PATH, item)
+            print(_dump(item))
+            return 0
+
+        items = _load_honorarios_ledger(HONORARIOS_LEDGER_PATH)
+    except (OSError, ValueError, json.JSONDecodeError) as e:
+        print(_dump({"error": str(e), "path": str(HONORARIOS_LEDGER_PATH)}))
+        return 2
+
+    if args.status:
+        items = [item for item in items if item.get("status") == args.status]
+    total = 0.0
+    for item in items:
+        valor = item.get("valor", 0.0)
+        if isinstance(valor, (int, float, str)):
+            total += float(valor)
+    print(_dump({"honorarios": items, "total": total}))
+    return 0
+
+
 def cmd_renovacao(args: argparse.Namespace) -> int:
     """Lista alertas de renovacao a partir de data/contratos.json."""
     hoje = date.fromisoformat(args.hoje) if args.hoje else date.today()
@@ -1370,6 +1427,22 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_prazos.add_argument("--hoje", help="Data atual ISO (default: hoje)")
     p_prazos.set_defaults(func=cmd_prazos)
+
+    p_hon = sub.add_parser("honorarios", help="Registra/lista honorarios locais por alias")
+    hon_mode = p_hon.add_mutually_exclusive_group(required=True)
+    hon_mode.add_argument("--add", action="store_true", help="Adiciona item ao ledger")
+    hon_mode.add_argument("--list", action="store_true", help="Lista itens do ledger")
+    p_hon.add_argument("--ref", help="Referencia alias-only (ex: CLI-001)")
+    p_hon.add_argument("--descricao", help="Descricao curta sem nome real")
+    p_hon.add_argument("--valor", type=float, help="Valor em reais")
+    p_hon.add_argument("--data", help="Data ISO AAAA-MM-DD")
+    p_hon.add_argument(
+        "--status",
+        choices=["pendente", "pago"],
+        default="pendente",
+        help="Status do item (default pendente)",
+    )
+    p_hon.set_defaults(func=cmd_honorarios)
 
     p_ren = sub.add_parser("renovacao", help="Lista alertas de renovacao de contratos")
     p_ren.add_argument("--hoje", help="Data atual ISO (default: hoje)")

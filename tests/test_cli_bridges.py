@@ -651,3 +651,60 @@ def test_calc_disponivel_fail_closed_quando_canario_diverge(
     assert code == 1
     assert out["disponivel"] is False
     assert "canário divergiu" in out["erro"]
+
+
+def test_honorarios_add_e_list_total_alias_only(
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.chdir(tmp_path)
+
+    code = main(
+        [
+            "honorarios",
+            "--add",
+            "--ref",
+            "CLI-1",
+            "--descricao",
+            "entrada contrato revisional",
+            "--valor",
+            "1500",
+            "--data",
+            "2026-07-10",
+        ]
+    )
+    saved = json.loads(capsys.readouterr().out)
+    assert code == 0
+    assert saved == {
+        "ref": "CLI-1",
+        "descricao": "entrada contrato revisional",
+        "valor": 1500.0,
+        "data": "2026-07-10",
+        "status": "pendente",
+    }
+
+    code = main(
+        [
+            "honorarios",
+            "--add",
+            "--ref",
+            "CLI-2",
+            "--descricao",
+            "parcela paga",
+            "--valor",
+            "500",
+            "--data",
+            "2026-07-10",
+            "--status",
+            "pago",
+        ]
+    )
+    assert code == 0
+    capsys.readouterr()
+
+    code = main(["honorarios", "--list", "--status", "pendente"])
+    out = json.loads(capsys.readouterr().out)
+    assert code == 0
+    assert out["total"] == 1500.0
+    assert out["honorarios"] == [saved]
