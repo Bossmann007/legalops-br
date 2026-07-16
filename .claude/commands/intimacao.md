@@ -4,6 +4,12 @@ description: Processa uma intimação/publicação colada — extrai, valida em 
 triggers: ["/intimacao", "colei uma intimacao", "processar intimacao", "nova publicacao"]
 ---
 
+## Proveniência obrigatória
+Na saída, aplique a Regra 3 de `.claude/RULES.md` **em cada afirmação jurídica**. Campo extraído
+da intimação recebe `[documento do usuário]`; prazo, recesso ou feriado calculado pelo CLI
+recebe `[motor determinístico]`; e regra não conferida recebe
+`[conhecimento do modelo — conferir]`. Uma etiqueta geral não basta.
+
 Processa UMA intimação que a advogada colou: $ARGUMENTS
 
 Fonte oficial é o PJe/Projudi — isto é rede de segurança. O prazo é calculado SÓ pelo engine determinístico; você NUNCA calcula prazo de cabeça. Siga a ordem exata:
@@ -52,10 +58,11 @@ DRAFT — Requer revisão e assinatura
 
 📥 Intimação processada (rede de segurança — não é a fonte oficial)
 
-Processo: <CNJ mascarado>  ·  Tribunal: <sigla>
-Ato: <tipo_ato>  ·  Prazo base: <prazo_dias> dias úteis  ·  Em dobro? <sim/não>
+Processo: <CNJ mascarado>  ·  Tribunal: <sigla> [documento do usuário]
+Ato: <tipo_ato> [documento do usuário]  ·  Prazo base: <prazo_dias> dias úteis
+[documento do usuário]  ·  Em dobro? <sim/não> [motor determinístico]
 
-⚖️ Data final estimada: **DD/MM/AAAA**
+⚖️ Data final estimada: **DD/MM/AAAA** [motor determinístico]
 Registrado no ledger local (aparece no /painel).
 
 ⚠️ CONFIRA no PJe/Projudi antes de confiar. Não cobre feriado municipal,

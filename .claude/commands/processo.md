@@ -4,6 +4,12 @@ description: Consulta status e movimentações de processo em qualquer TJ
 triggers: ["/processo", "status do processo", "movimentações do processo", "consultar processo"]
 ---
 
+## Proveniência obrigatória
+Na saída, aplique a Regra 3 de `.claude/RULES.md` **em cada afirmação jurídica**. Movimentação ou
+dado extraído do texto recebe `[documento do usuário]`; prazo calculado pelo CLI recebe
+`[motor determinístico]`; e regra ou tese não conferida recebe
+`[conhecimento do modelo — conferir]`. Uma etiqueta geral não basta.
+
 Consulte o processo: $ARGUMENTS
 
 ## Fluxo
@@ -24,16 +30,17 @@ uv run legalops parse --input "[arquivo-texto]"
 DRAFT — Requer revisão e assinatura
 
 📋 Processo [CNJ mascarado]
-Tribunal: [TJXX]
+Tribunal: [TJXX] [documento do usuário]
 Partes: [mascarado — ex: "Autor vs. Réu"]
-Última movimentação: DD/MM/AAAA — [tipo]
+Última movimentação: DD/MM/AAAA — [tipo] [documento do usuário]
 
 📜 Histórico recente:
   • [data] — [tipo de movimentação extraída do texto]
   • [data] — [tipo de movimentação extraída do texto]
   ...
 
-⏰ Prazos extraídos desta movimentação: [se houver — calcular automaticamente]
+⏰ Prazos extraídos desta movimentação: [dado do texto] [documento do usuário]
+⏰ Data final calculada: [se houver] [motor determinístico]
 ```
 
 ## Guardrails

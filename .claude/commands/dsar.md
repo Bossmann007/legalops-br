@@ -4,6 +4,12 @@ description: Processa solicitação LGPD (acesso, correção, exclusão, portabi
 triggers: ["/dsar", "solicitação LGPD", "titular de dados", "pedido de exclusão"]
 ---
 
+## Proveniência obrigatória
+Na saída, aplique a Regra 3 de `.claude/RULES.md` **em cada afirmação jurídica**. Prazo ou
+classificação calculada pelo CLI recebe `[motor determinístico]`; conteúdo da solicitação recebe
+`[documento do usuário]`; e regra, exceção ou prazo não conferido recebe
+`[conhecimento do modelo — conferir]`. Uma etiqueta geral não basta.
+
 ## Prazo Legal
 Usar **15 dias** como SLA interno inicial do harness, salvo orientação da advogada.
 Para acesso, o engine pode referenciar Art. 19 §3 LGPD. Para correção, eliminação,
@@ -80,8 +86,8 @@ DRAFT — Requer revisão e assinatura
 📋 DSAR-[ID] — [tipo]
 Titular: [CLI-XXX]
 Recebido: DD/MM/AAAA
-SLA interno de resposta: DD/MM/AAAA (confirmar prazo aplicável em fonte primária)
-Dias restantes: N
+SLA interno de resposta: DD/MM/AAAA [motor determinístico]
+Dias restantes: N [motor determinístico]
 Identidade: [verificada/pendente/não verificada]
 
 Dados localizados: [sim/não/parcial]

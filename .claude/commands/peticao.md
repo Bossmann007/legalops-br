@@ -4,6 +4,12 @@ description: Rascunho de petição (contestação, recurso, inicial, embargos)
 triggers: ["/peticao", "rascunho de petição", "redigir petição", "draft de petição"]
 ---
 
+## Proveniência obrigatória
+Na peça, aplique a Regra 3 de `.claude/RULES.md` **em cada afirmação jurídica**. Fatos e teses
+fornecidos pela advogada recebem `[documento do usuário]`; fundamento criado ou lembrado pelo
+modelo recebe `[conhecimento do modelo — conferir]`; e `[fonte primária]` só vale se a fonte
+oficial foi realmente consultada nesta sessão. Uma etiqueta geral não basta.
+
 ## Instruções
 
 **IMPORTANTE:** Todo output desta skill é DRAFT. O advogado revisa e assina.
@@ -20,8 +26,8 @@ Pergunte em sequência:
 Use Claude para gerar o rascunho com:
 - Cabeçalho formal (Excelentíssimo Senhor Doutor Juiz / Colendo Tribunal)
 - Qualificação das partes (pseudônimos — NUNCA nome real aqui)
-- Dos Fatos (numerados)
-- Do Direito (fundamentos legais relevantes)
+- Dos Fatos (numerados; cada fato com `[documento do usuário]`)
+- Do Direito (cada fundamento legal com a etiqueta de proveniência correta)
 - Dos Pedidos (numerados, concretos)
 - Encerramento formal
 

@@ -4,6 +4,12 @@ description: Calcula prazo processual CPC (dias úteis, recesso e feriados nacio
 triggers: ["/prazo", "calcular prazo", "quando vence", "prazo para"]
 ---
 
+## Proveniência obrigatória
+Na saída, aplique a Regra 3 de `.claude/RULES.md` **em cada afirmação jurídica**. Data, prazo,
+recesso e feriado calculados pelo CLI recebem `[motor determinístico]`; dado extraído do texto
+fornecido recebe `[documento do usuário]`; e regra não conferida recebe
+`[conhecimento do modelo — conferir]`. Uma etiqueta geral não basta.
+
 Calcule o prazo para: $ARGUMENTS
 
 ## Como funciona (e o que NÃO cobre)
@@ -55,11 +61,11 @@ DRAFT — Requer revisão e assinatura
 
 📅 Cálculo de Prazo (rede de segurança — não é a fonte oficial)
 
-Data da publicação: DD/MM/AAAA
-Prazo base: N dias úteis · Em dobro? [Sim/Não]
+Data da publicação: DD/MM/AAAA [documento do usuário]
+Prazo base: N dias úteis [documento do usuário] · Em dobro? [Sim/Não] [motor determinístico]
 Tribunal: TJPR (recesso/feriado calibrado só p/ TJPR)
 
-⚖️ Data final estimada: **DD/MM/AAAA**
+⚖️ Data final estimada: **DD/MM/AAAA** [motor determinístico]
 
 ⚠️ CONFIRA no PJe/Projudi antes de confiar. Este cálculo não cobre feriado municipal,
    suspensão de expediente, nem prazo material. O `--salvar` é só registro local —

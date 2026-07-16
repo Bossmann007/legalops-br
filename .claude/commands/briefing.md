@@ -4,6 +4,12 @@ description: Prazos urgentes do dia + agenda + alertas
 triggers: ["/briefing", "prazos do dia", "o que tenho hoje", "agenda hoje"]
 ---
 
+## Proveniência obrigatória
+Na saída, aplique a Regra 3 de `.claude/RULES.md` **em cada afirmação jurídica**. Prazos e
+feriados calculados pelo CLI recebem `[motor determinístico]`; conteúdo extraído de intimação
+ou registro fornecido recebe `[documento do usuário]`; e qualquer regra ou tese não conferida
+recebe `[conhecimento do modelo — conferir]`. Uma etiqueta geral não basta.
+
 Execute em sequência:
 
 ## 1. Prazos Urgentes

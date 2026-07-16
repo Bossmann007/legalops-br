@@ -4,6 +4,12 @@ description: Plano de privacidade para clinicas, hospitais e consultoria em dire
 triggers: ["/saude-privacidade", "privacidade em saude", "LGPD saude", "risco medico hospitalar"]
 ---
 
+## Proveniência obrigatória
+Na saída, aplique a Regra 3 de `.claude/RULES.md` **em cada afirmação jurídica**. Fato extraído
+dos materiais recebe `[documento do usuário]`; regra CFM/ANS/ANPD, prazo ou análise não conferida
+recebe `[conhecimento do modelo — conferir]`; e `[fonte primária]` só vale se a fonte oficial
+foi realmente consultada nesta sessão. Uma etiqueta geral não basta.
+
 Use para estruturar conversa e rascunho de plano de privacidade em contexto de saude. O foco e gestao de risco medico-hospitalar: dados sensiveis, prontuario, acesso, fornecedores, retencao, sigilo e resposta a incidente.
 
 ## Guardrails

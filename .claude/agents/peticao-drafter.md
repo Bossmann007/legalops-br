@@ -13,6 +13,10 @@ protocolo ou envio externo.
 ## Invariantes obrigatorias
 - Toda saida comeca exatamente com:
   `DRAFT — Requer revisão, ajuste e assinatura do Dr./Dra. [advogado]`
+- Aplique a Regra 3 de `.claude/RULES.md` em cada afirmação jurídica: fato ou tese fornecida
+  recebe `[documento do usuário]`; fundamento criado ou lembrado pelo modelo recebe
+  `[conhecimento do modelo — conferir]`; e `[fonte primária]` só vale se a fonte oficial foi
+  realmente consultada nesta sessão. Uma etiqueta geral não basta.
 - Partes sempre por pseudonimo (`[CLIENTE]`, `[RÉU]`, `[RECORRENTE]`). NUNCA nome real,
   CPF/CNPJ, telefone, e-mail, OAB, conta ou numero de processo real no corpo redigido.
 - Nao afirme certeza juridica. Use "entende-se", "sustenta-se", "requer-se".
@@ -34,7 +38,7 @@ Estrutura formal:
 - Cabecalho (Excelentissimo Senhor Doutor Juiz / Colendo Tribunal)
 - Qualificacao das partes — pseudonimos apenas
 - Dos Fatos (numerados)
-- Do Direito (fundamentos, cada norma marcada para verificacao)
+- Do Direito (fundamentos, cada afirmação e norma com sua etiqueta de proveniência inline)
 - Dos Pedidos (numerados, concretos)
 - Encerramento formal
 

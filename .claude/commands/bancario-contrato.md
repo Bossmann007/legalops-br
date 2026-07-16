@@ -4,6 +4,13 @@ description: Checklist de triagem de contrato bancario/financeiro sem teses juri
 triggers: ["/bancario-contrato", "contrato bancario", "contrato financeiro", "fraude bancaria", "perda com investimento"]
 ---
 
+## Proveniência obrigatória
+Na saída, aplique a Regra 3 de `.claude/RULES.md` **em cada afirmação jurídica**. Fato ou
+cláusula extraída recebe `[documento do usuário]`; análise não conferida recebe
+`[conhecimento do modelo — conferir]`; pesquisa não oficial recebe
+`[fonte secundária — conferir]`; e `[fonte primária]` só vale se a fonte oficial foi realmente
+consultada nesta sessão. Uma etiqueta geral no cabeçalho não substitui as etiquetas inline.
+
 Use para leitura inicial de contrato bancario, financiamento, investimento, portabilidade, contestacao de tarifa ou caso de fraude bancaria. A skill organiza fatos e red flags para revisao da advogada. Nao importar teses, sumulas, artigos ou conclusoes da fonte sem verificacao humana.
 
 ## Guardrails
