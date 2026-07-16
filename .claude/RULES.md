@@ -18,6 +18,8 @@ deve receber, na mesma frase, linha ou célula, uma destas etiquetas:
 
 - `[fonte primária]` — o conteúdo foi conferido nesta sessão no Planalto, DJe ou site oficial
   do tribunal/órgão. Informe também qual fonte foi consultada.
+- `[fonte secundária — conferir]` — o conteúdo veio de JusBrasil, Escavador, notícia, busca ou
+  outra fonte não oficial. Informe qual fonte foi consultada e confira na fonte primária.
 - `[conhecimento do modelo — conferir]` — o conteúdo veio da memória ou do raciocínio do
   modelo e não foi conferido em fonte primária. Esta é a etiqueta padrão.
 - `[motor determinístico]` — o resultado foi calculado pelo engine local `legalops`, como

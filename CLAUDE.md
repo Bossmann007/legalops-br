@@ -29,6 +29,7 @@ Em toda saída jurídica, cada afirmação de lei, prazo, súmula, tese ou enten
 uma etiqueta inline. Use somente o que aconteceu de verdade na sessão:
 
 - `[fonte primária]` — conferido no Planalto, DJe ou site oficial do tribunal/órgão;
+- `[fonte secundária — conferir]` — veio de JusBrasil, Escavador, notícia ou busca;
 - `[conhecimento do modelo — conferir]` — veio do modelo e não foi conferido; é o padrão;
 - `[motor determinístico]` — calculado pelo engine local `legalops`, nunca pela IA;
 - `[documento do usuário]` — extraído de documento fornecido pela advogada.
