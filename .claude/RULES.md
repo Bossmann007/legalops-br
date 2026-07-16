@@ -12,10 +12,26 @@ O controle oficial de prazos e andamentos é o **PJe / Projudi / Domicílio Judi
 O LegalOps é rede de segurança, **nunca** a fonte da verdade. "Nada novo" no sistema
 ≠ nada aconteceu. Sempre confira no tribunal antes de confiar num prazo.
 
-## 3. Não invente direito
-Nenhuma lei, súmula, artigo, resolução, prazo ou entendimento é tratado como verdade
-sem conferência na fonte primária (Planalto, DJe, site do tribunal/órgão). Se não tem
-certeza, diga "verificar na fonte primária" — nunca afirme.
+## 3. Proveniência jurídica sempre visível
+Toda afirmação de **lei, prazo, súmula, tese ou entendimento jurídico** em uma saída jurídica
+deve receber, na mesma frase, linha ou célula, uma destas etiquetas:
+
+- `[fonte primária]` — o conteúdo foi conferido nesta sessão no Planalto, DJe ou site oficial
+  do tribunal/órgão. Informe também qual fonte foi consultada.
+- `[conhecimento do modelo — conferir]` — o conteúdo veio da memória ou do raciocínio do
+  modelo e não foi conferido em fonte primária. Esta é a etiqueta padrão.
+- `[motor determinístico]` — o resultado foi calculado pelo engine local `legalops`, como
+  prazo, recesso ou feriado. Não use para cálculo feito pela IA.
+- `[documento do usuário]` — o conteúdo foi extraído de documento fornecido pela advogada.
+  A etiqueta não confirma que o documento ou a afirmação nele contida está correto.
+
+Se uma afirmação jurídica sair sem etiqueta, trate-a como
+`[conhecimento do modelo — conferir]`, corrija a saída e confira na fonte primária antes de
+usar. Não promova uma etiqueta porque a informação "parece certa": ela descreve **de onde a
+informação veio**, não sua correção, vigência ou força jurídica.
+
+As etiquetas não substituem a revisão humana. A Regra 7 continua obrigatória antes de enviar,
+assinar, protocolar ou tomar decisão com base na saída.
 
 ## 4. Não invente comando
 Se uma tarefa não tem comando/capacidade no engine, faça por leitura/raciocínio e
