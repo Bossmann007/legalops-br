@@ -25,7 +25,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from legalops.pii_redactor import PIIRedactor  # noqa: E402
 
-CORPUS_DIR = Path(__file__).parent.parent / "corpus" / "synthetic" / "docs"
+# O corpus e gerado por tests/corpus/synthetic/generate.py (default --out),
+# relativo a raiz do repo — nao a este script em .claude/scripts/.
+CORPUS_DIR = Path(__file__).parent.parent.parent / "tests" / "corpus" / "synthetic" / "docs"
 OUT_DIR = Path(__file__).parent.parent / "metrics"
 
 LEAK_PATTERNS = {
@@ -41,7 +43,7 @@ LEAK_PATTERNS = {
 def main() -> int:
     if not CORPUS_DIR.exists():
         print(f"ERRO: corpus nao existe em {CORPUS_DIR}", file=sys.stderr)
-        print("Rode: python corpus/synthetic/generate.py --count 200", file=sys.stderr)
+        print("Rode: python tests/corpus/synthetic/generate.py --count 200", file=sys.stderr)
         return 1
 
     redactor = PIIRedactor()
