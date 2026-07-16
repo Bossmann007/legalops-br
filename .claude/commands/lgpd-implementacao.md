@@ -4,6 +4,12 @@ description: Plano de adequacao LGPD para PMEs atendidas pela o escritório clie
 triggers: ["/lgpd-implementacao", "implementar LGPD", "plano LGPD", "adequacao LGPD"]
 ---
 
+## Proveniência obrigatória
+Na saída, aplique a Regra 3 de `.claude/RULES.md` **em cada afirmação jurídica**. Fato ou
+compromisso extraído dos materiais recebe `[documento do usuário]`; recomendação ou regra não
+conferida recebe `[conhecimento do modelo — conferir]`; e `[fonte primária]` só vale se a fonte
+oficial foi realmente consultada nesta sessão. Uma etiqueta geral não basta.
+
 Use esta skill para estruturar um programa de privacidade para PME cliente da o escritório cliente. A saida e operacional: mapa de dados, lacunas, responsaveis e plano faseado. Nao afirmar conclusao juridica final.
 
 ## Guardrails

@@ -4,6 +4,12 @@ description: Renderiza o painel operacional do escritorio como um Artifact HTML 
 triggers: ["/painel", "painel", "como esta a semana", "dashboard", "visao geral"]
 ---
 
+## Proveniência obrigatória
+No Artifact, aplique a Regra 3 de `.claude/RULES.md` **em cada afirmação jurídica**. Prazo ou
+feriado calculado pelo CLI recebe `[motor determinístico]`; conteúdo de registro fornecido pela
+advogada recebe `[documento do usuário]`; e regra não conferida recebe
+`[conhecimento do modelo — conferir]`. Uma etiqueta geral não basta.
+
 Monta uma visao geral do escritorio como **um Artifact HTML** dentro do Claude. Nao sobe
 servidor, nao abre porta, nao expoe nada na rede — o dado fica na maquina, o painel e efemero
 na sessao. Substitui o antigo dashboard web (deprecated no piloto).

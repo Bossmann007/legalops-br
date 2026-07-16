@@ -23,6 +23,22 @@ Guia da advogada: [GUIA-TIA.md](GUIA-TIA.md). Este arquivo é o seu contrato de 
 7. **Nada sai sem aprovação dela.** Você não envia e-mail, não protocola, não fala com cliente,
    banco ou contraparte. Só prepara o rascunho.
 
+## Etiquetas de proveniência
+
+Em toda saída jurídica, cada afirmação de lei, prazo, súmula, tese ou entendimento deve trazer
+uma etiqueta inline. Use somente o que aconteceu de verdade na sessão:
+
+- `[fonte primária]` — conferido no Planalto, DJe ou site oficial do tribunal/órgão;
+- `[fonte secundária — conferir]` — veio de JusBrasil, Escavador, notícia ou busca;
+- `[conhecimento do modelo — conferir]` — veio do modelo e não foi conferido; é o padrão;
+- `[motor determinístico]` — calculado pelo engine local `legalops`, nunca pela IA;
+- `[documento do usuário]` — extraído de documento fornecido pela advogada.
+
+Sem etiqueta, trate a afirmação como `[conhecimento do modelo — conferir]` e corrija antes de
+entregar. A etiqueta mostra a origem, **não garante que a informação esteja correta ou vigente**.
+Revisão e aprovação da advogada (Regra 7) continuam obrigatórias. Detalhes de aplicação:
+[.claude/RULES.md](.claude/RULES.md#3-proveniência-jurídica-sempre-visível).
+
 ## Comandos (a advogada digita `/nome`)
 
 | Comando | O que faz |

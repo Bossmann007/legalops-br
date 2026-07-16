@@ -4,6 +4,12 @@ description: Checa a caixa de email (Outlook/M365) por intimações novas, tria 
 triggers: ["/varrer", "checar caixa", "tem intimacao nova", "varrer email"]
 ---
 
+## Proveniência obrigatória
+Na saída, aplique a Regra 3 de `.claude/RULES.md` **em cada afirmação jurídica**. Campo extraído
+de email ou intimação recebe `[documento do usuário]`; prazo calculado pelo pipeline local recebe
+`[motor determinístico]`; e regra não conferida recebe
+`[conhecimento do modelo — conferir]`. Uma etiqueta geral não basta.
+
 Checa a caixa dela por intimações novas: $ARGUMENTS
 
 Fonte oficial é o PJe/Projudi — isto é rede de segurança. Você NUNCA calcula prazo;

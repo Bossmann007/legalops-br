@@ -69,5 +69,47 @@ else
   echo "  ok: nenhum path pessoal versionado"
 fi
 
+echo "[6] Proveniência obrigatória nas saídas jurídicas"
+provenance_files=(
+  .claude/commands/bancario-contrato.md
+  .claude/commands/briefing.md
+  .claude/commands/contrato.md
+  .claude/commands/dpa-review.md
+  .claude/commands/dsar.md
+  .claude/commands/intimacao.md
+  .claude/commands/lgpd-implementacao.md
+  .claude/commands/lgpd-triagem.md
+  .claude/commands/painel.md
+  .claude/commands/peticao.md
+  .claude/commands/prazo.md
+  .claude/commands/processo.md
+  .claude/commands/revisao-semanal.md
+  .claude/commands/ripd.md
+  .claude/commands/saude-privacidade.md
+  .claude/commands/varrer.md
+  .claude/agents/contrato-analista.md
+  .claude/agents/operacao-ledger.md
+  .claude/agents/peticao-drafter.md
+)
+for f in "${provenance_files[@]}"; do
+  if ! grep -Fq "Proveniência obrigatória" "$f" && ! grep -Fq "Regra 3 de \`.claude/RULES.md\`" "$f"; then
+    echo "  FAIL: $f sem regra de proveniência"; fail=1
+  fi
+done
+
+for label in \
+  "[fonte primária]" \
+  "[fonte secundária — conferir]" \
+  "[conhecimento do modelo — conferir]" \
+  "[motor determinístico]" \
+  "[documento do usuário]"; do
+  if ! grep -Fq "$label" .claude/RULES.md || ! grep -Fq "$label" CLAUDE.md; then
+    echo "  FAIL: vocabulário incompleto para $label"; fail=1
+  fi
+done
+if [ "$fail" -eq 0 ]; then
+  echo "  ok: vocabulário e superfícies jurídicas cobertos"
+fi
+
 if [ "$fail" -ne 0 ]; then echo "HARNESS SMOKE: FALHOU"; exit 1; fi
 echo "HARNESS SMOKE: OK"

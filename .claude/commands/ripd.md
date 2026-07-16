@@ -4,6 +4,12 @@ description: Rascunho de Relatorio de Impacto a Protecao de Dados para clientes 
 triggers: ["/ripd", "RIPD", "relatorio de impacto", "PIA", "DPIA"]
 ---
 
+## Proveniência obrigatória
+Na saída, aplique a Regra 3 de `.claude/RULES.md` **em cada afirmação jurídica**. Fato ou
+compromisso extraído dos materiais recebe `[documento do usuário]`; avaliação, requisito ou
+regra não conferida recebe `[conhecimento do modelo — conferir]`; e `[fonte primária]` só vale
+se a fonte oficial foi realmente consultada nesta sessão. Uma etiqueta geral não basta.
+
 Use para documentar uma avaliacao de impacto de privacidade. O arquivo produzido e rascunho interno para revisao da advogada, nao documento para envio automatico a regulador, cliente ou contraparte.
 
 ## Guardrails

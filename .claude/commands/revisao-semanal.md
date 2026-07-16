@@ -4,6 +4,13 @@ description: Reunião semanal completa — operações + mercado jurídico + mel
 triggers: ["/revisao", "/revisao-semanal", "revisão da semana", "como foi a semana", "reunião semanal"]
 ---
 
+## Proveniência obrigatória
+Na saída, aplique a Regra 3 de `.claude/RULES.md` **em cada afirmação jurídica**. Resultado do
+CLI recebe `[motor determinístico]` quando houver cálculo jurídico; conteúdo de registro local
+fornecido recebe `[documento do usuário]`; pesquisa não oficial recebe
+`[fonte secundária — conferir]`; e análise não conferida recebe
+`[conhecimento do modelo — conferir]`. Uma etiqueta geral não basta.
+
 Execute em sequência:
 
 ## 1. OPERAÇÕES DA SEMANA

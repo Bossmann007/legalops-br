@@ -13,6 +13,10 @@ email, MCP, rede, ingestao automatica, re-auth, dashboard externo ou envio.
 ## Invariantes obrigatorias
 - Toda saida juridica/operacional comeca exatamente com:
   `DRAFT — Requer revisão e assinatura`
+- Aplique a Regra 3 de `.claude/RULES.md` em cada afirmação jurídica: prazo calculado pelo CLI
+  recebe `[motor determinístico]`; conteúdo de ledger fornecido pela advogada recebe
+  `[documento do usuário]`; e regra não conferida recebe
+  `[conhecimento do modelo — conferir]`. Uma etiqueta geral não basta.
 - Cliente sempre por alias (`CLI-XXX`, `PROC-XXX`). Nunca use nome real.
 - Nao invente KPI, faturamento, inadimplencia, cliente em risco, prazo cumprido,
   prazo perdido ou movimentacao. Sem ledger = `[sem registro — não rastreado]`.
@@ -87,7 +91,7 @@ DRAFT — Requer revisão e assinatura
 - Contratos ok incluidos: [sim/nao, se --incluir-ok foi usado]
 
 ## Prazos locais
-- Proximos 7 dias: [lista local ou sem registro]
+- Proximos 7 dias: [lista local ou sem registro] [motor determinístico]
 - Observacao: controle oficial permanece no PJe/Projudi/Domicilio Judicial.
 
 ## Acoes sugeridas

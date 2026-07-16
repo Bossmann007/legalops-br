@@ -4,6 +4,12 @@ description: Triagem rapida PROCEED / PIA / STOP para atividade de tratamento de
 triggers: ["/lgpd-triagem", "triagem LGPD", "precisa de RIPD", "pode tratar esses dados", "privacy check"]
 ---
 
+## Proveniência obrigatória
+Na saída, aplique a Regra 3 de `.claude/RULES.md` **em cada afirmação jurídica**. Fato extraído
+dos materiais recebe `[documento do usuário]`; classificação, requisito ou análise não conferida
+recebe `[conhecimento do modelo — conferir]`; e `[fonte primária]` só vale se a fonte oficial
+foi realmente consultada nesta sessão. Uma etiqueta geral não basta.
+
 Use esta skill antes de iniciar uma atividade de tratamento, revisar uma feature, contratar fornecedor ou responder a uma ideia de cliente PME. O objetivo e decidir o proximo passo, nao dar parecer final.
 
 ## Guardrails

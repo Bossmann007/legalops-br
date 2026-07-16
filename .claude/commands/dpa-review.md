@@ -4,6 +4,12 @@ description: Revisao de DPA/contrato de tratamento de dados para clientes o escr
 triggers: ["/dpa-review", "revisar DPA", "contrato de tratamento", "acordo de tratamento de dados"]
 ---
 
+## Proveniência obrigatória
+Na saída, aplique a Regra 3 de `.claude/RULES.md` **em cada afirmação jurídica**. Cláusula ou
+fato do DPA recebe `[documento do usuário]`; análise não conferida recebe
+`[conhecimento do modelo — conferir]`; e `[fonte primária]` só vale se a fonte oficial foi
+realmente consultada nesta sessão. Uma etiqueta geral não basta.
+
 Use para revisar contrato, anexo ou clausula de tratamento de dados. A skill separa revisao quando o cliente atua como controlador, operador ou papel indefinido. Se o papel estiver duvidoso, pare e pergunte.
 
 ## Guardrails
